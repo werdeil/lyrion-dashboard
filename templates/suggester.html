@@ -1,0 +1,202 @@
+<!doctype html>
+<html>
+<head>
+    <title>Lyrion Suggester</title>
+    <style>
+        * { box-sizing: border-box; }
+        body { font-family: Arial; background:#111; color:#eee; margin:0; padding:20px; }
+        h1 { margin-top:0; }
+
+        .main-layout {
+            display: flex;
+            gap: 24px;
+            align-items: flex-start;
+        }
+        .left-panel { flex: 1; min-width: 0; }
+
+        .stats-panel {
+            width: 260px;
+            flex-shrink: 0;
+            background: #1a1a1a;
+            border-radius: 10px;
+            padding: 16px;
+            border: 1px solid #333;
+        }
+        .stats-panel h2 {
+            margin: 0 0 14px 0;
+            font-size: 1rem;
+            color: #aaa;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .stat-group { margin-bottom: 16px; }
+        .stat-group-title {
+            font-size: 0.75rem;
+            color: #888;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 6px;
+            border-bottom: 1px solid #333;
+            padding-bottom: 4px;
+        }
+        .stat-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 3px 0;
+            font-size: 0.85rem;
+        }
+        .stat-row.sub {
+            padding-left: 10px;
+            color: #aaa;
+            font-size: 0.8rem;
+        }
+        .stat-row.sub .stat-label::before { content: "\2197 "; color: #555; }
+        .stat-value { font-weight: bold; color: #1db954; white-space: nowrap; margin-left: 8px; }
+        .stat-row.sub .stat-value { color: #aaa; }
+        .velocity-value {
+            font-size: 1.4rem;
+            font-weight: bold;
+            color: #1db954;
+            text-align: center;
+            margin-top: 4px;
+        }
+        .velocity-label { text-align: center; font-size: 0.75rem; color: #888; }
+
+        .albums-grid { display: flex; flex-wrap: wrap; gap: 20px; }
+        .album { text-align: center; width: 200px; }
+        img { width:200px; height:200px; object-fit:cover; border-radius:8px; }
+        button { padding:8px 12px; background:#1db954; border:none; color:white; cursor:pointer; border-radius:5px; }
+        select { padding:5px; background:#222; color:#eee; border:1px solid #444; border-radius:4px; }
+        hr { border-color: #333; margin: 16px 0; }
+    </style>
+</head>
+<body>
+    <h1>&#127925; Lyrion Album Suggester</h1>
+
+    <form method="POST" style="margin-bottom:16px;">
+        <label>Player :</label>
+        <select name="player_id">
+            {% for p in players %}
+                <option value="{{ p.playerid }}"
+                    {% if p.playerid == selected_player %}selected{% endif %}>
+                    {{ p.name }}
+                </option>
+            {% endfor %}
+        </select>
+        <button type="submit">OK</button>
+    </form>
+
+    {% if not selected_player %}
+        <p style="color:#e74c3c;">&#9888; S&eacute;lectionne un player avant de lancer un album</p>
+    {% endif %}
+
+    <div class="main-layout">
+
+        <div class="left-panel">
+            <div class="albums-grid">
+            {% for album in albums %}
+                <div class="album">
+                    <img src="{{ lyrion_host }}/music/{{ album.artwork }}/cover.jpg"
+                         onerror="this.src='https://via.placeholder.com/200?text=No+Cover'">
+                    <p><b>{{ album.title }}</b><br>{{ album.artist }}</p>
+                    {% if selected_player %}
+                        <a href="/play/{{ album.id }}">
+                            <button>&#9654; Lire</button>
+                        </a>
+                    {% endif %}
+                </div>
+            {% endfor %}
+            </div>
+        </div>
+
+        <div class="stats-panel">
+            <h2>&#128202; Librairie</h2>
+
+            <div class="stat-group">
+                <div class="stat-group-title">&#127925; Albums</div>
+                <div class="stat-row">
+                    <span class="stat-label">Total</span>
+                    <span class="stat-value">{{ stats.albums_total }}</span>
+                </div>
+                <div class="stat-row sub">
+                    <span class="stat-label">Fully played</span>
+                    <span>{{ stats.albums_played }} <small>({{ stats.albums_played_pct }}%)</small></span>
+                </div>
+                <div class="stat-row sub">
+                    <span class="stat-label">Not fully played</span>
+                    <span>{{ stats.albums_not_fully }} <small>({{ stats.albums_not_fully_pct }}%)</small></span>
+                </div>
+                <div class="stat-row sub">
+                    <span class="stat-label">Never played</span>
+                    <span>{{ stats.albums_never }} <small>({{ stats.albums_never_pct }}%)</small></span>
+                </div>
+            </div>
+
+            <!-- Album Artists -->
+            <div class="stat-group">
+                <div class="stat-group-title">&#127908; Album Artists</div>
+                <div class="stat-row">
+                    <span class="stat-label">Total</span>
+                    <span class="stat-value">{{ stats.artists_total }}</span>
+                </div>
+                <div class="stat-row sub">
+                    <span class="stat-label">Fully played</span>
+                    <span>{{ stats.artists_played }} <small>({{ stats.artists_played_pct }}%)</small></span>
+                </div>
+                <div class="stat-row sub">
+                    <span class="stat-label">Partially played</span>
+                    <span>{{ stats.artists_partial }} <small>({{ stats.artists_partial_pct }}%)</small></span>
+                </div>
+                <div class="stat-row sub">
+                    <span class="stat-label">Never played</span>
+                    <span>{{ stats.artists_unplayed }} <small>({{ stats.artists_unplayed_pct }}%)</small></span>
+                </div>
+            </div>
+
+            <!-- Songs -->
+            <div class="stat-group">
+                <div class="stat-group-title">&#127926; Songs</div>
+                <div class="stat-row">
+                    <span class="stat-label">Total</span>
+                    <span class="stat-value">{{ stats.songs_total }}</span>
+                </div>
+                <div class="stat-row sub">
+                    <span class="stat-label">Played</span>
+                    <span>{{ stats.songs_played_apc }} <small>({{ stats.songs_played_pct }}%)</small></span>
+                </div>
+                <div class="stat-row sub">
+                    <span class="stat-label">Unplayed</span>
+                    <span>{{ stats.songs_unplayed_apc }} <small>({{ stats.songs_unplayed_apc_pct }}%)</small></span>
+                </div>
+                <div class="stat-row sub">
+                    <span class="stat-label">Total plays</span>
+                    <span class="stat-value">{{ stats.songs_total_plays_apc }}</span>
+                </div>
+            </div>
+
+            <!-- Divers -->
+            <div class="stat-group">
+                <div class="stat-group-title">&#128202; Divers</div>
+                <div class="stat-row">
+                    <span class="stat-label">Genres</span>
+                    <span class="stat-value">{{ stats.genres }}</span>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-label">Rated songs</span>
+                    <span>{{ stats.rated_songs }} <small>({{ stats.rated_songs_pct }}%)</small></span>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-label">With lyrics</span>
+                    <span>{{ stats.songs_with_lyrics }} <small>({{ stats.lyrics_pct }}%)</small></span>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-label">Played last 30d</span>
+                    <span class="stat-value">{{ stats.velocity_30d }}</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</body>
+</html>

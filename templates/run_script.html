@@ -1,0 +1,17 @@
+<!doctype html>
+<html>
+<body style="font-family:sans-serif;text-align:center;margin-top:40px;">
+    <h2>&#128640; Running script...</h2>
+
+    <script>
+        fetch('/custom/run-script?token={{ token }}')
+            .then(() => {
+                document.body.innerHTML = "<h2>Done</h2>";
+                setTimeout(() => window.close(), 800);
+            })
+            .catch(() => {
+                document.body.innerHTML = "<h2>Error</h2>";
+            });
+    </script>
+</body>
+</html>
