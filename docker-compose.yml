@@ -1,0 +1,24 @@
+services:
+  lyrion-app:
+    image: python:3.12-slim
+    container_name: lyrion-app
+    restart: unless-stopped
+    working_dir: /app
+    command: >
+      sh -c "pip install --no-cache-dir -r requirements.txt && python app.py"
+    ports:
+      - "1111:1111"
+    environment:
+      - LYRION_HOST=${LYRION_HOST}
+      - DB_PATH=${DB_PATH}
+      - DB_PERSIST_PATH=${DB_PERSIST_PATH}
+      - SECRET_KEY=${SECRET_KEY:-supersecretkey}
+      - CUSTOM_TOKEN=${CUSTOM_TOKEN:-2uUdz3lRCsfDCwEzsziu}
+      - CUSTOM_DATA_DIR=${CUSTOM_DATA_DIR:-/opt/scripts/custom_data}
+      - CUSTOM_SCRIPT_PATH=${CUSTOM_SCRIPT_PATH:-/opt/scripts/lms-custom-stats.sh}
+    volumes:
+      - .:/app:ro
+      - ${DB_PATH}:${DB_PATH}:ro
+      - ${DB_PERSIST_PATH}:${DB_PERSIST_PATH}:ro
+      - ${CUSTOM_DATA_DIR:-/opt/scripts/custom_data}:/opt/scripts/custom_data:ro
+      - ${CUSTOM_SCRIPT_PATH:-/opt/scripts/lms-custom-stats.sh}:/opt/scripts/lms-custom-stats.sh:ro
