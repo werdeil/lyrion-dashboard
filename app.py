@@ -9,6 +9,10 @@ def create_app():
     app = Flask(__name__)
     app.config.from_object(Config)
 
+    @app.route("/health", methods=["GET"])
+    def healthcheck():
+        return {"status": "ok"}, 200
+
     # Register blueprints
     app.register_blueprint(suggester_bp)
     app.register_blueprint(custom_bp)
