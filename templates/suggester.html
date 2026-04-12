@@ -99,13 +99,14 @@
         .velocity-label { text-align: center; font-size: 0.75rem; color: #8fa8c8; }
 
         .albums-grid { display: flex; flex-wrap: wrap; gap: 20px; justify-content: center; }
-        .album { text-align: center; flex: 1 1 200px; max-width: 200px; }
-        .album-thumb { position: relative; }
-        .album img { width:100%; height:200px; object-fit:cover; border-radius:8px; display:block; border: 1px solid #20314c; }
+        .album { display: flex; flex-direction: column; text-align: center; flex: 1 1 200px; max-width: 200px; min-width: 0; }
+        .album-thumb { position: relative; width: 100%; aspect-ratio: 1 / 1; }
+        .album img { width:100%; height:100%; object-fit:cover; border-radius:8px; display:block; border: 1px solid #20314c; }
         .album-overlay { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; opacity:0; transition:opacity 0.2s ease; border-radius:8px; background: rgba(0, 189, 164, 0.16); }
         .album-thumb:hover .album-overlay { opacity:1; }
         .play-button { display:flex; align-items:center; justify-content:center; width:48px; height:48px; background: #00bda4; border-radius:50%; color:#fff; text-decoration:none; font-size:1.4rem; box-shadow: 0 8px 24px rgba(0,0,0,0.25); }
         .album p { margin-top: 10px; line-height: 1.3; color: #d7e2f4; }
+        .album-label { display: block; text-align: left; }
         .page-logo { width: 1.2rem; height: 1.2rem; vertical-align: middle; margin-right: 0.6rem; }
         .form-row { display:flex; align-items:center; gap:12px; flex-wrap:wrap; }
         .form-error { color:#ff7d87; white-space: nowrap; font-size:0.95rem; }
@@ -125,8 +126,10 @@
         @media (max-width: 540px) {
             body { padding: 12px; }
             .albums-grid { gap: 14px; }
-            .album { flex: 1 1 100%; }
-            .album img { height: 180px; }
+            .album { flex: 1 1 100%; flex-direction: row; align-items: flex-start; max-width: none; }
+            .album-thumb { width: 120px; flex-shrink: 0; }
+            .album img { height: 100%; }
+            .album p { margin-top: 0; margin-left: 12px; text-align: left; }
             .form-error { white-space: normal; }
         }
     </style>
