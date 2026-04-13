@@ -5,6 +5,7 @@
 body {
     margin: 0;
     min-height: 100vh;
+    padding: 16px;
     font-family: Arial, sans-serif;
     background: #121827;
     color: #e5eff9;
@@ -285,6 +286,7 @@ hr {
     width: 2.4rem;
     height: 2.4rem;
     margin-left: 0.6rem;
+    margin-top: 0.25rem;
     border-radius: 0.7rem;
     background: rgba(0, 189, 164, 0.18);
     border: 1px solid rgba(0, 189, 164, 0.22);
@@ -303,6 +305,7 @@ hr {
 .page-header {
     display: flex;
     align-items: center;
+    justify-content: center;
     flex-wrap: wrap;
     gap: 0.75rem;
     margin-bottom: 20px;
