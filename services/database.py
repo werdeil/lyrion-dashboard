@@ -11,6 +11,9 @@ def get_db_conn():
     conn.isolation_level = None
     conn.execute(f"ATTACH DATABASE 'file:{persist}?mode=ro' AS persist")
     conn.row_factory = sqlite3.Row
+    conn.execute("PRAGMA mmap_size = 268435456")
+    conn.execute("PRAGMA cache_size = -32000")
+    conn.execute("PRAGMA temp_store = MEMORY")
     conn.execute("BEGIN DEFERRED")
     try:
         yield conn
@@ -62,146 +65,117 @@ def get_stats():
     with get_db_conn() as conn:
         cur = conn.cursor()
 
-        def q(sql):
-            try:
-                return cur.execute(sql).fetchone()[0] or 0
-            except Exception as e:
-                print(f"[STATS ERROR] {e}\nSQL: {sql}")
-                return 0
-
         def pct(part, total):
             if total == 0:
                 return 0
             return round(part * 100 / total, 1)
 
+        # Query 1: albums + songs — single scan of tracks JOIN alternativeplaycount
+        row = cur.execute("""
+            WITH track_play AS (
+                SELECT
+                    t.id,
+                    t.album,
+                    COALESCE(apc.playcount, 0) > 0 AS is_played,
+                    COALESCE(apc.playcount, 0)      AS playcount
+                FROM tracks t
+                LEFT JOIN alternativeplaycount apc ON t.urlmd5 = apc.urlmd5
+                WHERE t.audio = 1
+            ),
+            album_agg AS (
+                SELECT album, COUNT(*) AS total, SUM(is_played) AS played
+                FROM track_play
+                GROUP BY album
+            )
+            SELECT
+                (SELECT COUNT(DISTINCT id) FROM albums)                          AS albums_total,
+                SUM(played = total)                                              AS albums_played,
+                SUM(played > 0 AND played < total)                              AS albums_not_fully,
+                SUM(played = 0)                                                  AS albums_never,
+                (SELECT COUNT(*) FROM track_play)                               AS songs_total,
+                (SELECT SUM(is_played) FROM track_play)                        AS songs_played_apc,
+                (SELECT COUNT(*) - SUM(is_played) FROM track_play)             AS songs_unplayed_apc,
+                (SELECT SUM(playcount) FROM track_play WHERE playcount > 0)    AS songs_total_plays_apc
+            FROM album_agg
+        """).fetchone()
+
         stats = {
-            # Albums
-            "albums_total": q("SELECT count(distinct albums.id) FROM albums"),
-            "albums_played": q("""
-                SELECT count(distinct albums.id) FROM albums
-                WHERE albums.id NOT IN (
-                    SELECT tracks.album FROM tracks
-                    JOIN alternativeplaycount ON tracks.urlmd5=alternativeplaycount.urlmd5
-                    WHERE tracks.audio=1 AND (alternativeplaycount.playcount=0 OR alternativeplaycount.playcount IS NULL)
-                )
-            """),
-            "albums_not_fully": q("""
-                SELECT count(distinct albums.id) FROM albums
-                JOIN tracks ON tracks.album=albums.id
-                JOIN alternativeplaycount ON tracks.urlmd5=alternativeplaycount.urlmd5
-                WHERE tracks.audio=1 AND (alternativeplaycount.playcount=0 OR alternativeplaycount.playcount IS NULL)
-                AND albums.id IN (
-                    SELECT tracks.album FROM tracks
-                    JOIN alternativeplaycount ON tracks.urlmd5=alternativeplaycount.urlmd5
-                    WHERE tracks.audio=1 AND alternativeplaycount.playcount>0
-                )
-            """),
-            "albums_never": q("""
-                SELECT count(distinct albums.id) FROM albums
-                WHERE albums.id NOT IN (
-                    SELECT tracks.album FROM tracks
-                    JOIN alternativeplaycount ON tracks.urlmd5=alternativeplaycount.urlmd5
-                    WHERE tracks.audio=1 AND alternativeplaycount.playcount>0
-                )
-            """),
-            # Album artists
-            "artists_total": q("""
-                SELECT count(distinct contributors.id) FROM contributors
-                LEFT JOIN contributor_track ON contributors.id=contributor_track.contributor
-                WHERE contributor_track.role=5
-            """),
-            "artists_played": q("""
-                SELECT count(distinct contributor_track.contributor) FROM contributor_track
-                JOIN tracks ON tracks.id=contributor_track.track
-                WHERE contributor_track.contributor NOT IN (
-                    SELECT contributors.id FROM contributors
-                    JOIN contributor_track ON contributors.id=contributor_track.contributor
-                    JOIN tracks ON tracks.id=contributor_track.track
-                    JOIN alternativeplaycount ON tracks.urlmd5=alternativeplaycount.urlmd5
-                    WHERE tracks.audio=1
-                    AND (alternativeplaycount.playcount=0 OR alternativeplaycount.playcount IS NULL)
-                    AND contributor_track.role=5
-                ) AND contributor_track.role=5
-            """),
-            "artists_partial": q("""
-                SELECT count(distinct contributor_track.contributor) FROM contributor_track
-                LEFT JOIN tracks ON tracks.id=contributor_track.track
-                JOIN alternativeplaycount ON tracks.url=alternativeplaycount.url
-                WHERE tracks.audio=1
-                AND (alternativeplaycount.playcount=0 OR alternativeplaycount.playcount IS NULL)
-                AND contributor_track.role=5
-                AND contributor_track.contributor IN (
-                    SELECT contributors.id FROM contributors
-                    LEFT JOIN contributor_track ON contributors.id=contributor_track.contributor
-                    JOIN tracks ON tracks.id=contributor_track.track
-                    JOIN alternativeplaycount ON tracks.urlmd5=alternativeplaycount.urlmd5
-                    WHERE tracks.audio=1 AND alternativeplaycount.playcount>0
-                    AND contributor_track.role=5
-                )
-            """),
-            "artists_unplayed": q("""
-                SELECT count(distinct contributor_track.contributor) FROM contributor_track
-                JOIN tracks ON tracks.id=contributor_track.track
-                WHERE contributor_track.contributor NOT IN (
-                    SELECT contributors.id FROM contributors
-                    LEFT JOIN contributor_track ON contributors.id=contributor_track.contributor
-                    JOIN tracks ON tracks.id=contributor_track.track
-                    JOIN alternativeplaycount ON tracks.urlmd5=alternativeplaycount.urlmd5
-                    WHERE tracks.audio=1 AND alternativeplaycount.playcount>0
-                    AND contributor_track.role=5
-                ) AND contributor_track.role=5
-            """),
-            # Songs
-            "songs_total": q("SELECT count(*) FROM tracks WHERE audio=1"),
-            "songs_played_apc": q("""
-                SELECT count(distinct tracks.id) FROM tracks
-                JOIN alternativeplaycount ON tracks.urlmd5=alternativeplaycount.urlmd5
-                WHERE audio=1 AND alternativeplaycount.playcount>0
-            """),
-            "songs_unplayed_apc": q("""
-                SELECT count(distinct tracks.id) FROM tracks
-                JOIN alternativeplaycount ON tracks.urlmd5=alternativeplaycount.urlmd5
-                WHERE audio=1 AND ifnull(alternativeplaycount.playcount, 0) = 0
-            """),
-            "songs_total_plays_apc": q("""
-                SELECT sum(alternativeplaycount.playcount) FROM tracks
-                JOIN alternativeplaycount ON tracks.url=alternativeplaycount.url
-                WHERE audio=1 AND alternativeplaycount.playcount>0
-            """),
-            # Divers
-            "genres": q("SELECT count(*) FROM genres"),
-            "rated_songs": q("""
-                SELECT count(*) FROM tracks
-                JOIN persist.tracks_persistent ON tracks.url=persist.tracks_persistent.url
-                WHERE audio=1 AND persist.tracks_persistent.rating>0
-            """),
-            "songs_with_lyrics": q("""
-                SELECT count(distinct tracks.id) FROM tracks
-                WHERE audio=1 AND lyrics IS NOT NULL
-            """),
-            # Velocity
-            "velocity_30d": q("""
-                SELECT COUNT(*) FROM persist.tracks_persistent
-                WHERE lastplayed > strftime('%s','now','-30 days')
-            """),
+            "albums_total":          row["albums_total"] or 0,
+            "albums_played":         row["albums_played"] or 0,
+            "albums_not_fully":      row["albums_not_fully"] or 0,
+            "albums_never":          row["albums_never"] or 0,
+            "songs_total":           row["songs_total"] or 0,
+            "songs_played_apc":      row["songs_played_apc"] or 0,
+            "songs_unplayed_apc":    row["songs_unplayed_apc"] or 0,
+            "songs_total_plays_apc": row["songs_total_plays_apc"] or 0,
         }
 
+        # Query 2: artists — single scan via contributor_track
+        row = cur.execute("""
+            WITH track_play AS (
+                SELECT t.id, COALESCE(apc.playcount, 0) > 0 AS is_played
+                FROM tracks t
+                LEFT JOIN alternativeplaycount apc ON t.urlmd5 = apc.urlmd5
+                WHERE t.audio = 1
+            ),
+            artist_agg AS (
+                SELECT ct.contributor, COUNT(*) AS total, SUM(tp.is_played) AS played
+                FROM contributor_track ct
+                JOIN track_play tp ON ct.track = tp.id
+                WHERE ct.role = 5
+                GROUP BY ct.contributor
+            )
+            SELECT
+                (SELECT COUNT(DISTINCT contributor) FROM contributor_track WHERE role = 5) AS artists_total,
+                SUM(played = total)                AS artists_played,
+                SUM(played = 0)                    AS artists_unplayed,
+                SUM(played > 0 AND played < total) AS artists_partial
+            FROM artist_agg
+        """).fetchone()
+
+        stats.update({
+            "artists_total":    row["artists_total"] or 0,
+            "artists_played":   row["artists_played"] or 0,
+            "artists_unplayed": row["artists_unplayed"] or 0,
+            "artists_partial":  row["artists_partial"] or 0,
+        })
+
+        # Query 3: misc stats (genres, ratings, lyrics, velocity)
+        row = cur.execute("""
+            SELECT
+                (SELECT COUNT(*) FROM genres) AS genres,
+                (SELECT COUNT(DISTINCT t.id) FROM tracks t
+                 JOIN persist.tracks_persistent tp ON t.url = tp.url
+                 WHERE t.audio = 1 AND tp.rating > 0)                         AS rated_songs,
+                (SELECT COUNT(DISTINCT id) FROM tracks
+                 WHERE audio = 1 AND lyrics IS NOT NULL)                       AS songs_with_lyrics,
+                (SELECT COUNT(*) FROM persist.tracks_persistent
+                 WHERE lastplayed > strftime('%s', 'now', '-30 days'))         AS velocity_30d
+        """).fetchone()
+
+        stats.update({
+            "genres":            row["genres"] or 0,
+            "rated_songs":       row["rated_songs"] or 0,
+            "songs_with_lyrics": row["songs_with_lyrics"] or 0,
+            "velocity_30d":      row["velocity_30d"] or 0,
+        })
+
         # Pourcentages albums
-        stats["albums_played_pct"] = pct(stats["albums_played"], stats["albums_total"])
+        stats["albums_played_pct"]    = pct(stats["albums_played"],    stats["albums_total"])
         stats["albums_not_fully_pct"] = pct(stats["albums_not_fully"], stats["albums_total"])
-        stats["albums_never_pct"] = pct(stats["albums_never"], stats["albums_total"])
+        stats["albums_never_pct"]     = pct(stats["albums_never"],     stats["albums_total"])
 
         # Pourcentages artistes
-        stats["artists_played_pct"] = pct(stats["artists_played"], stats["artists_total"])
-        stats["artists_partial_pct"] = pct(stats["artists_partial"], stats["artists_total"])
+        stats["artists_played_pct"]   = pct(stats["artists_played"],   stats["artists_total"])
+        stats["artists_partial_pct"]  = pct(stats["artists_partial"],  stats["artists_total"])
         stats["artists_unplayed_pct"] = pct(stats["artists_unplayed"], stats["artists_total"])
 
         # Pourcentages songs
-        stats["songs_played_pct"] = pct(stats["songs_played_apc"], stats["songs_total"])
+        stats["songs_played_pct"]       = pct(stats["songs_played_apc"],  stats["songs_total"])
         stats["songs_unplayed_apc_pct"] = pct(stats["songs_unplayed_apc"], stats["songs_total"])
 
         # Pourcentages divers
-        stats["rated_songs_pct"] = pct(stats["rated_songs"], stats["songs_total"])
-        stats["lyrics_pct"] = pct(stats["songs_with_lyrics"], stats["songs_total"])
+        stats["rated_songs_pct"] = pct(stats["rated_songs"],       stats["songs_total"])
+        stats["lyrics_pct"]      = pct(stats["songs_with_lyrics"], stats["songs_total"])
 
         return stats
