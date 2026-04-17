@@ -5,15 +5,17 @@ from contextlib import contextmanager
 
 @contextmanager
 def get_db_conn():
-    conn = sqlite3.connect(current_app.config["DB_PATH"])
-    conn.isolation_level = None  # autocommit → pas de snapshot figé
-    conn.execute(
-        f"ATTACH DATABASE '{current_app.config['DB_PERSIST_PATH']}' AS persist"
-    )
+    db = current_app.config["DB_PATH"]
+    persist = current_app.config["DB_PERSIST_PATH"]
+    conn = sqlite3.connect(f"file:{db}?mode=ro", uri=True)
+    conn.isolation_level = None
+    conn.execute(f"ATTACH DATABASE 'file:{persist}?mode=ro' AS persist")
     conn.row_factory = sqlite3.Row
+    conn.execute("BEGIN DEFERRED")
     try:
         yield conn
     finally:
+        conn.execute("COMMIT")
         conn.close()
 
 

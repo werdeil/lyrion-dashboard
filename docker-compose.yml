@@ -10,8 +10,8 @@ services:
       - "1111:1111"
     environment:
       - LYRION_HOST=${LYRION_HOST}
-      - DB_PATH=${DB_PATH}
-      - DB_PERSIST_PATH=${DB_PERSIST_PATH}
+      - DB_DIR=${DB_DIR}
+      - DB_PERSIST_DIR=${DB_PERSIST_DIR}
       - SECRET_KEY=${SECRET_KEY:-supersecretkey}
       - CUSTOM_DATA_DIR=${CUSTOM_DATA_DIR:-/opt/scripts/custom_data}
     healthcheck:
@@ -22,6 +22,6 @@ services:
       retries: 3
     volumes:
       - .:/app:ro
-      - ${DB_PATH}:${DB_PATH}:ro
-      - ${DB_PERSIST_PATH}:${DB_PERSIST_PATH}:ro
+      - ${DB_DIR}:${DB_DIR}:ro
+      - ${DB_PERSIST_DIR}:${DB_PERSIST_DIR}:ro
       - ${CUSTOM_DATA_DIR}:/opt/scripts/custom_data

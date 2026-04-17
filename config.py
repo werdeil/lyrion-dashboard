@@ -8,8 +8,8 @@ class Config:
     LYRION_HOST = os.getenv("LYRION_HOST")
 
     # Database paths
-    DB_PATH = os.getenv("DB_PATH")
-    DB_PERSIST_PATH = os.getenv("DB_PERSIST_PATH")
+    DB_PATH = os.path.join(os.getenv("DB_DIR", ""), "library.db")
+    DB_PERSIST_PATH = os.path.join(os.getenv("DB_PERSIST_DIR", ""), "persist.db")
 
     # Custom data directory
     CUSTOM_DATA_DIR = os.getenv("CUSTOM_DATA_DIR", "/opt/scripts/custom_data")
