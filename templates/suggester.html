@@ -172,11 +172,15 @@
                 </div>
                 <div class="stat-row">
                     <span class="stat-label">With lyrics</span>
-                    <span>{{ stats.songs_with_lyrics }} <small>({{ stats.lyrics_pct }}%)</small></span>
+                    <span>{{ stats.songs_with_lyrics }} <small>({{ stats.songs_with_lyrics_pct }}%)</small></span>
                 </div>
                 <div class="stat-row">
                     <span class="stat-label">Played last 30d</span>
                     <span class="stat-value">{{ stats.velocity_30d }}</span>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-label">Played last year</span>
+                    <span class="stat-value">{{ stats.velocity_1year }}</span>
                 </div>
             </div>
         </div>

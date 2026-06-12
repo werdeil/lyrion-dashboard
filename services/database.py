@@ -183,7 +183,9 @@ def get_stats():
                 (SELECT COUNT(DISTINCT id) FROM tracks
                  WHERE audio = 1 AND lyrics IS NOT NULL)                       AS songs_with_lyrics,
                 (SELECT COUNT(*) FROM persist.tracks_persistent
-                 WHERE lastplayed > strftime('%s', 'now', '-30 days'))         AS velocity_30d
+                 WHERE lastplayed > strftime('%s', 'now', '-30 days'))         AS velocity_30d,
+                (SELECT COUNT(*) FROM persist.tracks_persistent
+                 WHERE lastplayed > strftime('%s', 'now', '-1 year'))          AS velocity_1year
         """).fetchone()
 
         stats.update({
@@ -191,6 +193,7 @@ def get_stats():
             "rated_songs":       row["rated_songs"] or 0,
             "songs_with_lyrics": row["songs_with_lyrics"] or 0,
             "velocity_30d":      row["velocity_30d"] or 0,
+            "velocity_1year":    row["velocity_1year"] or 0,
         })
 
         # Pourcentages albums
@@ -216,7 +219,7 @@ def get_stats():
         stats["songs_unplayed_apc_pct"] = pct(stats["songs_unplayed_apc"], stats["songs_total"])
 
         # Pourcentages divers
-        stats["rated_songs_pct"] = pct(stats["rated_songs"],       stats["songs_total"])
-        stats["lyrics_pct"]      = pct(stats["songs_with_lyrics"], stats["songs_total"])
+        stats["rated_songs_pct"]        = pct(stats["rated_songs"],       stats["songs_total"])
+        stats["songs_with_lyrics_pct"]  = pct(stats["songs_with_lyrics"], stats["songs_total"])
 
         return stats
