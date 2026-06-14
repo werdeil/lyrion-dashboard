@@ -31,6 +31,9 @@
                     <p class="np-artist" id="np-artist"></p>
                     <p class="np-album" id="np-album"></p>
                     <div class="np-lyrics" id="np-lyrics"></div>
+                    <button class="np-fetch-lyrics" id="np-fetch-lyrics" type="button">
+                        &#128269; Chercher les paroles sur le web
+                    </button>
                 </div>
                 <div class="np-empty" id="np-empty">
                     <span class="np-empty-icon">&#9835;</span>
@@ -186,8 +189,16 @@
             album:  document.getElementById('np-album'),
             lyrics: document.getElementById('np-lyrics'),
             cover:  document.getElementById('np-cover-img'),
+            fetch:  document.getElementById('np-fetch-lyrics'),
         };
         var lastTrackId = null;
+        var currentTrack = null;
+        var lyricsTried = false;
+
+        function setLyrics(text, isEmpty) {
+            el.lyrics.textContent = text;
+            el.lyrics.classList.toggle('empty', !!isEmpty);
+        }
 
         function render(data) {
             if (!data || !data.track_id) {
@@ -195,6 +206,7 @@
                 el.player.textContent = '';
                 el.cover.removeAttribute('src');
                 lastTrackId = null;
+                currentTrack = null;
                 return;
             }
 
@@ -208,11 +220,49 @@
             // so polling doesn't flicker the image or reset lyric scroll.
             if (data.track_id !== lastTrackId) {
                 lastTrackId = data.track_id;
+                currentTrack = data;
                 el.cover.src = LYRION_HOST + '/music/' + (data.coverid || 0) + '/cover.jpg';
-                el.lyrics.textContent = data.lyrics || 'Pas de paroles';
-                el.lyrics.classList.toggle('empty', !data.lyrics);
+                setLyrics(data.lyrics || 'Pas de paroles', !data.lyrics);
+                // Offer the web lookup only when the library has no lyrics.
+                el.fetch.style.display = data.lyrics ? 'none' : '';
+                el.fetch.disabled = false;
+                el.fetch.textContent = '🔍 Chercher les paroles sur le web';
+                lyricsTried = false;
             }
         }
+
+        el.fetch.addEventListener('click', function() {
+            if (!currentTrack) { return; }
+            el.fetch.disabled = true;
+            el.fetch.textContent = 'Recherche…';
+            var params = new URLSearchParams({
+                track_id: currentTrack.track_id || '',
+                artist:   currentTrack.artist || '',
+                title:    currentTrack.title || '',
+                album:    currentTrack.album || '',
+                duration: currentTrack.duration || '',
+                // A retry forces a fresh LRCLIB lookup, bypassing the server cache.
+                refresh:  lyricsTried ? '1' : '',
+            });
+            lyricsTried = true;
+            fetch('/lyrics.json?' + params.toString(), { cache: 'no-store' })
+                .then(function(r) { return r.json(); })
+                .then(function(res) {
+                    var lyrics = res.lyrics || res.synced;
+                    if (lyrics) {
+                        setLyrics(lyrics, false);
+                        el.fetch.style.display = 'none';
+                    } else {
+                        setLyrics('Aucune parole trouvée sur le web', true);
+                        el.fetch.disabled = false;
+                        el.fetch.textContent = '🔍 Réessayer';
+                    }
+                })
+                .catch(function() {
+                    el.fetch.disabled = false;
+                    el.fetch.textContent = '🔍 Réessayer';
+                });
+        });
 
         function poll() {
             fetch('/now-playing.json')

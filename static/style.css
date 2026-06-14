@@ -260,6 +260,16 @@ hr {
     font-style: italic;
 }
 
+.np-fetch-lyrics {
+    margin-top: 12px;
+    font-size: 0.9rem;
+}
+
+.np-fetch-lyrics:disabled {
+    opacity: 0.6;
+    cursor: default;
+}
+
 .np-empty {
     display: none;
     flex: 1 1 100%;
