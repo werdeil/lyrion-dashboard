@@ -32,6 +32,9 @@
                     <p class="np-album" id="np-album"></p>
                 </div>
                 <div class="np-lyrics-block">
+                    <div class="np-progress" id="np-progress" aria-hidden="true">
+                        <div class="np-progress-bar" id="np-progress-bar"></div>
+                    </div>
                     <div class="np-lyrics" id="np-lyrics"></div>
                     <p class="np-lyrics-source" id="np-lyrics-source"></p>
                     <button class="np-fetch-lyrics" id="np-fetch-lyrics" type="button">
@@ -194,10 +197,27 @@
             source: document.getElementById('np-lyrics-source'),
             cover:  document.getElementById('np-cover-img'),
             fetch:  document.getElementById('np-fetch-lyrics'),
+            progressBar: document.getElementById('np-progress-bar'),
         };
         var lastTrackId = null;
         var currentTrack = null;
         var lyricsTried = false;
+
+        // Authoritative transport state from the last poll. We interpolate
+        // locally between polls so the bar advances smoothly instead of
+        // jumping every 5s; each poll resyncs to the server's time.
+        var progress = { time: 0, duration: 0, playing: false, syncedAt: 0 };
+
+        function paintProgress() {
+            var t = progress.time;
+            if (progress.playing) {
+                t += (Date.now() - progress.syncedAt) / 1000;
+            }
+            var pct = progress.duration > 0
+                ? Math.max(0, Math.min(100, (t / progress.duration) * 100))
+                : 0;
+            el.progressBar.style.width = pct + '%';
+        }
 
         // Friendly labels for the provider keys returned by /lyrics.json.
         var SOURCE_LABELS = {
@@ -226,10 +246,20 @@
                 el.cover.removeAttribute('src');
                 lastTrackId = null;
                 currentTrack = null;
+                progress = { time: 0, duration: 0, playing: false, syncedAt: 0 };
+                el.progressBar.style.width = '0';
                 return;
             }
 
             nowPlaying.classList.remove('is-empty');
+
+            progress = {
+                time: data.time || 0,
+                duration: data.duration || 0,
+                playing: !!data.playing,
+                syncedAt: Date.now(),
+            };
+            paintProgress();
             el.player.textContent = data.player_name || '';
             el.title.textContent = data.title || '';
             el.artist.textContent = data.artist || '';
@@ -318,6 +348,7 @@
         poll();
         setInterval(poll, 5000);
         setInterval(pollStats, 60000);
+        setInterval(paintProgress, 1000);
     </script>
 </body>
 </html>

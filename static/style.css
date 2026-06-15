@@ -251,16 +251,30 @@ hr {
     display: none;
 }
 
-.np-lyrics {
+.np-progress {
     margin-top: 16px;
+    height: 3px;
+    border-radius: 2px;
+    background: #2c4160;
+    overflow: hidden;
+}
+
+.np-progress-bar {
+    width: 0;
+    height: 100%;
+    border-radius: 2px;
+    background: #00bda4;
+    transition: width 0.4s linear;
+}
+
+.np-lyrics {
+    margin-top: 12px;
     max-height: 420px;
     overflow-y: auto;
     white-space: pre-wrap;
     line-height: 1.5;
     color: #d7e2f4;
     font-size: 0.95rem;
-    border-top: 1px solid #2c4160;
-    padding-top: 12px;
 }
 
 .np-lyrics.empty {
