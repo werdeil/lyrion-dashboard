@@ -1,0 +1,5 @@
+# Minimal dependencies to run scripts/embed_lyrics.py outside Docker.
+# No Flask/gunicorn/Lyrion needed — the CLI works directly on the files.
+requests>=2.31
+mutagen>=1.47
+beautifulsoup4>=4.12   # optional: only needed for the Genius provider
