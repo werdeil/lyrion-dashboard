@@ -1,6 +1,6 @@
-from flask import Blueprint, render_template, current_app, jsonify, request
+from flask import Blueprint, render_template, current_app, jsonify, request, Response
 
-from services.lyrion import get_active_now_playing
+from services.lyrion import get_active_now_playing, fetch_cover
 from services.database import get_track_lyrics, get_stats
 from services.lyrics import fetch_lyrics
 
@@ -23,6 +23,18 @@ def now_playing_json():
     now = get_active_now_playing()
     now["lyrics"] = get_track_lyrics(now.get("track_id"))
     return jsonify(now)
+
+
+@nowplaying_bp.route("/cover/<coverid>.jpg")
+def cover(coverid):
+    """Proxy an album cover from Lyrion, served same-origin so the page can
+    sample its colours on a canvas. Cached client-side since covers are stable."""
+    content, content_type = fetch_cover(coverid)
+    return Response(
+        content,
+        content_type=content_type,
+        headers={"Cache-Control": "public, max-age=86400"},
+    )
 
 
 @nowplaying_bp.route("/lyrics.json")

@@ -2,17 +2,49 @@
     box-sizing: border-box;
 }
 
+/* --tint-color is driven from JS: a neutral grey-blue when nothing is playing,
+   the dominant colour of the current cover otherwise. Registering it as a
+   <color> lets the background fade smoothly between tracks instead of jumping. */
+@property --tint-color {
+    syntax: "<color>";
+    inherits: true;
+    initial-value: #8b94a8;
+}
+
+/* --accent-color drives the UI accents (progress bar, artist, stat values).
+   It defaults to the app's teal and is overridden in JS with a brighter,
+   more saturated take on the current cover so it stays legible on the dark UI. */
+@property --accent-color {
+    syntax: "<color>";
+    inherits: true;
+    initial-value: #00bda4;
+}
+
+:root {
+    --tint-color: #8b94a8;
+    --accent-color: #00bda4;
+    --base-bg: #0e1422;
+    transition: --tint-color 900ms ease, --accent-color 900ms ease;
+}
+
 body {
     margin: 0;
     min-height: 100vh;
     padding: 16px;
     font-family: Arial, sans-serif;
-    background: #121827;
     color: #e5eff9;
+    background:
+        radial-gradient(120% 75% at 50% -25%,
+            color-mix(in srgb, var(--tint-color) 26%, transparent) 0%,
+            transparent 50%),
+        linear-gradient(180deg,
+            color-mix(in srgb, var(--tint-color) 9%, var(--base-bg)) 0%,
+            var(--base-bg) 60%);
+    background-attachment: fixed;
 }
 
 html {
-    background: #121827;
+    background: var(--base-bg);
 }
 
 h1, h2 {
@@ -39,7 +71,7 @@ select {
 
 button {
     padding: 8px 12px;
-    background: #00bda4;
+    background: var(--accent-color);
     border: none;
     color: #0f1720;
     cursor: pointer;
@@ -70,10 +102,12 @@ hr {
 .stats-panel {
     width: 320px;
     flex-shrink: 0;
-    background: #141d2e;
+    background: color-mix(in srgb, var(--tint-color) 10%, rgba(18, 25, 41, 0.62));
     border-radius: 10px;
     padding: 16px;
-    border: 1px solid #223251;
+    border: 1px solid color-mix(in srgb, var(--tint-color) 24%, rgba(255, 255, 255, 0.06));
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
 }
 
 .stats-panel h2 {
@@ -157,7 +191,7 @@ hr {
 
 .stat-value {
     font-weight: bold;
-    color: #00bda4;
+    color: var(--accent-color);
     white-space: nowrap;
     margin-left: 8px;
 }
@@ -169,7 +203,7 @@ hr {
 .velocity-value {
     font-size: 1.4rem;
     font-weight: bold;
-    color: #00bda4;
+    color: var(--accent-color);
     text-align: center;
     margin-top: 4px;
 }
@@ -185,10 +219,12 @@ hr {
     grid-template-columns: 300px 1fr;
     gap: 8px 24px;
     align-items: start;
-    background: #141d2e;
-    border: 1px solid #223251;
+    background: color-mix(in srgb, var(--tint-color) 10%, rgba(18, 25, 41, 0.62));
+    border: 1px solid color-mix(in srgb, var(--tint-color) 24%, rgba(255, 255, 255, 0.06));
     border-radius: 12px;
     padding: 20px;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
 }
 
 .np-cover {
@@ -230,7 +266,7 @@ hr {
 .np-artist {
     margin: 6px 0 0 0;
     font-size: 1.05rem;
-    color: #00bda4;
+    color: var(--accent-color);
 }
 
 .np-album {
@@ -263,7 +299,7 @@ hr {
     width: 0;
     height: 100%;
     border-radius: 2px;
-    background: #00bda4;
+    background: var(--accent-color);
     transition: width 0.4s linear;
 }
 

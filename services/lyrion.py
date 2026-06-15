@@ -16,6 +16,19 @@ def lyrion_request(payload):
     return r.json()
 
 
+def fetch_cover(coverid):
+    """Fetch an album cover from Lyrion so the page can serve it same-origin.
+
+    Loading the cover through our own host (instead of pointing the <img> at
+    LYRION_HOST directly) lets the page read the image pixels on a canvas to
+    derive a tint colour — cross-origin images would taint the canvas.
+    """
+    host = current_app.config["LYRION_HOST"]
+    r = requests.get(f"{host}/music/{coverid}/cover.jpg", verify=False, timeout=5)
+    r.raise_for_status()
+    return r.content, r.headers.get("Content-Type", "image/jpeg")
+
+
 def get_players():
     payload = {
         "id": 1,
