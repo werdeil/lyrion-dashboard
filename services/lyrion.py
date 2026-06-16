@@ -43,14 +43,18 @@ def get_now_playing(player_id):
     """Return the current track + transport state of a player.
 
     Uses the JSON-RPC `status` query for the current playlist position (`-`),
-    asking for one item with the tags we display: a=artist, l=album,
-    d=duration, c=coverid. Title and the Lyrion track id come back by default;
-    that id is the key used to look up lyrics in the SQLite `tracks` table.
+    asking for one item with the tags we display: a=artist, A=role-keyed
+    artist lists, l=album, d=duration, c=coverid. With tag A the multiple
+    artists come back joined by ", " under a role key (`trackartist` for the
+    track's contributors, `artist` for the ARTIST role) — we prefer
+    `trackartist` so a "feat." line shows everyone, matching Lyrion's display.
+    Title and the Lyrion track id come back by default; that id is the key
+    used to look up lyrics in the SQLite `tracks` table.
     """
     payload = {
         "id": 1,
         "method": "slim.request",
-        "params": [player_id, ["status", "-", 1, "tags:aldc"]],
+        "params": [player_id, ["status", "-", 1, "tags:aAldc"]],
     }
     data = lyrion_request(payload)
     result = data.get("result", {})
@@ -67,7 +71,7 @@ def get_now_playing(player_id):
         "duration": result.get("duration") or track.get("duration"),
         "track_id": track.get("id"),
         "title": track.get("title"),
-        "artist": track.get("artist"),
+        "artist": track.get("trackartist") or track.get("artist") or track.get("albumartist"),
         "album": track.get("album"),
         "coverid": track.get("coverid") or track.get("artwork_track_id") or track.get("id"),
     }
@@ -90,6 +94,9 @@ def get_active_now_playing():
         now = get_now_playing(player_id)
         if now.get("playing") and now.get("track_id"):
             now["player_name"] = player.get("name")
+            # Exposed so the page can deep-link the "open Lyrion" button to the
+            # Material skin focused on this very player (?player=<id>).
+            now["player_id"] = player_id
             return now
 
     return {"playing": False, "mode": "stop", "player_name": None}

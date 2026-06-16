@@ -12,17 +12,17 @@
 }
 
 /* --accent-color drives the UI accents (progress bar, artist, stat values).
-   It defaults to the app's teal and is overridden in JS with a brighter,
+   It defaults to a soft blue and is overridden in JS with a brighter,
    more saturated take on the current cover so it stays legible on the dark UI. */
 @property --accent-color {
     syntax: "<color>";
     inherits: true;
-    initial-value: #00bda4;
+    initial-value: #4f86c6;
 }
 
 :root {
     --tint-color: #8b94a8;
-    --accent-color: #00bda4;
+    --accent-color: #4f86c6;
     --base-bg: #0e1422;
     transition: --tint-color 900ms ease, --accent-color 900ms ease;
 }
@@ -184,6 +184,13 @@ hr {
     font-size: 0.8rem;
 }
 
+/* Second-level breakdown rows whose count is zero are dimmed (not hidden, so
+   the group keeps its structure and a meaningful "0"). Toggled in JS,
+   re-evaluated on each stats refresh. */
+.stat-row.sub.is-zero {
+    opacity: 0.4;
+}
+
 .stat-row.sub .stat-label::before {
     content: "\2192\00a0";
     color: #6f8bb1;
@@ -293,6 +300,9 @@ hr {
     border-radius: 2px;
     background: #2c4160;
     overflow: hidden;
+    /* On desktop the lyrics block is a column flexbox; without this the 3px
+       bar gets squashed when long lyrics overflow and the flex shrinks items. */
+    flex-shrink: 0;
 }
 
 .np-progress-bar {
@@ -386,13 +396,14 @@ hr {
     margin-left: 0.6rem;
     margin-top: 0.25rem;
     border-radius: 0.7rem;
-    background: rgba(0, 189, 164, 0.18);
-    border: 1px solid rgba(0, 189, 164, 0.22);
+    background: color-mix(in srgb, var(--accent-color) 18%, transparent);
+    border: 1px solid color-mix(in srgb, var(--accent-color) 24%, transparent);
     text-decoration: none;
+    transition: background 250ms ease, border-color 250ms ease;
 }
 
 .lyrion-link:hover {
-    background: rgba(0, 189, 164, 0.28);
+    background: color-mix(in srgb, var(--accent-color) 30%, transparent);
 }
 
 .lyrion-link img {
@@ -485,6 +496,12 @@ hr {
         flex: 1 1 auto;
         max-height: none;
         min-height: 0;
+    }
+    /* When there are no lyrics, don't let the placeholder stretch to fill the
+       card — otherwise the "search lyrics" button gets pushed to the bottom,
+       far from the "Pas de paroles" message. */
+    .np-lyrics.empty {
+        flex: 0 0 auto;
     }
     /* If the stats list is taller than the screen, scroll it internally
        instead of pushing the now-playing card past the viewport. */

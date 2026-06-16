@@ -1,7 +1,7 @@
 <!doctype html>
-<html>
+<html lang="{{ lang }}">
 <head>
-    <title>Lyrion Now Playing</title>
+    <title>Lyrion+</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='favicon.svg') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
@@ -10,9 +10,11 @@
     <div class="page-header">
         <h1>
             <img class="page-logo" src="{{ url_for('static', filename='favicon.svg') }}" alt="Lyrion logo">
-            Lyrion Now Playing
+            Lyrion+
         </h1>
-        <a class="lyrion-link" href="{{ lyrion_host or '#' }}" target="_blank" rel="noopener noreferrer" title="Ouvrir Lyrion">
+        <a class="lyrion-link" id="lyrion-link"
+           href="{{ (lyrion_host ~ '/material/') if lyrion_host else '#' }}"
+           target="_blank" rel="noopener noreferrer" title="{{ t.open_lyrion }}">
             <img src="{{ url_for('static', filename='lyrion.svg') }}" alt="Logo Lyrion">
         </a>
     </div>
@@ -22,7 +24,7 @@
         <div class="left-panel">
             <div class="now-playing is-empty" id="now-playing">
                 <div class="np-cover">
-                    <img id="np-cover-img" alt="Pochette"
+                    <img id="np-cover-img" alt="{{ t.cover_alt }}"
                          onerror="this.src='https://via.placeholder.com/300?text=No+Cover'">
                 </div>
                 <div class="np-meta">
@@ -38,38 +40,38 @@
                     <div class="np-lyrics" id="np-lyrics"></div>
                     <p class="np-lyrics-source" id="np-lyrics-source"></p>
                     <button class="np-fetch-lyrics" id="np-fetch-lyrics" type="button">
-                        &#128269; Chercher les paroles sur le web
+                        &#128269; {{ t.fetch_lyrics }}
                     </button>
                 </div>
                 <div class="np-empty" id="np-empty">
                     <span class="np-empty-icon">&#9835;</span>
-                    <p class="np-empty-text">Aucune lecture en cours</p>
+                    <p class="np-empty-text">{{ t.empty_state }}</p>
                 </div>
             </div>
         </div>
 
         <div class="stats-panel">
-            <h2>&#127928; Statistiques</h2>
+            <h2>&#127928; {{ t.stats_title }}</h2>
 
             <div class="stat-group">
                 <div class="stat-group-title">
-                    <span class="stat-group-title-label">&#127925; Albums</span>
+                    <span class="stat-group-title-label">&#127925; {{ t.albums }}</span>
                     <span class="stat-group-total" data-stat="albums_total">{{ stats.albums_total }}</span>
                 </div>
                 <div class="stat-row">
-                    <span class="stat-label">Total</span>
+                    <span class="stat-label">{{ t.total }}</span>
                     <span class="stat-value" data-stat="albums_total">{{ stats.albums_total }}</span>
                 </div>
                 <div class="stat-row sub">
-                    <span class="stat-label">Fully played</span>
+                    <span class="stat-label">{{ t.fully_played }}</span>
                     <span data-stat="albums_played" data-stat-pct="albums_played_pct">{{ stats.albums_played }} <small>({{ stats.albums_played_pct }}%)</small></span>
                 </div>
                 <div class="stat-row sub">
-                    <span class="stat-label">Not fully played</span>
+                    <span class="stat-label">{{ t.partially_played }}</span>
                     <span data-stat="albums_not_fully" data-stat-pct="albums_not_fully_pct">{{ stats.albums_not_fully }} <small>({{ stats.albums_not_fully_pct }}%)</small></span>
                 </div>
                 <div class="stat-row sub">
-                    <span class="stat-label">Never played</span>
+                    <span class="stat-label">{{ t.never_played }}</span>
                     <span data-stat="albums_never" data-stat-pct="albums_never_pct">{{ stats.albums_never }} <small>({{ stats.albums_never_pct }}%)</small></span>
                 </div>
             </div>
@@ -77,23 +79,23 @@
             <!-- Album Artists -->
             <div class="stat-group">
                 <div class="stat-group-title">
-                    <span class="stat-group-title-label">&#127908; Album Artists</span>
+                    <span class="stat-group-title-label">&#127908; {{ t.album_artists }}</span>
                     <span class="stat-group-total" data-stat="artists_total">{{ stats.artists_total }}</span>
                 </div>
                 <div class="stat-row">
-                    <span class="stat-label">Total</span>
+                    <span class="stat-label">{{ t.total }}</span>
                     <span class="stat-value" data-stat="artists_total">{{ stats.artists_total }}</span>
                 </div>
                 <div class="stat-row sub">
-                    <span class="stat-label">Fully played</span>
+                    <span class="stat-label">{{ t.fully_played }}</span>
                     <span data-stat="artists_played" data-stat-pct="artists_played_pct">{{ stats.artists_played }} <small>({{ stats.artists_played_pct }}%)</small></span>
                 </div>
                 <div class="stat-row sub">
-                    <span class="stat-label">Partially played</span>
+                    <span class="stat-label">{{ t.partially_played }}</span>
                     <span data-stat="artists_partial" data-stat-pct="artists_partial_pct">{{ stats.artists_partial }} <small>({{ stats.artists_partial_pct }}%)</small></span>
                 </div>
                 <div class="stat-row sub">
-                    <span class="stat-label">Never played</span>
+                    <span class="stat-label">{{ t.never_played }}</span>
                     <span data-stat="artists_unplayed" data-stat-pct="artists_unplayed_pct">{{ stats.artists_unplayed }} <small>({{ stats.artists_unplayed_pct }}%)</small></span>
                 </div>
             </div>
@@ -101,23 +103,23 @@
             <!-- Track Artists -->
             <div class="stat-group">
                 <div class="stat-group-title">
-                    <span class="stat-group-title-label">&#127917; Track Artists</span>
+                    <span class="stat-group-title-label">&#127917; {{ t.track_artists }}</span>
                     <span class="stat-group-total" data-stat="track_artists_total">{{ stats.track_artists_total }}</span>
                 </div>
                 <div class="stat-row">
-                    <span class="stat-label">Total</span>
+                    <span class="stat-label">{{ t.total }}</span>
                     <span class="stat-value" data-stat="track_artists_total">{{ stats.track_artists_total }}</span>
                 </div>
                 <div class="stat-row sub">
-                    <span class="stat-label">Fully played</span>
+                    <span class="stat-label">{{ t.fully_played }}</span>
                     <span data-stat="track_artists_fully_played" data-stat-pct="track_artists_fully_played_pct">{{ stats.track_artists_fully_played }} <small>({{ stats.track_artists_fully_played_pct }}%)</small></span>
                 </div>
                 <div class="stat-row sub">
-                    <span class="stat-label">Partially played</span>
+                    <span class="stat-label">{{ t.partially_played }}</span>
                     <span data-stat="track_artists_partially_played" data-stat-pct="track_artists_partially_played_pct">{{ stats.track_artists_partially_played }} <small>({{ stats.track_artists_partially_played_pct }}%)</small></span>
                 </div>
                 <div class="stat-row sub">
-                    <span class="stat-label">Never played</span>
+                    <span class="stat-label">{{ t.never_played }}</span>
                     <span data-stat="track_artists_unplayed" data-stat-pct="track_artists_unplayed_pct">{{ stats.track_artists_unplayed }} <small>({{ stats.track_artists_unplayed_pct }}%)</small></span>
                 </div>
             </div>
@@ -125,23 +127,23 @@
             <!-- Songs -->
             <div class="stat-group">
                 <div class="stat-group-title">
-                    <span class="stat-group-title-label">&#127926; Morceaux</span>
+                    <span class="stat-group-title-label">&#127926; {{ t.tracks }}</span>
                     <span class="stat-group-total" data-stat="songs_total">{{ stats.songs_total }}</span>
                 </div>
                 <div class="stat-row">
-                    <span class="stat-label">Total</span>
+                    <span class="stat-label">{{ t.total }}</span>
                     <span class="stat-value" data-stat="songs_total">{{ stats.songs_total }}</span>
                 </div>
                 <div class="stat-row sub">
-                    <span class="stat-label">Played</span>
+                    <span class="stat-label">{{ t.played }}</span>
                     <span data-stat="songs_played_apc" data-stat-pct="songs_played_pct">{{ stats.songs_played_apc }} <small>({{ stats.songs_played_pct }}%)</small></span>
                 </div>
                 <div class="stat-row sub">
-                    <span class="stat-label">Unplayed</span>
+                    <span class="stat-label">{{ t.unplayed }}</span>
                     <span data-stat="songs_unplayed_apc" data-stat-pct="songs_unplayed_apc_pct">{{ stats.songs_unplayed_apc }} <small>({{ stats.songs_unplayed_apc_pct }}%)</small></span>
                 </div>
                 <div class="stat-row sub">
-                    <span class="stat-label">Total plays</span>
+                    <span class="stat-label">{{ t.total_plays }}</span>
                     <span class="stat-value" data-stat="songs_total_plays_apc">{{ stats.songs_total_plays_apc }}</span>
                 </div>
             </div>
@@ -149,26 +151,26 @@
             <!-- Divers -->
             <div class="stat-group">
                 <div class="stat-group-title">
-                    <span class="stat-group-title-label">&#127928; Divers</span>
+                    <span class="stat-group-title-label">&#127928; {{ t.misc }}</span>
                 </div>
                 <div class="stat-row">
-                    <span class="stat-label">Genres</span>
+                    <span class="stat-label">{{ t.genres }}</span>
                     <span class="stat-value" data-stat="genres">{{ stats.genres }}</span>
                 </div>
                 <div class="stat-row">
-                    <span class="stat-label">Rated songs</span>
+                    <span class="stat-label">{{ t.rated_songs }}</span>
                     <span data-stat="rated_songs" data-stat-pct="rated_songs_pct">{{ stats.rated_songs }} <small>({{ stats.rated_songs_pct }}%)</small></span>
                 </div>
                 <div class="stat-row">
-                    <span class="stat-label">With lyrics</span>
+                    <span class="stat-label">{{ t.with_lyrics }}</span>
                     <span data-stat="songs_with_lyrics" data-stat-pct="songs_with_lyrics_pct">{{ stats.songs_with_lyrics }} <small>({{ stats.songs_with_lyrics_pct }}%)</small></span>
                 </div>
                 <div class="stat-row">
-                    <span class="stat-label">Played last 30d</span>
+                    <span class="stat-label">{{ t.played_last_30d }}</span>
                     <span class="stat-value" data-stat="velocity_30d">{{ stats.velocity_30d }}</span>
                 </div>
                 <div class="stat-row">
-                    <span class="stat-label">Played last year</span>
+                    <span class="stat-label">{{ t.played_last_year }}</span>
                     <span class="stat-value" data-stat="velocity_1year">{{ stats.velocity_1year }}</span>
                 </div>
             </div>
@@ -176,6 +178,10 @@
     </div>
 
     <script>
+        // UI strings for the dynamic (JS-rendered) bits, resolved server-side
+        // from the browser language. Static markup is translated via Jinja above.
+        var I18N = {{ t|tojson }};
+
         document.querySelectorAll('.stat-group-title').forEach(function(title) {
             title.addEventListener('click', function() {
                 var group = title.closest('.stat-group');
@@ -198,7 +204,31 @@
             cover:  document.getElementById('np-cover-img'),
             fetch:  document.getElementById('np-fetch-lyrics'),
             progressBar: document.getElementById('np-progress-bar'),
+            lyrionLink: document.getElementById('lyrion-link'),
         };
+
+        // "Open in Lyrion" button. On desktop it opens the Material web skin,
+        // deep-linked to the active player. On Android it opens the native LMS
+        // Material app (com.craigd.lmsmaterial.app) via an intent URL, falling
+        // back to the web skin when the app isn't installed.
+        // NB: the native app loads its own configured server + default player,
+        // so the ?player= hint only affects the web (skin / fallback), not the
+        // app — there is no supported way to deep-link a player into the app.
+        var MATERIAL_BASE = LYRION_HOST ? LYRION_HOST + '/material/' : '#';
+        var IS_ANDROID = /Android/i.test(navigator.userAgent || '');
+        var MATERIAL_APP_PKG = 'com.craigd.lmsmaterial.app';
+        function setLyrionLink(playerId) {
+            if (!el.lyrionLink) { return; }
+            if (!LYRION_HOST) { el.lyrionLink.href = '#'; return; }
+            var web = MATERIAL_BASE + (playerId ? '?player=' + encodeURIComponent(playerId) : '');
+            if (IS_ANDROID) {
+                el.lyrionLink.href = 'intent://' + web.replace(/^https?:\/\//, '') +
+                    '#Intent;scheme=https;type=text/html;package=' + MATERIAL_APP_PKG +
+                    ';S.browser_fallback_url=' + encodeURIComponent(web) + ';end';
+            } else {
+                el.lyrionLink.href = web;
+            }
+        }
         var lastTrackId = null;
         var currentTrack = null;
         var lyricsTried = false;
@@ -207,7 +237,10 @@
         // the cover's dominant colour while playing. The cover is served
         // same-origin (via /cover/<id>.jpg) so we can read its pixels.
         var TINT_NEUTRAL = '#8b94a8';
-        var ACCENT_DEFAULT = '#00bda4';
+        // Default accent for when there's no usable cover hue (idle screen,
+        // greyscale covers, sampling failures): a soft Lyrion-like blue that
+        // stays calm on the dark UI, matching Lyrion's current default.
+        var ACCENT_DEFAULT = '#4f86c6';
 
         function setTint(color) {
             document.documentElement.style.setProperty('--tint-color', color);
@@ -274,7 +307,7 @@
                                     Math.min(0.62, Math.max(0.42, l))));
                 // Accents: brighter and more saturated to stay legible on the
                 // dark UI. A near-greyscale cover has no meaningful hue, so we
-                // keep the default teal rather than inventing a colour.
+                // fall back to the default blue rather than inventing a colour.
                 if (sat < 0.08) {
                     setAccent(ACCENT_DEFAULT);
                 } else {
@@ -303,8 +336,9 @@
         }
 
         // Friendly labels for the provider keys returned by /lyrics.json.
+        // Only "library" is translated; the web providers are proper nouns.
         var SOURCE_LABELS = {
-            library:    'bibliothèque',
+            library:    I18N.source_library,
             lrclib:     'LRCLIB',
             musixmatch: 'Musixmatch',
             genius:     'Genius',
@@ -319,7 +353,7 @@
 
         function setLyricsSource(source) {
             var label = source && SOURCE_LABELS[source];
-            el.source.textContent = label ? 'Source : ' + label : '';
+            el.source.textContent = label ? I18N.source_prefix + ' ' + label : '';
         }
 
         function render(data) {
@@ -327,6 +361,7 @@
                 nowPlaying.classList.add('is-empty');
                 el.player.textContent = '';
                 el.cover.removeAttribute('src');
+                setLyrionLink(null);
                 resetColors();
                 lastTrackId = null;
                 currentTrack = null;
@@ -344,6 +379,7 @@
                 syncedAt: Date.now(),
             };
             paintProgress();
+            setLyrionLink(data.player_id);
             el.player.textContent = data.player_name || '';
             el.title.textContent = data.title || '';
             el.artist.textContent = data.artist || '';
@@ -355,12 +391,12 @@
                 lastTrackId = data.track_id;
                 currentTrack = data;
                 el.cover.src = '/cover/' + (data.coverid || 0) + '.jpg';
-                setLyrics(data.lyrics || 'Pas de paroles', !data.lyrics);
+                setLyrics(data.lyrics || I18N.no_lyrics, !data.lyrics);
                 setLyricsSource(data.lyrics ? 'library' : null);
                 // Offer the web lookup only when the library has no lyrics.
                 el.fetch.style.display = data.lyrics ? 'none' : '';
                 el.fetch.disabled = false;
-                el.fetch.textContent = '🔍 Chercher les paroles sur le web';
+                el.fetch.textContent = '🔍 ' + I18N.fetch_lyrics;
                 lyricsTried = false;
             }
         }
@@ -368,7 +404,7 @@
         el.fetch.addEventListener('click', function() {
             if (!currentTrack) { return; }
             el.fetch.disabled = true;
-            el.fetch.textContent = 'Recherche…';
+            el.fetch.textContent = I18N.searching;
             var params = new URLSearchParams({
                 track_id: currentTrack.track_id || '',
                 artist:   currentTrack.artist || '',
@@ -388,14 +424,14 @@
                         setLyricsSource(res.source);
                         el.fetch.style.display = 'none';
                     } else {
-                        setLyrics('Aucune parole trouvée sur le web', true);
+                        setLyrics(I18N.no_lyrics_web, true);
                         el.fetch.disabled = false;
-                        el.fetch.textContent = '🔍 Réessayer';
+                        el.fetch.textContent = '🔍 ' + I18N.retry;
                     }
                 })
                 .catch(function() {
                     el.fetch.disabled = false;
-                    el.fetch.textContent = '🔍 Réessayer';
+                    el.fetch.textContent = '🔍 ' + I18N.retry;
                 });
         });
 
@@ -423,6 +459,17 @@
                     el.textContent = value;
                 }
             });
+            dimZeroSubRows();
+        }
+
+        // Dim second-level breakdown rows whose count is zero. Reads the
+        // leading integer of each .sub row's value (e.g. "0 (0%)" -> 0).
+        function dimZeroSubRows() {
+            document.querySelectorAll('.stat-row.sub').forEach(function(row) {
+                var valEl = row.querySelector('[data-stat]');
+                var n = valEl ? parseInt(valEl.textContent, 10) : NaN;
+                row.classList.toggle('is-zero', n === 0);
+            });
         }
 
         function pollStats() {
@@ -432,6 +479,7 @@
                 .catch(function() { /* keep last render on transient errors */ });
         }
 
+        dimZeroSubRows();
         poll();
         setInterval(poll, 5000);
         setInterval(pollStats, 60000);

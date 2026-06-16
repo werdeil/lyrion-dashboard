@@ -3,6 +3,7 @@ from flask import Blueprint, render_template, current_app, jsonify, request, Res
 from services.lyrion import get_active_now_playing, fetch_cover
 from services.database import get_track_lyrics, get_stats
 from services.lyrics import fetch_lyrics
+from i18n import pick_lang, TRANSLATIONS
 
 nowplaying_bp = Blueprint("nowplaying", __name__)
 
@@ -10,10 +11,13 @@ nowplaying_bp = Blueprint("nowplaying", __name__)
 @nowplaying_bp.route("/")
 def index():
     stats = get_stats()
+    lang = pick_lang(request.accept_languages)
     return render_template(
         "nowplaying.html",
         lyrion_host=current_app.config["LYRION_HOST"],
         stats=stats,
+        lang=lang,
+        t=TRANSLATIONS[lang],
     )
 
 
