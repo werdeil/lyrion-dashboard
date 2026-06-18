@@ -128,3 +128,33 @@ def write_lyrics(path, text):
         audio.save()
     except Exception as exc:
         raise LyricsTagError(f"write failed: {exc}")
+
+
+def clear_lyrics(path):
+    """Remove the lyrics tag from `path`, returning True if one was removed.
+
+    A no-op (returns False) when the file carries no lyrics tag. Raises
+    LyricsTagError on unrecognised/unsupported format or save failure.
+    """
+    audio = mutagen.File(path)
+    if audio is None:
+        raise LyricsTagError("unrecognised file format")
+
+    if not _read_lyrics(audio):
+        return False
+
+    if isinstance(audio, (MP3, AIFF, WAVE)):
+        audio.tags.delall("USLT")
+    elif isinstance(audio, MP4):
+        audio.pop("\xa9lyr", None)
+    elif isinstance(audio, (FLAC, OggVorbis, OggOpus)):
+        audio.pop("LYRICS", None)
+        audio.pop("UNSYNCEDLYRICS", None)
+    else:
+        raise LyricsTagError("unsupported format for lyrics")
+
+    try:
+        audio.save()
+    except Exception as exc:
+        raise LyricsTagError(f"clear failed: {exc}")
+    return True
