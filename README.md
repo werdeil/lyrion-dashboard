@@ -105,14 +105,22 @@ python scripts/embed_lyrics.py "/chemin/vers/musique/A*" /chemin/vers/musique/B*
 | `--dry-run` | Affiche ce qui serait fait, sans rien écrire. |
 | `--delay 0.5` | Délai (secondes) entre deux requêtes web (défaut : 0.5). |
 | `--verbose` | Journalise chaque fichier, y compris ceux ignorés. |
-| `--newer-than MARQUEUR` | Ne traite que les fichiers modifiés depuis le dernier `mtime` du fichier `MARQUEUR`, puis horodate `MARQUEUR` à l'heure de départ de la passe. Marqueur absent : toute la bibliothèque est traitée (première passe). Ignoré en `--dry-run`. |
 
-Pour un cron quotidien qui ne re-tague que les ajouts/modifications, appelez directement le Python du venv (pas besoin d'activer l'environnement) avec `--newer-than` :
+### Cron : ne re-taguer que les fichiers modifiés (`scripts/embed_lyrics_cron.sh`)
 
-```cron
-0 4 * * * cd /chemin/vers/custom_data && \
-  .venv/bin/python scripts/embed_lyrics.py /chemin/vers/musique \
-  --newer-than var/embed_lyrics_last_run >> /tmp/embed_lyrics.log 2>&1
+Wrapper destiné au cron : il ne passe à `embed_lyrics.py` que les fichiers dont le `ctime` a changé depuis la dernière passe réussie (`find -cnewer`), via un fichier marqueur.
+
+```bash
+scripts/embed_lyrics_cron.sh /chemin/vers/musique [MARQUEUR] [-- OPTIONS]
 ```
 
-> Limite : un fichier copié en conservant son `mtime` (`rsync -a`, `cp -p`) ne sera pas détecté comme modifié.
+- `MARQUEUR` : fichier d'horodatage (défaut : `state/embed_lyrics.last_run` à la racine du repo). Absent → toute la bibliothèque est traitée (première passe).
+- Le marqueur est horodaté au **début** de la passe et n'avance qu'**en cas de succès** : un échec ne fait pas avancer la fenêtre, et un fichier modifié pendant la passe est repris au prochain run. `--dry-run` ne fait pas avancer le marqueur.
+- Tout ce qui suit `--` est transmis tel quel à `embed_lyrics.py` (ex. `-- --clear --delay 1`).
+
+```cron
+30 3 * * * /chemin/vers/custom_data/scripts/embed_lyrics_cron.sh \
+  /chemin/vers/musique >> /tmp/embed_lyrics.log 2>&1
+```
+
+> Le `ctime` (et non le `mtime`) est utilisé volontairement : il capte aussi les ré-écritures de tags en place et les fichiers copiés en conservant leur `mtime` (`rsync -a`, `cp -p`).

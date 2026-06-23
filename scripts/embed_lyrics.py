@@ -9,13 +9,6 @@ Lyrion pick the changes up on its next scan.
 Usage:
     python scripts/embed_lyrics.py /path/to/music [--dry-run] [--force]
                                    [--clear] [--delay 0.5] [--verbose]
-                                   [--newer-than MARKER]
-
---newer-than only processes files modified since MARKER's last mtime, then
-stamps MARKER to the run's start time. Made for a daily cron that re-tags just
-what changed:
-    .venv/bin/python scripts/embed_lyrics.py /path/to/music \
-        --newer-than /path/to/state/last_run
 
 --clear drops the existing lyrics tag when nothing is found online, so the file
 matches what providers actually carry. Like --force it processes already-tagged
@@ -85,31 +78,24 @@ def resolve_targets(patterns):
     return paths, missing
 
 
-def iter_music_files(targets, newer_than=None):
+def iter_music_files(targets):
     """Yield (path, rel) for every music file in `targets`, in stable order.
 
     Each target is a directory (walked) or a single music file (yielded as-is).
     `rel` is the path shown in logs: it stays relative to the target's parent so
     the matched folder name is kept (readable even when several targets match a
     wildcard), without the `../../` noise of a cwd-relative path.
-
-    When `newer_than` (a POSIX timestamp) is given, files whose mtime is not
-    strictly greater are skipped — this drives the cron use case where only
-    files touched since the last run need re-tagging.
     """
-    def _fresh(path):
-        return newer_than is None or os.path.getmtime(path) > newer_than
-
     for target in targets:
         base = os.path.dirname(os.path.normpath(target))
         if os.path.isdir(target):
             for dirpath, _dirs, files in os.walk(target):
                 for name in sorted(files):
                     path = os.path.join(dirpath, name)
-                    if tags.is_music_file(path) and _fresh(path):
+                    if tags.is_music_file(path):
                         yield path, os.path.relpath(path, base)
         elif os.path.isfile(target):
-            if tags.is_music_file(target) and _fresh(target):
+            if tags.is_music_file(target):
                 yield target, os.path.relpath(target, base)
         else:
             print(f"warning: not a file or directory: {target}", file=sys.stderr)
@@ -146,14 +132,6 @@ def parse_args(argv):
         "--verbose", action="store_true",
         help="Log every file, including those skipped.",
     )
-    parser.add_argument(
-        "--newer-than", metavar="MARKER",
-        help="Only process files whose mtime is newer than MARKER's. The "
-             "marker is (re)stamped to the run's start time on success, so "
-             "the next run picks up only what changed since. If MARKER does "
-             "not exist yet, every file is processed (first run). Skipped on "
-             "--dry-run so the marker is not advanced.",
-    )
     return parser.parse_args(argv)
 
 
@@ -166,21 +144,13 @@ def main(argv=None):
         print("error: no existing file or directory to process", file=sys.stderr)
         return 2
 
-    # mtime threshold for --newer-than: a missing marker means "first run,
-    # process everything". Stamp the marker to the run's start (not its end) so
-    # a file modified *during* the run is still caught next time.
-    newer_than = None
-    if args.newer_than and os.path.exists(args.newer_than):
-        newer_than = os.path.getmtime(args.newer_than)
-    run_started = time.time()
-
     counts = {
         "scanned": 0, "written": 0, "already": 0,
         "not_found": 0, "cleared": 0, "no_meta": 0, "failed": 0,
     }
     dry = " (dry-run)" if args.dry_run else ""
 
-    for path, rel in iter_music_files(targets, newer_than):
+    for path, rel in iter_music_files(targets):
         counts["scanned"] += 1
 
         meta = tags.read_metadata(path)
@@ -266,17 +236,6 @@ def main(argv=None):
     print(f"not found:   {counts['not_found']}")
     print(f"no metadata: {counts['no_meta']}")
     print(f"failed:      {counts['failed']}")
-
-    # Advance the marker to the run's start time so the next --newer-than run
-    # only revisits what changed since. Skipped on --dry-run (nothing written,
-    # so the window must stay open).
-    if args.newer_than and not args.dry_run:
-        try:
-            with open(args.newer_than, "a"):
-                os.utime(args.newer_than, (run_started, run_started))
-        except OSError as exc:
-            print(f"warning: could not update marker {args.newer_than}: {exc}",
-                  file=sys.stderr)
 
     return 0
 

@@ -8,3 +8,4 @@ CLAUDE.md
 .venv-cli/
 .venv/
 venv/
+state/
