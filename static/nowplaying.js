@@ -265,6 +265,15 @@ function pollStats() {
         .catch(function() {});
 }
 
+document.addEventListener('visibilitychange', function() {
+    // Background tabs throttle setInterval, so the now-playing view can lag
+    // behind by far more than the poll period; catch up as soon as the tab
+    // is looked at again instead of waiting for the next tick.
+    if (document.visibilityState === 'visible') {
+        poll();
+    }
+});
+
 dimZeroSubRows();
 poll();
 setInterval(poll, 5000);
