@@ -2,11 +2,11 @@
 
 Application web Flask pour [Lyrion Music Server](https://github.com/LMS-Community/slimserver) (anciennement Logitech Media Server / Squeezebox Server).
 
-## Fonctionnalites
+## Fonctionnalités
 
 - **Now Playing** -- Détecte automatiquement le lecteur en cours de lecture et affiche sa piste (pochette, titre, artiste, album) et ses paroles, rafraîchi via l'API JSON-RPC de Lyrion.
-- **Statistiques de la bibliotheque** -- Albums, artistes, morceaux joués/non joués, genres, notes, paroles, velocite d'ecoute sur 30 jours.
-- **Serveur de fichiers** -- Sert les fichiers depuis un repertoire configurable.
+- **Statistiques de la bibliothèque** -- Albums, artistes, morceaux joués/non joués, genres, notes, paroles, vélocité d'écoute sur 30 jours.
+- **Serveur de fichiers** -- Sert les fichiers depuis un répertoire configurable.
 
 ## Structure du projet
 
@@ -26,7 +26,7 @@ Application web Flask pour [Lyrion Music Server](https://github.com/LMS-Communit
     └── nowplaying.html    # Dashboard principal
 ```
 
-## Pre-requis
+## Pré-requis
 
 - Python 3.12+
 - Un serveur Lyrion Music Server accessible
@@ -38,7 +38,7 @@ Application web Flask pour [Lyrion Music Server](https://github.com/LMS-Communit
 
 ```bash
 cp .env.example .env
-# Editer .env avec vos valeurs
+# Éditer .env avec vos valeurs
 docker compose up -d
 ```
 
@@ -48,7 +48,7 @@ Pour ajouter des services ou des options locales sans polluer les changements Gi
 
 ```bash
 cp docker-compose.override.yml.example docker-compose.override.yml
-# Editer docker-compose.override.yml selon vos besoins
+# Éditer docker-compose.override.yml selon vos besoins
 docker compose up -d
 ```
 
@@ -59,7 +59,7 @@ Docker Compose charge automatiquement `docker-compose.override.yml` en compléme
 ```bash
 pip install -r requirements.txt
 cp .env.example .env
-# Editer .env avec vos valeurs
+# Éditer .env avec vos valeurs
 source .env
 python app.py
 ```
@@ -73,14 +73,14 @@ L'application est accessible sur `http://localhost:1111`.
 | `LYRION_HOST` | URL du serveur Lyrion (ex: `https://lyrion.local:9000`) | -- |
 | `DB_PATH` | Chemin absolu vers la base SQLite de Lyrion | -- |
 | `DB_PERSIST_PATH` | Chemin absolu vers la base persistante de Lyrion | -- |
-| `SECRET_KEY` | Clé secrete Flask | `supersecretkey` |
-| `CUSTOM_DATA_DIR` | Répertoire des fichiers generes | `/opt/scripts/custom_data` |
+| `SECRET_KEY` | Clé secrète Flask | `supersecretkey` |
+| `CUSTOM_DATA_DIR` | Répertoire des fichiers générés | `/opt/scripts/custom_data` |
 | `HOST` | Adresse d'écoute | `0.0.0.0` |
 | `PORT` | Port d'écoute | `1111` |
 
 ## Endpoints
 
-| Methode | Route | Description |
+| Méthode | Route | Description |
 |---|---|---|
 | GET | `/` | Dashboard principal (now playing + stats) |
 | GET | `/now-playing.json` | État live de la piste du lecteur en cours de lecture, détecté automatiquement (JSON) |
@@ -124,3 +124,7 @@ scripts/embed_lyrics_cron.sh /chemin/vers/musique [MARQUEUR] [-- OPTIONS]
 ```
 
 > Le `ctime` (et non le `mtime`) est utilisé volontairement : il capte aussi les ré-écritures de tags en place et les fichiers copiés en conservant leur `mtime` (`rsync -a`, `cp -p`).
+
+## Licence
+
+Ce projet est distribué sous licence MIT — voir le fichier [LICENSE](LICENSE).
