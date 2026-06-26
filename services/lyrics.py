@@ -293,7 +293,11 @@ def fetch_lyrics(track_id, artist, title, album=None, duration=None, force=False
     if not title or not artist:
         return {"lyrics": None, "synced": None, "source": "none"}
 
-    cache_key = track_id or f"{artist}|{title}"
+    # track_id alone isn't a reliable cache key: streamed "flow"/mix sources
+    # can keep the same playlist track_id for an entire session while artist
+    # and title change underneath it, which would otherwise serve the first
+    # song's lyrics for every later one.
+    cache_key = f"{track_id or ''}|{artist}|{title}"
     if not force:
         cached = _cache_get(cache_key)
         if cached is not None:
