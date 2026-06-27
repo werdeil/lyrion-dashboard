@@ -329,16 +329,62 @@ hr {
     display: none;
 }
 
-.np-fetch-lyrics {
+/* Segmented control: pick the web-search mode (None / Once / Auto) in one
+   element, with a label above so its purpose is clear. */
+.np-lyrics-mode-block {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 6px 10px;
     margin-top: 12px;
-    font-size: 0.9rem;
-    line-height: 1.4;
     flex-shrink: 0;
 }
 
-.np-fetch-lyrics:disabled {
-    opacity: 0.6;
-    cursor: default;
+.np-lyrics-mode-label {
+    font-size: 0.78rem;
+    color: #9e9e9e;
+}
+
+.np-lyrics-mode {
+    display: inline-flex;
+    border: 1px solid #3a3a3a;
+    border-radius: 7px;
+    overflow: hidden;
+}
+
+.np-mode-seg {
+    padding: 5px 12px;
+    font-size: 0.82rem;
+    line-height: 1.3;
+    color: #b0b0b0;
+    background: transparent;
+    border: none;
+    border-radius: 0;
+    cursor: pointer;
+    transition: background 150ms ease, color 150ms ease;
+}
+
+.np-mode-seg + .np-mode-seg {
+    border-left: 1px solid #3a3a3a;
+}
+
+.np-mode-seg.is-active {
+    background: var(--accent-color);
+    color: #1a1a1a;
+}
+
+/* Hover only on devices that truly hover. On touch, :hover sticks after a tap,
+   leaving a stale tinted background on the segment last pressed (e.g. "Once")
+   even after the active segment has moved on a track change. */
+@media (hover: hover) {
+    .np-mode-seg:hover {
+        background: color-mix(in srgb, var(--accent-color) 14%, transparent);
+        filter: none;
+    }
+
+    .np-mode-seg.is-active:hover {
+        background: var(--accent-color);
+    }
 }
 
 .np-empty {

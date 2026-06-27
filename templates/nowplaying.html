@@ -39,9 +39,14 @@
                     </div>
                     <div class="np-lyrics" id="np-lyrics"></div>
                     <p class="np-lyrics-source" id="np-lyrics-source"></p>
-                    <button class="np-fetch-lyrics" id="np-fetch-lyrics" type="button">
-                        &#128269; {{ t.fetch_lyrics }}
-                    </button>
+                    <div class="np-lyrics-mode-block" id="np-lyrics-mode-block">
+                        <span class="np-lyrics-mode-label" title="{{ t.lyrics_search }}">&#128269; {{ t.lyrics_label }}</span>
+                        <div class="np-lyrics-mode" id="np-lyrics-mode" role="group" aria-label="{{ t.lyrics_search }}">
+                            <button type="button" class="np-mode-seg" data-mode="off" title="{{ t.lyrics_mode_off_hint }}">{{ t.lyrics_mode_off }}</button>
+                            <button type="button" class="np-mode-seg" data-mode="once" title="{{ t.lyrics_mode_once_hint }}">{{ t.lyrics_mode_once }}</button>
+                            <button type="button" class="np-mode-seg" data-mode="auto" title="{{ t.lyrics_mode_auto_hint }}">{{ t.lyrics_mode_auto }}</button>
+                        </div>
+                    </div>
                 </div>
                 <div class="np-empty" id="np-empty">
                     <span class="np-empty-icon">&#9835;</span>

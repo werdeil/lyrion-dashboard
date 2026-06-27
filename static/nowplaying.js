@@ -20,10 +20,42 @@ var el = {
     lyrics: document.getElementById('np-lyrics'),
     source: document.getElementById('np-lyrics-source'),
     cover:  document.getElementById('np-cover-img'),
-    fetch:  document.getElementById('np-fetch-lyrics'),
+    modeBlock: document.getElementById('np-lyrics-mode-block'),
+    modeControl: document.getElementById('np-lyrics-mode'),
     progressBar: document.getElementById('np-progress-bar'),
     lyrionLink: document.getElementById('lyrion-link'),
 };
+
+// Web lyrics search has three modes, picked from a single segmented control:
+//   'off'  – never query the web, just show "no lyrics"
+//   'once' – search the current track now, then fall back to 'off'
+//   'auto' – search this track and every later one the library has no lyrics for
+// Only 'off' and 'auto' are persistent states (localStorage). 'once' is not a
+// state: choosing it searches the current track but saves 'off', so picking
+// "once" while in auto leaves auto for good rather than resuming on the next
+// track. Its highlight lasts until the track changes.
+var LYRICS_MODE_KEY = 'np-lyrics-mode';
+var lyricsMode = 'off';
+try {
+    var savedMode = localStorage.getItem(LYRICS_MODE_KEY);
+    if (savedMode === 'off' || savedMode === 'auto') {
+        lyricsMode = savedMode;
+    } else if (localStorage.getItem('np-auto-lyrics') === '1') {
+        lyricsMode = 'auto';  // migrate the previous boolean toggle preference
+    }
+} catch (e) {}
+
+var modeSegs = el.modeControl ? el.modeControl.querySelectorAll('.np-mode-seg') : [];
+
+function setActiveSeg(mode) {
+    for (var i = 0; i < modeSegs.length; i++) {
+        modeSegs[i].classList.toggle('is-active', modeSegs[i].dataset.mode === mode);
+    }
+}
+
+function persistMode() {
+    try { localStorage.setItem(LYRICS_MODE_KEY, lyricsMode); } catch (e) {}
+}
 
 var MATERIAL_BASE = LYRION_HOST ? LYRION_HOST + '/material/' : '#';
 var IS_ANDROID = /Android/i.test(navigator.userAgent || '');
@@ -225,45 +257,82 @@ function render(data) {
             : '/cover/' + (data.coverid || 0) + '.jpg';
         setLyrics(data.lyrics || I18N.no_lyrics, !data.lyrics);
         setLyricsSource(data.lyrics ? 'library' : null);
-        el.fetch.style.display = data.lyrics ? 'none' : '';
-        el.fetch.disabled = false;
-        el.fetch.textContent = '🔍 ' + I18N.fetch_lyrics;
         lyricsTried = false;
+
+        // The search-mode control only makes sense for tracks the library has no
+        // lyrics for (typically streamed sources like Deezer or AirPlay), so it
+        // stays hidden on local tracks that already show their lyrics. The active
+        // segment reflects the persistent mode; 'once' never carries over, so a
+        // new track resets the control to 'off' or 'auto'.
+        if (el.modeBlock) {
+            el.modeBlock.style.display = data.lyrics ? 'none' : '';
+            setActiveSeg(lyricsMode);
+        }
+
+        // In auto mode, look the lyrics up on the web straight away.
+        if (lyricsMode === 'auto' && !data.lyrics) {
+            fetchLyrics();
+        }
     }
 }
 
-el.fetch.addEventListener('click', function() {
+function fetchLyrics() {
     if (!currentTrack) { return; }
-    el.fetch.disabled = true;
-    el.fetch.textContent = I18N.searching;
+    var track = currentTrack;
+    // The segmented control carries the mode state, so progress and failures are
+    // surfaced in the lyrics area itself.
+    setLyrics(I18N.searching, true);
     var params = new URLSearchParams({
-        track_id: currentTrack.track_id || '',
-        artist:   currentTrack.artist || '',
-        title:    currentTrack.title || '',
-        album:    currentTrack.album || '',
-        duration: currentTrack.duration || '',
+        track_id: track.track_id || '',
+        artist:   track.artist || '',
+        title:    track.title || '',
+        album:    track.album || '',
+        duration: track.duration || '',
+        // A repeat search on the same track (e.g. tapping "Once" again) bypasses
+        // the server cache so it acts as a retry.
         refresh:  lyricsTried ? '1' : '',
     });
     lyricsTried = true;
     fetch('/lyrics.json?' + params.toString(), { cache: 'no-store' })
         .then(function(r) { return r.json(); })
         .then(function(res) {
+            // The track may have changed while the request was in flight; if so,
+            // render() has already reset the UI for the new one — don't clobber it.
+            if (track !== currentTrack) { return; }
             var lyrics = res.lyrics || res.synced;
             if (lyrics) {
                 setLyrics(lyrics, false);
                 setLyricsSource(res.source);
-                el.fetch.style.display = 'none';
             } else {
                 setLyrics(I18N.no_lyrics_web, true);
-                el.fetch.disabled = false;
-                el.fetch.textContent = '🔍 ' + I18N.retry;
             }
         })
         .catch(function() {
-            el.fetch.disabled = false;
-            el.fetch.textContent = '🔍 ' + I18N.retry;
+            if (track !== currentTrack) { return; }
+            setLyrics(I18N.no_lyrics_web, true);
         });
-});
+}
+
+function selectMode(mode) {
+    if (!currentTrack) { return; }
+    setActiveSeg(mode);
+    // 'auto' is the only mode that keeps searching future tracks. 'off' and
+    // 'once' both leave auto behind by saving 'off', so the next track won't
+    // auto-search; 'once' just additionally searches the current track now.
+    lyricsMode = (mode === 'auto') ? 'auto' : 'off';
+    persistMode();
+    // Search the current track for 'auto'/'once' only when nothing is shown yet;
+    // if lyrics are already on screen (e.g. switching Auto -> Once), reuse them.
+    if (mode !== 'off' && el.lyrics.classList.contains('empty')) {
+        fetchLyrics();
+    }
+}
+
+for (var s = 0; s < modeSegs.length; s++) {
+    modeSegs[s].addEventListener('click', function() {
+        selectMode(this.dataset.mode);
+    });
+}
 
 el.cover.addEventListener('load', sampleCoverTint);
 
