@@ -222,16 +222,26 @@ function parseLRC(text) {
     var lines = text.split(/\r?\n/);
     var parsed = [];
     var offset = 0;
+    var lastTime = 0;
     for (var i = 0; i < lines.length; i++) {
         var line = lines[i];
         var meta = line.match(/^\[offset:([+-]?\d+)\]/i);
         if (meta) { offset = parseInt(meta[1], 10) / 1000; continue; }
         if (LRC_META_RE.test(line)) { continue; }
         var m = line.match(LRC_LINE_RE);
-        if (!m) { continue; }
+        if (!m) {
+            // Preserve blank separator lines between verses. They carry no
+            // timestamp, so reuse the previous line's time (they sort right
+            // after it) and flag them so they never become the active line.
+            if (line.trim() === '' && parsed.length) {
+                parsed.push({ time: lastTime, text: '', blank: true });
+            }
+            continue;
+        }
         var mm = parseInt(m[1], 10);
         var ss = parseFloat(m[2]);
         var t = mm * 60 + ss + offset;
+        lastTime = t;
         var txt = m[3] || '';
         parsed.push({ time: t, text: txt });
     }
@@ -292,7 +302,11 @@ function syncLyrics() {
     var t = currentTime();
     var activeIdx = -1;
     for (var i = 0; i < lrcLines.length; i++) {
-        if (lrcLines[i].time <= t) { activeIdx = i; } else { break; }
+        if (lrcLines[i].time <= t) {
+            // Blank separator lines share the previous line's time; never let
+            // one be the active line — keep the last real line highlighted.
+            if (!lrcLines[i].blank) { activeIdx = i; }
+        } else { break; }
     }
 
     var children = el.lyrics.querySelectorAll('.lrc-line');
