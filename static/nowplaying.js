@@ -22,6 +22,7 @@ var el = {
     cover:  document.getElementById('np-cover-img'),
     modeBlock: document.getElementById('np-lyrics-mode-block'),
     modeControl: document.getElementById('np-lyrics-mode'),
+    searchStatus: document.getElementById('np-search-status'),
     progressBar: document.getElementById('np-progress-bar'),
     lyrionLink: document.getElementById('lyrion-link'),
 };
@@ -307,6 +308,12 @@ function setLyricsSource(source) {
     el.source.textContent = label ? I18N.source_prefix + ' ' + label : '';
 }
 
+// Toggle the "searching the web" spinner. Shown even when local lyrics are
+// already on screen, so the user knows a synced version is still being fetched.
+function setSearching(on) {
+    if (el.searchStatus) { el.searchStatus.hidden = !on; }
+}
+
 function render(data) {
     if (!data || !data.track_id) {
         nowPlaying.classList.add('is-empty');
@@ -353,6 +360,7 @@ function render(data) {
         setLyrics(data.lyrics || I18N.no_lyrics, !data.lyrics);
         setLyricsSource(data.lyrics ? 'library' : null);
         lyricsTried = false;
+        setSearching(false);
 
         // The control is always available while a track plays, so the search
         // mode (None / Once / Auto) can be switched at any time.
@@ -392,12 +400,14 @@ function fetchLyrics() {
         refresh:  lyricsTried ? '1' : '',
     });
     lyricsTried = true;
+    setSearching(true);
     fetch('/lyrics.json?' + params.toString(), { cache: 'no-store' })
         .then(function(r) { return r.json(); })
         .then(function(res) {
             // The track may have changed while the request was in flight; if so,
             // render() has already reset the UI for the new one — don't clobber it.
             if (track !== currentTrack) { return; }
+            setSearching(false);
             // Always prefer the synced (LRC) version; fall back to plain text.
             var lyrics = res.synced || res.lyrics;
             if (lyrics) {
@@ -409,6 +419,7 @@ function fetchLyrics() {
         })
         .catch(function() {
             if (track !== currentTrack) { return; }
+            setSearching(false);
             setLyrics(I18N.no_lyrics_web, true);
         });
 }
@@ -425,10 +436,12 @@ function trySyncedFromWeb() {
         refresh:  lyricsTried ? '1' : '',
     });
     lyricsTried = true;
+    setSearching(true);
     fetch('/lyrics.json?' + params.toString(), { cache: 'no-store' })
         .then(function(r) { return r.json(); })
         .then(function(res) {
             if (track !== currentTrack) { return; }
+            setSearching(false);
             // Only replace the local plain lyrics if the web returned synced
             // (LRC) lyrics — otherwise keep what the library already has.
             if (res.synced) {
@@ -436,7 +449,10 @@ function trySyncedFromWeb() {
                 setLyricsSource(res.source);
             }
         })
-        .catch(function() {});
+        .catch(function() {
+            if (track !== currentTrack) { return; }
+            setSearching(false);
+        });
 }
 
 // Re-render the library's own lyrics for this track, dropping any web result
@@ -457,6 +473,7 @@ function selectMode(mode) {
 
     if (mode === 'off') {
         // No web search: fall back to whatever the library has.
+        setSearching(false);
         showLocal();
         return;
     }
