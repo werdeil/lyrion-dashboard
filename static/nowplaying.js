@@ -240,8 +240,10 @@ function parseLRC(text) {
     return parsed;
 }
 
-function setLyrics(text, isEmpty) {
-    el.lyrics.scrollTop = 0;
+// keepScroll preserves the current scroll position (used when only the mode
+// changes); by default the view resets to the top (used on a new track).
+function setLyrics(text, isEmpty, keepScroll) {
+    var prevScroll = keepScroll ? el.lyrics.scrollTop : 0;
     el.lyrics.classList.remove('empty', 'lrc-mode');
     el.lyrics.textContent = '';
     lrcLines = null;
@@ -249,6 +251,7 @@ function setLyrics(text, isEmpty) {
     if (!text || isEmpty) {
         el.lyrics.textContent = text || I18N.no_lyrics;
         el.lyrics.classList.toggle('empty', !!isEmpty || !text);
+        el.lyrics.scrollTop = prevScroll;
         return;
     }
 
@@ -265,9 +268,14 @@ function setLyrics(text, isEmpty) {
             div.textContent = parsed[i].text || '\u00a0';
             el.lyrics.appendChild(div);
         }
+        // Set the scroll only once the lines exist: setting it before the
+        // rebuild let scroll-behavior:smooth cancel the reset mid-animation, so
+        // the view never returned to the top on a track change.
+        el.lyrics.scrollTop = prevScroll;
         syncLyrics();
     } else {
         el.lyrics.textContent = text;
+        el.lyrics.scrollTop = prevScroll;
     }
 }
 
@@ -462,10 +470,11 @@ function trySyncedFromWeb() {
 }
 
 // Re-render the library's own lyrics for this track, dropping any web result
-// (used when switching back to 'off').
+// (used when switching back to 'off'). Only the mode changes here, so keep the
+// current scroll position instead of jumping back to the top.
 function showLocal() {
     var data = currentTrack || {};
-    setLyrics(data.lyrics || I18N.no_lyrics, !data.lyrics);
+    setLyrics(data.lyrics || I18N.no_lyrics, !data.lyrics, true);
     setLyricsSource(data.lyrics ? 'library' : null);
 }
 
@@ -489,8 +498,9 @@ function selectMode(mode) {
     if (currentTrack.lyrics_synced) {
         showLocal();          // library already has synced lyrics
     } else if (webResult) {
-        // Re-show the result we already fetched for this track, no new request.
-        setLyrics(webResult.text, false);
+        // Re-show the result we already fetched for this track, no new request
+        // and without losing the scroll position (mode change, not a new track).
+        setLyrics(webResult.text, false, true);
         setLyricsSource(webResult.source);
     } else if (lyricsTried) {
         showLocal();          // already searched and found nothing — keep local
