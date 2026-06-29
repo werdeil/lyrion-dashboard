@@ -417,7 +417,10 @@ hr {
 
 .np-lyrics-mode {
     display: inline-flex;
-    border: 1px solid #3a3a3a;
+    /* A visible track + accent-tinted border so the group reads as one control
+       instead of spaced-out words with a floating active pill. */
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid color-mix(in srgb, var(--accent-color) 55%, transparent);
     border-radius: 7px;
     overflow: hidden;
 }
@@ -435,7 +438,7 @@ hr {
 }
 
 .np-mode-seg + .np-mode-seg {
-    border-left: 1px solid #3a3a3a;
+    border-left: 1px solid color-mix(in srgb, var(--accent-color) 40%, transparent);
 }
 
 .np-mode-seg.is-active {
