@@ -21,21 +21,18 @@ var el = {
     source: document.getElementById('np-lyrics-source'),
     cover:  document.getElementById('np-cover-img'),
     modeBlock: document.getElementById('np-lyrics-mode-block'),
-    modeControl: document.getElementById('np-lyrics-mode'),
+    autoSwitch: document.getElementById('np-auto-switch'),
     searchStatus: document.getElementById('np-search-status'),
     progressBar: document.getElementById('np-progress-bar'),
     lyrionLink: document.getElementById('lyrion-link'),
 };
 
-// Web lyrics search has three modes, picked from a single segmented control:
+// Web lyrics auto-search is a single on/off switch:
 //   'off'  – never query the web, just show the library's lyrics (if any)
-//   'once' – search the current track now, then fall back to 'off'
-//   'auto' – search this track and every later one the library lacks lyrics for
+//   'auto' – search every track the library lacks (synced) lyrics for
 // Display is automatic, never a user choice: we always prefer synced (LRC)
 // lyrics and render them as karaoke, falling back to plain text when only plain
-// lyrics exist. Only 'off' and 'auto' persist (localStorage); 'once' is not a
-// state — choosing it searches the current track but saves 'off', so picking it
-// while in auto leaves auto for good rather than resuming on the next track.
+// lyrics exist. The chosen state persists in localStorage.
 var LYRICS_MODE_KEY = 'np-lyrics-mode';
 var lyricsMode = 'off';
 try {
@@ -47,12 +44,11 @@ try {
     }
 } catch (e) {}
 
-var modeSegs = el.modeControl ? el.modeControl.querySelectorAll('.np-mode-seg') : [];
-
-function setActiveSeg(mode) {
-    for (var i = 0; i < modeSegs.length; i++) {
-        modeSegs[i].classList.toggle('is-active', modeSegs[i].dataset.mode === mode);
-    }
+function updateSwitch() {
+    if (!el.autoSwitch) { return; }
+    var on = lyricsMode === 'auto';
+    el.autoSwitch.setAttribute('aria-checked', on ? 'true' : 'false');
+    el.autoSwitch.classList.toggle('is-on', on);
 }
 
 function persistMode() {
@@ -388,12 +384,11 @@ function render(data) {
         webResult = null;
         setSearching(false);
 
-        // The control is always available while a track plays, so the search
-        // mode (None / Once / Auto) can be switched at any time.
+        // The switch is always available while a track plays.
         var needsWebSync = data.lyrics && !data.lyrics_synced;
         if (el.modeBlock) {
             el.modeBlock.style.display = '';
-            setActiveSeg(lyricsMode);
+            updateSwitch();
         }
 
         // In auto mode, look the lyrics up on the web straight away — either
@@ -492,23 +487,20 @@ function showLocal() {
     setLyricsSource(data.lyrics ? 'library' : null);
 }
 
-function selectMode(mode) {
-    if (!currentTrack) { return; }
-    setActiveSeg(mode);
-    // Only 'off' and 'auto' persist; 'once' is a one-shot that leaves the
-    // persistent state at 'off' (so it doesn't resume on the next track).
-    lyricsMode = (mode === 'auto') ? 'auto' : 'off';
+function setAuto(on) {
+    lyricsMode = on ? 'auto' : 'off';
     persistMode();
+    updateSwitch();
+    if (!currentTrack) { return; }
 
-    if (mode === 'off') {
-        // No web search: fall back to whatever the library has.
+    if (!on) {
+        // Off: no web search, fall back to whatever the library has.
         setSearching(false);
         showLocal();
         return;
     }
-    // 'once' or 'auto': resolve synced lyrics for the current track — but only
-    // once. Re-selecting a mode (or switching once<->auto) must reuse the result
-    // already on screen instead of searching again.
+    // On: resolve synced lyrics for the current track — but only once. Toggling
+    // back on reuses the result already fetched instead of searching again.
     if (currentTrack.lyrics_synced) {
         showLocal();          // library already has synced lyrics
     } else if (webResult) {
@@ -525,11 +517,12 @@ function selectMode(mode) {
     }
 }
 
-for (var s = 0; s < modeSegs.length; s++) {
-    modeSegs[s].addEventListener('click', function() {
-        selectMode(this.dataset.mode);
+if (el.autoSwitch) {
+    el.autoSwitch.addEventListener('click', function() {
+        setAuto(lyricsMode !== 'auto');
     });
 }
+updateSwitch();
 
 el.cover.addEventListener('load', sampleCoverTint);
 

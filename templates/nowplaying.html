@@ -39,12 +39,10 @@
                     </div>
                     <div class="np-lyrics" id="np-lyrics"></div>
                     <div class="np-lyrics-mode-block" id="np-lyrics-mode-block">
-                        <span class="np-lyrics-mode-label" title="{{ t.lyrics_search }}"><span class="np-lyrics-mode-icon">&#128269;</span>{{ t.lyrics_label }}</span>
-                        <div class="np-lyrics-mode" id="np-lyrics-mode" role="group" aria-label="{{ t.lyrics_search }}">
-                            <button type="button" class="np-mode-seg" data-mode="off" title="{{ t.lyrics_mode_off_hint }}">{{ t.lyrics_mode_off }}</button>
-                            <button type="button" class="np-mode-seg" data-mode="once" title="{{ t.lyrics_mode_once_hint }}">{{ t.lyrics_mode_once }}</button>
-                            <button type="button" class="np-mode-seg" data-mode="auto" title="{{ t.lyrics_mode_auto_hint }}">{{ t.lyrics_mode_auto }}</button>
-                        </div>
+                        <button type="button" class="np-switch" id="np-auto-switch" role="switch" aria-checked="false" title="{{ t.lyrics_search }}" aria-label="{{ t.lyrics_search }}">
+                            <span class="np-switch-text"><span class="np-lyrics-mode-icon">&#128269;</span>{{ t.lyrics_auto }}</span>
+                            <span class="np-switch-track"><span class="np-switch-thumb"></span></span>
+                        </button>
                         <span class="np-search-status" id="np-search-status" role="status" aria-label="{{ t.searching }}" title="{{ t.searching }}" hidden>
                             <span class="np-spinner" aria-hidden="true"></span>
                         </span>
