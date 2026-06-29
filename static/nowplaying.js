@@ -543,3 +543,11 @@ poll();
 setInterval(poll, 5000);
 setInterval(pollStats, 60000);
 setInterval(paintProgress, 1000);
+// The progress repaint (and thus the LRC highlight) only ticks once a second,
+// which leaves the karaoke highlight up to ~1s late. The extrapolated position
+// advances continuously between network polls, so refresh the highlight a few
+// times a second while playing for a smoother follow. Gated on playback so it
+// doesn't fight manual scrolling while paused, where the 1s tick already covers.
+setInterval(function () {
+    if (lrcLines && progress.playing) { syncLyrics(); }
+}, 250);
