@@ -569,7 +569,12 @@ hr {
     color: #ffb7c0;
 }
 
-@media (min-width: 861px) {
+/* Fixed, non-scrolling viewport layout — only when the screen is both wide AND
+   tall enough. The min-height guard keeps phones in landscape (wide but short,
+   e.g. ~926x430) off this layout, since height:100vh + overflow:hidden would
+   otherwise clip the content with no way to scroll. They fall back to the
+   default scrollable layout instead. */
+@media (min-width: 861px) and (min-height: 600px) {
     body {
         display: flex;
         flex-direction: column;
@@ -622,6 +627,21 @@ hr {
     }
     .stats-panel {
         width: 100%;
+    }
+}
+
+/* Phones in landscape: wide enough to dodge the small-screen breakpoints, but
+   too short for a full-size cover. Shrink it and the lyrics box so more fits
+   without endless scrolling. */
+@media (max-height: 600px) and (orientation: landscape) {
+    .now-playing {
+        grid-template-columns: 160px 1fr;
+    }
+    .np-cover {
+        max-width: 160px;
+    }
+    .np-lyrics {
+        max-height: 240px;
     }
 }
 
