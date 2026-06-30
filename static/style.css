@@ -411,7 +411,7 @@ hr {
     to { transform: rotate(360deg); }
 }
 
-/* Two-state switch: web lyrics auto-search ON (Auto) / OFF (None). */
+/* Two-state switch: web lyrics auto-search on / off. */
 .np-switch {
     display: inline-flex;
     align-items: center;

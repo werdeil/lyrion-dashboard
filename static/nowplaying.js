@@ -261,8 +261,6 @@ function setLyrics(text, isEmpty, keepScroll) {
         return;
     }
 
-    // Display is automatic: render LRC content as synced karaoke, and anything
-    // else as plain text.
     var parsed = parseLRC(text);
     if (parsed) {
         lrcLines = parsed;
@@ -384,7 +382,6 @@ function render(data) {
         webResult = null;
         setSearching(false);
 
-        // The switch is always available while a track plays.
         if (el.modeBlock) {
             el.modeBlock.style.display = '';
             updateSwitch();
@@ -406,8 +403,6 @@ function render(data) {
 function fetchLyrics() {
     if (!currentTrack) { return; }
     var track = currentTrack;
-    // The segmented control carries the mode state, so progress and failures are
-    // surfaced in the lyrics area itself.
     setLyrics(I18N.searching, true);
     var params = new URLSearchParams({
         track_id: track.track_id || '',
@@ -415,8 +410,8 @@ function fetchLyrics() {
         title:    track.title || '',
         album:    track.album || '',
         duration: track.duration || '',
-        // A repeat search on the same track (e.g. tapping "Once" again) bypasses
-        // the server cache so it acts as a retry.
+        // A repeat search on the same track bypasses the server cache, so it
+        // acts as a retry.
         refresh:  lyricsTried ? '1' : '',
     });
     lyricsTried = true;
@@ -428,7 +423,7 @@ function fetchLyrics() {
             // render() has already reset the UI for the new one — don't clobber it.
             if (track !== currentTrack) { return; }
             setSearching(false);
-            // Always prefer the synced (LRC) version; fall back to plain text.
+            // Prefer the synced (LRC) version; fall back to plain text.
             var lyrics = res.synced || res.lyrics;
             if (lyrics) {
                 webResult = { text: lyrics, source: res.source };
