@@ -23,7 +23,7 @@ def get_db_conn():
 
 
 def get_track_lyrics(track_id):
-    """Return the stored lyrics for a Lyrion track id, or None if absent."""
+    """Return the stored lyrics text for a Lyrion track id, or None if absent."""
     if not track_id:
         return None
 

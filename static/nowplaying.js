@@ -21,19 +21,18 @@ var el = {
     source: document.getElementById('np-lyrics-source'),
     cover:  document.getElementById('np-cover-img'),
     modeBlock: document.getElementById('np-lyrics-mode-block'),
-    modeControl: document.getElementById('np-lyrics-mode'),
+    autoSwitch: document.getElementById('np-auto-switch'),
+    searchStatus: document.getElementById('np-search-status'),
     progressBar: document.getElementById('np-progress-bar'),
     lyrionLink: document.getElementById('lyrion-link'),
 };
 
-// Web lyrics search has three modes, picked from a single segmented control:
-//   'off'  – never query the web, just show "no lyrics"
-//   'once' – search the current track now, then fall back to 'off'
-//   'auto' – search this track and every later one the library has no lyrics for
-// Only 'off' and 'auto' are persistent states (localStorage). 'once' is not a
-// state: choosing it searches the current track but saves 'off', so picking
-// "once" while in auto leaves auto for good rather than resuming on the next
-// track. Its highlight lasts until the track changes.
+// Web lyrics auto-search is a single on/off switch:
+//   'off'  – never query the web, just show the library's lyrics (if any)
+//   'auto' – search every track the library lacks (synced) lyrics for
+// Display is automatic, never a user choice: we always prefer synced (LRC)
+// lyrics and render them as karaoke, falling back to plain text when only plain
+// lyrics exist. The chosen state persists in localStorage.
 var LYRICS_MODE_KEY = 'np-lyrics-mode';
 var lyricsMode = 'off';
 try {
@@ -45,12 +44,11 @@ try {
     }
 } catch (e) {}
 
-var modeSegs = el.modeControl ? el.modeControl.querySelectorAll('.np-mode-seg') : [];
-
-function setActiveSeg(mode) {
-    for (var i = 0; i < modeSegs.length; i++) {
-        modeSegs[i].classList.toggle('is-active', modeSegs[i].dataset.mode === mode);
-    }
+function updateSwitch() {
+    if (!el.autoSwitch) { return; }
+    var on = lyricsMode === 'auto';
+    el.autoSwitch.setAttribute('aria-checked', on ? 'true' : 'false');
+    el.autoSwitch.classList.toggle('is-on', on);
 }
 
 function persistMode() {
@@ -79,6 +77,12 @@ function setLyrionLink(playerId) {
 var lastTrackKey = null;
 var currentTrack = null;
 var lyricsTried = false;
+// Web lyrics resolved for the current track ({text, source}), so re-selecting a
+// mode reuses the result instead of searching again. Reset on every track.
+var webResult = null;
+
+var lrcLines = null;
+var lrcOffset = 0;
 
 var TINT_NEUTRAL = '#8b94a8';
 var ACCENT_DEFAULT = '#4f86c6';
@@ -185,6 +189,8 @@ function sampleCoverTint() {
 }
 
 var progress = { time: 0, duration: 0, playing: false, syncedAt: 0 };
+// Last measured now-playing round-trip latency (ms), used to back-date syncedAt.
+var pollRtt = 0;
 
 function paintProgress() {
     var t = progress.time;
@@ -195,6 +201,7 @@ function paintProgress() {
         ? Math.max(0, Math.min(100, (t / progress.duration) * 100))
         : 0;
     el.progressBar.style.width = pct + '%';
+    if (lrcLines) { syncLyrics(); }
 }
 
 var SOURCE_LABELS = {
@@ -204,15 +211,126 @@ var SOURCE_LABELS = {
     genius:     'Genius',
 };
 
-function setLyrics(text, isEmpty) {
-    el.lyrics.textContent = text;
-    el.lyrics.classList.toggle('empty', !!isEmpty);
-    el.lyrics.scrollTop = 0;
+var LRC_LINE_RE = /^\[(\d+):(\d{2}(?:\.\d+)?)\](.*)$/;
+var LRC_META_RE = /^\[(ar|ti|al|au|by|offset|length|re|ve):/i;
+
+function parseLRC(text) {
+    var lines = text.split(/\r?\n/);
+    var parsed = [];
+    var offset = 0;
+    var lastTime = 0;
+    for (var i = 0; i < lines.length; i++) {
+        var line = lines[i];
+        var meta = line.match(/^\[offset:([+-]?\d+)\]/i);
+        if (meta) { offset = parseInt(meta[1], 10) / 1000; continue; }
+        if (LRC_META_RE.test(line)) { continue; }
+        var m = line.match(LRC_LINE_RE);
+        if (!m) {
+            // Preserve blank separator lines between verses. They carry no
+            // timestamp, so reuse the previous line's time (they sort right
+            // after it) and flag them so they never become the active line.
+            if (line.trim() === '' && parsed.length) {
+                parsed.push({ time: lastTime, text: '', blank: true });
+            }
+            continue;
+        }
+        var mm = parseInt(m[1], 10);
+        var ss = parseFloat(m[2]);
+        var t = mm * 60 + ss + offset;
+        lastTime = t;
+        var txt = m[3] || '';
+        parsed.push({ time: t, text: txt });
+    }
+    if (!parsed.length) { return null; }
+    parsed.sort(function(a, b) { return a.time - b.time; });
+    return parsed;
+}
+
+// keepScroll preserves the current scroll position (used when only the mode
+// changes); by default the view resets to the top (used on a new track).
+function setLyrics(text, isEmpty, keepScroll) {
+    var prevScroll = keepScroll ? el.lyrics.scrollTop : 0;
+    el.lyrics.classList.remove('empty', 'lrc-mode');
+    el.lyrics.textContent = '';
+    lrcLines = null;
+
+    if (!text || isEmpty) {
+        el.lyrics.textContent = text || I18N.no_lyrics;
+        el.lyrics.classList.toggle('empty', !!isEmpty || !text);
+        el.lyrics.scrollTop = prevScroll;
+        return;
+    }
+
+    var parsed = parseLRC(text);
+    if (parsed) {
+        lrcLines = parsed;
+        el.lyrics.classList.add('lrc-mode');
+        for (var i = 0; i < parsed.length; i++) {
+            var div = document.createElement('div');
+            div.className = 'lrc-line';
+            div.dataset.time = parsed[i].time;
+            div.textContent = parsed[i].text || '\u00a0';
+            el.lyrics.appendChild(div);
+        }
+        // Set the scroll only once the lines exist: setting it before the
+        // rebuild let scroll-behavior:smooth cancel the reset mid-animation, so
+        // the view never returned to the top on a track change.
+        el.lyrics.scrollTop = prevScroll;
+        syncLyrics();
+    } else {
+        el.lyrics.textContent = text;
+        el.lyrics.scrollTop = prevScroll;
+    }
+}
+
+function currentTime() {
+    var t = progress.time;
+    if (progress.playing) {
+        t += (Date.now() - progress.syncedAt) / 1000;
+    }
+    return t;
+}
+
+function syncLyrics() {
+    if (!lrcLines || !lrcLines.length) { return; }
+    var t = currentTime();
+    var activeIdx = -1;
+    for (var i = 0; i < lrcLines.length; i++) {
+        if (lrcLines[i].time <= t) {
+            // Blank separator lines share the previous line's time; never let
+            // one be the active line — keep the last real line highlighted.
+            if (!lrcLines[i].blank) { activeIdx = i; }
+        } else { break; }
+    }
+
+    var children = el.lyrics.querySelectorAll('.lrc-line');
+    for (var j = 0; j < children.length; j++) {
+        children[j].classList.remove('active', 'near');
+        if (j === activeIdx) {
+            children[j].classList.add('active');
+        } else if (Math.abs(j - activeIdx) === 1) {
+            children[j].classList.add('near');
+        }
+    }
+
+    if (activeIdx >= 0 && activeIdx < children.length) {
+        var active = children[activeIdx];
+        // Anchor the active line around the upper third of the box rather than
+        // dead centre, so fewer past lines linger and more upcoming lines show.
+        var target = active.offsetTop - el.lyrics.clientHeight / 3 + active.clientHeight / 2;
+        el.lyrics.scrollTop = Math.max(0, target);
+    }
 }
 
 function setLyricsSource(source) {
     var label = source && SOURCE_LABELS[source];
     el.source.textContent = label ? I18N.source_prefix + ' ' + label : '';
+}
+
+// Toggle the "searching the web" spinner. Shown even when local lyrics are
+// already on screen, so the user knows a synced version is still being fetched.
+function setSearching(on) {
+    if (el.searchStatus) { el.searchStatus.hidden = !on; }
 }
 
 function render(data) {
@@ -224,6 +342,7 @@ function render(data) {
         resetColors();
         lastTrackKey = null;
         currentTrack = null;
+        lrcLines = null;
         progress = { time: 0, duration: 0, playing: false, syncedAt: 0 };
         el.progressBar.style.width = '0';
         return;
@@ -235,7 +354,9 @@ function render(data) {
         time: data.time || 0,
         duration: data.duration || 0,
         playing: !!data.playing,
-        syncedAt: Date.now(),
+        // Back-date by half the measured round trip so the extrapolation clock
+        // starts from when Lyrion actually read the position, not when we got it.
+        syncedAt: Date.now() - pollRtt / 2,
     };
     paintProgress();
     setLyrionLink(data.player_id);
@@ -258,20 +379,23 @@ function render(data) {
         setLyrics(data.lyrics || I18N.no_lyrics, !data.lyrics);
         setLyricsSource(data.lyrics ? 'library' : null);
         lyricsTried = false;
+        webResult = null;
+        setSearching(false);
 
-        // The search-mode control only makes sense for tracks the library has no
-        // lyrics for (typically streamed sources like Deezer or AirPlay), so it
-        // stays hidden on local tracks that already show their lyrics. The active
-        // segment reflects the persistent mode; 'once' never carries over, so a
-        // new track resets the control to 'off' or 'auto'.
         if (el.modeBlock) {
-            el.modeBlock.style.display = data.lyrics ? 'none' : '';
-            setActiveSeg(lyricsMode);
+            el.modeBlock.style.display = '';
+            updateSwitch();
         }
 
-        // In auto mode, look the lyrics up on the web straight away.
-        if (lyricsMode === 'auto' && !data.lyrics) {
-            fetchLyrics();
+        // In auto mode, look the lyrics up on the web straight away: from scratch
+        // when the library has nothing, or to upgrade its (always plain) text to
+        // a synced version when it does.
+        if (lyricsMode === 'auto') {
+            if (data.lyrics) {
+                trySyncedFromWeb();
+            } else {
+                fetchLyrics();
+            }
         }
     }
 }
@@ -279,8 +403,6 @@ function render(data) {
 function fetchLyrics() {
     if (!currentTrack) { return; }
     var track = currentTrack;
-    // The segmented control carries the mode state, so progress and failures are
-    // surfaced in the lyrics area itself.
     setLyrics(I18N.searching, true);
     var params = new URLSearchParams({
         track_id: track.track_id || '',
@@ -288,19 +410,23 @@ function fetchLyrics() {
         title:    track.title || '',
         album:    track.album || '',
         duration: track.duration || '',
-        // A repeat search on the same track (e.g. tapping "Once" again) bypasses
-        // the server cache so it acts as a retry.
+        // A repeat search on the same track bypasses the server cache, so it
+        // acts as a retry.
         refresh:  lyricsTried ? '1' : '',
     });
     lyricsTried = true;
+    setSearching(true);
     fetch('/lyrics.json?' + params.toString(), { cache: 'no-store' })
         .then(function(r) { return r.json(); })
         .then(function(res) {
             // The track may have changed while the request was in flight; if so,
             // render() has already reset the UI for the new one — don't clobber it.
             if (track !== currentTrack) { return; }
-            var lyrics = res.lyrics || res.synced;
+            setSearching(false);
+            // Prefer the synced (LRC) version; fall back to plain text.
+            var lyrics = res.synced || res.lyrics;
             if (lyrics) {
+                webResult = { text: lyrics, source: res.source };
                 setLyrics(lyrics, false);
                 setLyricsSource(res.source);
             } else {
@@ -309,37 +435,102 @@ function fetchLyrics() {
         })
         .catch(function() {
             if (track !== currentTrack) { return; }
+            setSearching(false);
             setLyrics(I18N.no_lyrics_web, true);
         });
 }
 
-function selectMode(mode) {
+function trySyncedFromWeb() {
     if (!currentTrack) { return; }
-    setActiveSeg(mode);
-    // 'auto' is the only mode that keeps searching future tracks. 'off' and
-    // 'once' both leave auto behind by saving 'off', so the next track won't
-    // auto-search; 'once' just additionally searches the current track now.
-    lyricsMode = (mode === 'auto') ? 'auto' : 'off';
+    var track = currentTrack;
+    var params = new URLSearchParams({
+        track_id: track.track_id || '',
+        artist:   track.artist || '',
+        title:    track.title || '',
+        album:    track.album || '',
+        duration: track.duration || '',
+        refresh:  lyricsTried ? '1' : '',
+    });
+    lyricsTried = true;
+    setSearching(true);
+    fetch('/lyrics.json?' + params.toString(), { cache: 'no-store' })
+        .then(function(r) { return r.json(); })
+        .then(function(res) {
+            if (track !== currentTrack) { return; }
+            setSearching(false);
+            // Only replace the local plain lyrics if the web returned synced
+            // (LRC) lyrics — otherwise keep what the library already has.
+            if (res.synced) {
+                webResult = { text: res.synced, source: res.source };
+                setLyrics(res.synced, false);
+                setLyricsSource(res.source);
+            }
+        })
+        .catch(function() {
+            if (track !== currentTrack) { return; }
+            setSearching(false);
+        });
+}
+
+// Re-render the library's own lyrics for this track, dropping any web result
+// (used when switching back to 'off'). Only the mode changes here, so keep the
+// current scroll position instead of jumping back to the top.
+function showLocal() {
+    var data = currentTrack || {};
+    setLyrics(data.lyrics || I18N.no_lyrics, !data.lyrics, true);
+    setLyricsSource(data.lyrics ? 'library' : null);
+}
+
+function setAuto(on) {
+    lyricsMode = on ? 'auto' : 'off';
     persistMode();
-    // Search the current track for 'auto'/'once' only when nothing is shown yet;
-    // if lyrics are already on screen (e.g. switching Auto -> Once), reuse them.
-    if (mode !== 'off' && el.lyrics.classList.contains('empty')) {
-        fetchLyrics();
+    updateSwitch();
+    if (!currentTrack) { return; }
+
+    if (!on) {
+        // Off: no web search, fall back to whatever the library has.
+        setSearching(false);
+        showLocal();
+        return;
+    }
+    // On: resolve synced lyrics for the current track — but only once. Toggling
+    // back on reuses the result already fetched instead of searching again.
+    if (webResult) {
+        // Re-show the result we already fetched for this track, no new request
+        // and without losing the scroll position (mode change, not a new track).
+        setLyrics(webResult.text, false, true);
+        setLyricsSource(webResult.source);
+    } else if (lyricsTried) {
+        showLocal();          // already searched and found nothing — keep local
+    } else if (currentTrack.lyrics) {
+        trySyncedFromWeb();   // plain local text → try once to upgrade to synced
+    } else {
+        fetchLyrics();        // nothing local → search from scratch
     }
 }
 
-for (var s = 0; s < modeSegs.length; s++) {
-    modeSegs[s].addEventListener('click', function() {
-        selectMode(this.dataset.mode);
+if (el.autoSwitch) {
+    el.autoSwitch.addEventListener('click', function() {
+        setAuto(lyricsMode !== 'auto');
     });
 }
+updateSwitch();
 
 el.cover.addEventListener('load', sampleCoverTint);
 
 function poll() {
+    // Time the round trip so render() can back-date the position. data.time is
+    // measured server-side (when it queries Lyrion), but we only learn it after
+    // the whole network round trip, by which point playback has moved on. The
+    // measurement sits roughly mid-trip, so half the RTT is a fair estimate of
+    // how stale the value already is when it reaches us.
+    var sentAt = Date.now();
     fetch('/now-playing.json')
         .then(function(r) { return r.json(); })
-        .then(render)
+        .then(function(data) {
+            pollRtt = Date.now() - sentAt;
+            render(data);
+        })
         .catch(function() {});
 }
 
@@ -386,3 +577,11 @@ poll();
 setInterval(poll, 5000);
 setInterval(pollStats, 60000);
 setInterval(paintProgress, 1000);
+// The progress repaint (and thus the LRC highlight) only ticks once a second,
+// which leaves the karaoke highlight up to ~1s late. The extrapolated position
+// advances continuously between network polls, so refresh the highlight a few
+// times a second while playing for a smoother follow. Gated on playback so it
+// doesn't fight manual scrolling while paused, where the 1s tick already covers.
+setInterval(function () {
+    if (lrcLines && progress.playing) { syncLyrics(); }
+}, 250);
