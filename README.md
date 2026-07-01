@@ -11,8 +11,9 @@ A Flask web app for [Lyrion Music Server](https://github.com/LMS-Community/slims
 
 ## Features
 
-- **Now Playing** -- Automatically detects the player currently playing and shows its track (cover art, title, artist, album) and lyrics, refreshed live via Lyrion's JSON-RPC API. Lyrics with LRC timestamps are displayed line-by-line with real-time highlighting and auto-scroll synced to playback.
-- **Web lyrics fallback** -- When the library has no lyrics, a segmented control lets you search the web (LRCLIB, Musixmatch, Genius) on demand or automatically for every track.
+- **Now Playing** -- Automatically detects the player currently playing and shows its track (cover art, title, artist, album), refreshed live via Lyrion's JSON-RPC API. The accent color adapts to the cover art automatically.
+- **Synced lyrics** -- Lyrics with LRC timestamps are displayed line-by-line with real-time highlighting and auto-scroll synced to playback, karaoke-style.
+- **Web lyrics fallback** -- When the library has no (synced) lyrics, a segmented control lets you search the web (LRCLIB, Musixmatch, Genius) on demand or automatically for every track.
 - **Library statistics** -- Albums, artists, played/unplayed tracks, genres, ratings, lyrics, 30-day listening velocity.
 - **File server** -- Serves files from a configurable directory.
 
