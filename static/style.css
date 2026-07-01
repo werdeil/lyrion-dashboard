@@ -630,6 +630,24 @@ hr {
     }
 }
 
+/* Lyrics span the full card width, stacked under the cover, whenever the card
+   is too narrow for the side-by-side "300px cover + lyrics" grid. That covers
+   small screens AND the 861–1080px range, where the stats panel sits alongside
+   and squeezes the lyrics into a thin column (the card is actually narrowest
+   just above 860px). Above 1080px there's room for the cover beside the lyrics. */
+@media (max-width: 1080px) {
+    .now-playing {
+        grid-template-columns: 200px 1fr;
+    }
+    .np-cover {
+        grid-row: 1;
+        max-width: 200px;
+    }
+    .np-lyrics-block {
+        grid-column: 1 / -1;
+    }
+}
+
 /* Phones in landscape: wide enough to dodge the small-screen breakpoints, but
    too short for a full-size cover. Shrink it and the lyrics box so more fits
    without endless scrolling. */
