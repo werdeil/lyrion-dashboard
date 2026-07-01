@@ -101,19 +101,27 @@ def _provider_lrclib(artist, title, album, duration):
         payload = None
 
     if payload is None:
-        try:
-            r = requests.get(
-                f"{LRCLIB_BASE}/search",
-                params={"artist_name": artist, "track_name": title},
-                headers=headers,
-                timeout=LRCLIB_TIMEOUT,
-            )
+        base = {"artist_name": artist, "track_name": title}
+        # Try an album-filtered search first for precision, then retry without
+        # the album. The search fallback exists precisely to forgive album/
+        # duration mismatches, so we must not let a differing album name (e.g.
+        # a "(Deluxe)" edition) suppress an otherwise valid hit.
+        attempts = [{**base, "album_name": album}, base] if album else [base]
+        for search_params in attempts:
+            try:
+                r = requests.get(
+                    f"{LRCLIB_BASE}/search",
+                    params=search_params,
+                    headers=headers,
+                    timeout=LRCLIB_TIMEOUT,
+                )
+            except requests.RequestException:
+                return None
             if r.status_code == 200:
                 results = r.json()
                 if results:
                     payload = results[0]
-        except requests.RequestException:
-            return None
+                    break
 
     if not payload:
         return None
@@ -177,6 +185,8 @@ def _provider_musixmatch(artist, title, album, duration):
         "q_artist": artist,
         "q_track": title,
     }
+    if album:
+        params["q_album"] = album
     seconds = _int_duration(duration)
     if seconds is not None:
         params["q_duration"] = seconds
@@ -226,10 +236,14 @@ def _provider_genius(artist, title, album, duration):
     if BeautifulSoup is None:
         return None
 
+    # Genius search is free-text only (no album field), so we fold the album
+    # into the query. Its matcher tolerates the extra terms and it helps
+    # disambiguate re-recordings/live versions that share an artist and title.
+    query = f"{artist} {title} {album}" if album else f"{artist} {title}"
     try:
         r = requests.get(
             "https://genius.com/api/search/multi",
-            params={"q": f"{artist} {title}"},
+            params={"q": query},
             headers={"User-Agent": BROWSER_UA},
             timeout=6,
         )
