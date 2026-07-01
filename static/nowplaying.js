@@ -90,9 +90,21 @@ var lrcOffset = 0;
 // back without fighting the highlight; the reset button (or a new track)
 // resumes it.
 var autoFollowScroll = true;
+// Cumulative scroll distance (px) tracked while auto-follow is still on, so a
+// deliberate scroll pauses it but a stray wheel tick or finger brush doesn't.
+// Only guards the initial trip out of auto-follow — once paused, scrolling is
+// unrestricted.
+var SCROLL_PAUSE_THRESHOLD = 60;
+var wheelAccum = 0;
+var wheelLastAt = 0;
+var touchStartY = null;
 
 function setAutoFollow(on) {
     autoFollowScroll = on;
+    if (on) {
+        wheelAccum = 0;
+        touchStartY = null;
+    }
     if (el.scrollReset) { el.scrollReset.hidden = on; }
 }
 
@@ -539,15 +551,31 @@ if (el.autoSwitch) {
 }
 updateSwitch();
 
-// Any real user scroll gesture (wheel or touch drag) on the synced lyrics
+// A deliberate scroll gesture (wheel or touch drag) on the synced lyrics
 // pauses the karaoke auto-follow, so it doesn't fight the user for control.
-// Programmatic scrolling from syncLyrics() never fires these events, so no
-// extra bookkeeping is needed to tell the two apart.
-['wheel', 'touchmove'].forEach(function(evt) {
-    el.lyrics.addEventListener(evt, function() {
-        if (lrcLines && autoFollowScroll) { setAutoFollow(false); }
-    }, { passive: true });
-});
+// Programmatic scrolling from syncLyrics() never fires these events, so
+// telling it apart from a real gesture needs no extra bookkeeping — only
+// telling a real gesture apart from an incidental bump does, via the
+// SCROLL_PAUSE_THRESHOLD accumulated below.
+el.lyrics.addEventListener('wheel', function(e) {
+    if (!lrcLines || !autoFollowScroll) { return; }
+    var now = Date.now();
+    // A gap between ticks starts a new gesture, so unrelated bumps spread out
+    // over time don't add up into a false trigger.
+    if (now - wheelLastAt > 400) { wheelAccum = 0; }
+    wheelLastAt = now;
+    wheelAccum += Math.abs(e.deltaY);
+    if (wheelAccum > SCROLL_PAUSE_THRESHOLD) { setAutoFollow(false); }
+}, { passive: true });
+
+el.lyrics.addEventListener('touchstart', function(e) {
+    touchStartY = e.touches.length ? e.touches[0].clientY : null;
+}, { passive: true });
+
+el.lyrics.addEventListener('touchmove', function(e) {
+    if (!lrcLines || !autoFollowScroll || touchStartY === null || !e.touches.length) { return; }
+    if (Math.abs(e.touches[0].clientY - touchStartY) > SCROLL_PAUSE_THRESHOLD) { setAutoFollow(false); }
+}, { passive: true });
 
 if (el.scrollReset) {
     el.scrollReset.addEventListener('click', function() {
