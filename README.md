@@ -4,7 +4,10 @@
 
 A Flask web app for [Lyrion Music Server](https://github.com/LMS-Community/slimserver) (formerly Logitech Media Server / Squeezebox Server).
 
-![Dashboard](docs/screenshots/dashboard-en.png)
+<p>
+  <img src="docs/screenshots/dashboard-en.png" alt="Dashboard" width="600">
+  <img src="docs/screenshots/dashboard-mobile.png" alt="Mobile view" width="180">
+</p>
 
 ## Features
 
