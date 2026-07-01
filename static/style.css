@@ -398,6 +398,34 @@ hr {
     display: none;
 }
 
+/* Shown only while the karaoke auto-scroll is paused by a manual scroll;
+   clicking it snaps back to the current line and resumes following it. */
+.np-scroll-reset {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 3px 10px;
+    border-radius: 999px;
+    border: 1px solid color-mix(in srgb, var(--accent-color) 60%, transparent);
+    background: color-mix(in srgb, var(--accent-color) 18%, transparent);
+    color: var(--accent-color);
+    font-size: 0.78rem;
+    cursor: pointer;
+}
+
+.np-scroll-reset:hover {
+    background: color-mix(in srgb, var(--accent-color) 30%, transparent);
+}
+
+.np-scroll-reset-icon {
+    display: inline-block;
+    margin-right: 2px;
+}
+
+.np-scroll-reset[hidden] {
+    display: none;
+}
+
 .np-spinner {
     width: 12px;
     height: 12px;
