@@ -2,5 +2,4 @@
 <resources>
     <!-- Matches the dark background of the web dashboard (static/style.css). -->
     <color name="background">#303030</color>
-    <color name="ic_launcher_background">#303030</color>
 </resources>
