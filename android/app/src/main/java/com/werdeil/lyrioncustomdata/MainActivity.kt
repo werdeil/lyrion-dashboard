@@ -71,6 +71,7 @@ class MainActivity : AppCompatActivity() {
         swipeRefresh.setOnRefreshListener { reload() }
         findViewById<View>(R.id.button_retry).setOnClickListener { reload() }
         findViewById<View>(R.id.button_settings).setOnClickListener { openSettings() }
+        findViewById<View>(R.id.button_open_settings).setOnClickListener { openSettings() }
 
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
