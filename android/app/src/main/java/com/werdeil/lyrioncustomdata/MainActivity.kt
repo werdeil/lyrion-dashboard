@@ -14,7 +14,6 @@ import androidx.activity.OnBackPressedCallback
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.preference.PreferenceManager
-import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
 
 /**
  * Full screen WebView wrapping the Lyrion Custom Data dashboard, following
@@ -24,7 +23,6 @@ import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
 class MainActivity : AppCompatActivity() {
 
     private lateinit var webView: WebView
-    private lateinit var swipeRefresh: SwipeRefreshLayout
     private lateinit var errorView: View
     private var loadedUrl: String? = null
     private var mainFrameFailed = false
@@ -36,7 +34,6 @@ class MainActivity : AppCompatActivity() {
         applySystemBarInsets(findViewById(R.id.root))
 
         webView = findViewById(R.id.webview)
-        swipeRefresh = findViewById(R.id.swipe_refresh)
         errorView = findViewById(R.id.error_view)
 
         webView.settings.apply {
@@ -49,7 +46,6 @@ class MainActivity : AppCompatActivity() {
             }
 
             override fun onPageFinished(view: WebView?, url: String?) {
-                swipeRefresh.isRefreshing = false
                 if (!mainFrameFailed) {
                     showWebView()
                 }
@@ -62,13 +58,11 @@ class MainActivity : AppCompatActivity() {
             ) {
                 if (request?.isForMainFrame == true) {
                     mainFrameFailed = true
-                    swipeRefresh.isRefreshing = false
                     showError()
                 }
             }
         }
 
-        swipeRefresh.setOnRefreshListener { reload() }
         findViewById<View>(R.id.button_retry).setOnClickListener { reload() }
         findViewById<View>(R.id.button_settings).setOnClickListener { openSettings() }
         findViewById<View>(R.id.button_open_settings).setOnClickListener { openSettings() }
@@ -118,7 +112,6 @@ class MainActivity : AppCompatActivity() {
     private fun reload() {
         val url = serverUrl()
         if (url == null) {
-            swipeRefresh.isRefreshing = false
             openSettings()
             return
         }
@@ -128,11 +121,11 @@ class MainActivity : AppCompatActivity() {
 
     private fun showWebView() {
         errorView.visibility = View.GONE
-        swipeRefresh.visibility = View.VISIBLE
+        webView.visibility = View.VISIBLE
     }
 
     private fun showError() {
-        swipeRefresh.visibility = View.GONE
+        webView.visibility = View.GONE
         errorView.visibility = View.VISIBLE
     }
 

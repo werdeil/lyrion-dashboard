@@ -8,7 +8,7 @@ provides the native shell.
 
 ## Features
 
-- Full screen WebView loading the dashboard, with pull-to-refresh
+- Full screen WebView loading the dashboard
 - Settings screen (server URL, keep screen on)
 - Automatic discovery of the Lyrion Music Server on the local network
   (UDP broadcast on port 3483, the standard LMS discovery protocol); the
