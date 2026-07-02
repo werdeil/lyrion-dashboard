@@ -2,6 +2,7 @@ package com.werdeil.lyrioncustomdata
 
 import android.os.Bundle
 import android.text.InputType
+import android.util.Log
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
@@ -65,10 +66,14 @@ class SettingsActivity : AppCompatActivity() {
                 .setCancelable(false)
                 .show()
 
+            val appContext = requireContext().applicationContext
             executor.execute {
+                var error: Exception? = null
                 val servers = try {
-                    ServerDiscovery.discover()
+                    ServerDiscovery.discover(appContext)
                 } catch (e: Exception) {
+                    Log.e(ServerDiscovery.LOG_TAG, "discovery failed", e)
+                    error = e
                     emptyList()
                 }
                 activity?.runOnUiThread {
@@ -76,14 +81,18 @@ class SettingsActivity : AppCompatActivity() {
                         return@runOnUiThread
                     }
                     progress.dismiss()
-                    if (servers.isEmpty()) {
-                        Toast.makeText(
+                    when {
+                        error != null -> Toast.makeText(
+                            requireContext(),
+                            getString(R.string.discover_error, error.toString()),
+                            Toast.LENGTH_LONG
+                        ).show()
+                        servers.isEmpty() -> Toast.makeText(
                             requireContext(),
                             R.string.discover_no_server,
                             Toast.LENGTH_LONG
                         ).show()
-                    } else {
-                        showServerChoice(servers)
+                        else -> showServerChoice(servers)
                     }
                 }
             }

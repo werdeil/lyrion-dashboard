@@ -19,6 +19,7 @@
 
     <string name="discover_in_progress">Recherche de serveurs Lyrion…</string>
     <string name="discover_no_server">Aucun serveur Lyrion trouvé sur le réseau</string>
+    <string name="discover_error">Échec de la découverte : %1$s</string>
     <string name="discover_choose_server">Choisir un serveur</string>
     <string name="discover_url_set">URL du serveur définie sur %1$s — ajustez le port si l\'application tourne ailleurs</string>
 </resources>
