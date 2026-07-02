@@ -22,7 +22,6 @@
 
     <string name="discover_in_progress">Searching for Lyrion servers…</string>
     <string name="discover_no_server">No Lyrion server found on the network</string>
-    <string name="discover_error">Discovery failed: %1$s</string>
     <string name="discover_choose_server">Choose a server</string>
     <string name="discover_url_set">Server URL set to %1$s — adjust the port if the app runs elsewhere</string>
 </resources>

@@ -1,8 +1,5 @@
 package com.werdeil.lyrioncustomdata
 
-import android.content.Context
-import android.net.wifi.WifiManager
-import android.util.Log
 import java.io.ByteArrayOutputStream
 import java.net.DatagramPacket
 import java.net.DatagramSocket
@@ -23,35 +20,13 @@ object ServerDiscovery {
 
     data class Server(val host: String, val name: String)
 
-    const val LOG_TAG = "LyrionDiscovery"
-
     private const val DISCOVERY_PORT = 3483
     private const val TOTAL_TIMEOUT_MS = 2500L
     private const val RECEIVE_TIMEOUT_MS = 300
     private const val RESEND_INTERVAL_MS = 1000L
 
     /** Blocking call; run it off the main thread. */
-    fun discover(context: Context): List<Server> {
-        // Keep the wifi radio fully awake and disable the firmware's
-        // multicast/broadcast filtering during the scan, like
-        // lms-material-app (WifiLock) and Squeezer (MulticastLock) do —
-        // some devices silently drop the exchange otherwise.
-        val wifi = context.applicationContext
-            .getSystemService(Context.WIFI_SERVICE) as WifiManager
-        @Suppress("DEPRECATION")
-        val wifiLock = wifi.createWifiLock(WifiManager.WIFI_MODE_FULL_HIGH_PERF, LOG_TAG)
-        val multicastLock = wifi.createMulticastLock(LOG_TAG)
-        wifiLock.acquire()
-        multicastLock.acquire()
-        try {
-            return scan()
-        } finally {
-            multicastLock.release()
-            wifiLock.release()
-        }
-    }
-
-    private fun scan(): List<Server> {
+    fun discover(): List<Server> {
         val servers = LinkedHashMap<String, Server>()
         DatagramSocket().use { socket ->
             socket.broadcast = true
@@ -59,7 +34,6 @@ object ServerDiscovery {
 
             val request = buildRequest()
             val targets = broadcastAddresses()
-            Log.d(LOG_TAG, "Scanning, broadcast targets: $targets")
             val deadline = System.currentTimeMillis() + TOTAL_TIMEOUT_MS
             var lastSend = 0L
             val buffer = ByteArray(1024)
@@ -75,7 +49,6 @@ object ServerDiscovery {
                             )
                         } catch (e: Exception) {
                             // Some interfaces refuse broadcast; try the others.
-                            Log.w(LOG_TAG, "send to $target failed: $e")
                         }
                     }
                     lastSend = now
@@ -87,14 +60,9 @@ object ServerDiscovery {
                 } catch (e: SocketTimeoutException) {
                     continue
                 }
-                Log.d(
-                    LOG_TAG,
-                    "Received ${response.length} bytes from ${response.address.hostAddress}"
-                )
                 parseResponse(response)?.let { servers[it.host] = it }
             }
         }
-        Log.d(LOG_TAG, "Scan done, found: ${servers.values}")
         return servers.values.toList()
     }
 
@@ -126,7 +94,7 @@ object ServerDiscovery {
                 }
             }
         } catch (e: Exception) {
-            Log.w(LOG_TAG, "listing interfaces failed: $e")
+            // Fall through to the limited broadcast only.
         }
         addresses.add(InetAddress.getByName("255.255.255.255"))
         return addresses.toList()

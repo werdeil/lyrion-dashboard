@@ -12,7 +12,10 @@ provides the native shell.
 - Settings screen (server URL, keep screen on)
 - Automatic discovery of the Lyrion Music Server on the local network
   (UDP broadcast on port 3483, the standard LMS discovery protocol); the
-  suggested URL assumes Lyrion Custom Data runs on the same host on port 1111
+  suggested URL assumes Lyrion Custom Data runs on the same host on port 1111.
+  Note: discovery cannot work while a VPN is active on the phone (UDP
+  broadcasts do not cross the tunnel) — disable the VPN during discovery or
+  enter the URL manually
 - Keeps the screen on while the dashboard is displayed (configurable)
 - Works over plain HTTP on the local network (cleartext traffic allowed)
 - Back button navigates the WebView history; on the start page it opens a
