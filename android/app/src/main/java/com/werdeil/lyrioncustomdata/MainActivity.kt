@@ -1,8 +1,10 @@
 package com.werdeil.lyrioncustomdata
 
 import android.annotation.SuppressLint
+import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.graphics.Bitmap
+import android.net.Uri
 import android.os.Bundle
 import android.view.View
 import android.view.WindowManager
@@ -41,6 +43,21 @@ class MainActivity : AppCompatActivity() {
             domStorageEnabled = true
         }
         webView.webViewClient = object : WebViewClient() {
+            override fun shouldOverrideUrlLoading(
+                view: WebView?,
+                request: WebResourceRequest?
+            ): Boolean {
+                val url = request?.url ?: return false
+                // Only the dashboard itself stays in the WebView; anything
+                // else (the Lyrion Material link, intent:// deep links to
+                // lms-material-app, ...) is handed to the system.
+                if ((url.scheme == "http" || url.scheme == "https") && isDashboardUrl(url)) {
+                    return false
+                }
+                openExternal(url.toString())
+                return true
+            }
+
             override fun onPageStarted(view: WebView?, url: String?, favicon: Bitmap?) {
                 mainFrameFailed = false
             }
@@ -151,6 +168,39 @@ class MainActivity : AppCompatActivity() {
 
     private fun openSettings() {
         startActivity(Intent(this, SettingsActivity::class.java))
+    }
+
+    private fun isDashboardUrl(url: Uri): Boolean {
+        val dashboard = Uri.parse(serverUrl() ?: return false)
+        return url.scheme == dashboard.scheme &&
+            url.host == dashboard.host &&
+            url.port == dashboard.port
+    }
+
+    /**
+     * Opens a link outside the WebView. intent:// URLs (used by the page to
+     * deep-link into lms-material-app) fall back to their embedded
+     * browser_fallback_url when the target app is not installed.
+     */
+    private fun openExternal(url: String) {
+        try {
+            if (url.startsWith("intent:")) {
+                val intent = Intent.parseUri(url, Intent.URI_INTENT_SCHEME)
+                intent.addCategory(Intent.CATEGORY_BROWSABLE)
+                try {
+                    startActivity(intent)
+                } catch (e: ActivityNotFoundException) {
+                    val fallback = intent.getStringExtra("browser_fallback_url")
+                    if (fallback != null) {
+                        startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(fallback)))
+                    }
+                }
+            } else {
+                startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
+            }
+        } catch (e: Exception) {
+            // No app can handle the link; ignore rather than crash.
+        }
     }
 
     companion object {
