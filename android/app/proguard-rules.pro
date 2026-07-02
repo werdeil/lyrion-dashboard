@@ -1,2 +1,4 @@
-# No JavaScript interfaces are exposed to the WebView, so the default
-# AndroidX consumer rules are sufficient.
+# Keep the WebView JavaScript bridge (window.LyrionApp) in release builds.
+-keepclassmembers class com.werdeil.lyrioncustomdata.MainActivity$AppBridge {
+    @android.webkit.JavascriptInterface <methods>;
+}

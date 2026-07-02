@@ -8,6 +8,7 @@ import android.net.Uri
 import android.os.Bundle
 import android.view.View
 import android.view.WindowManager
+import android.webkit.JavascriptInterface
 import android.webkit.WebResourceError
 import android.webkit.WebResourceRequest
 import android.webkit.WebView
@@ -42,6 +43,9 @@ class MainActivity : AppCompatActivity() {
             javaScriptEnabled = true
             domStorageEnabled = true
         }
+        // Lets the dashboard show its own settings button in the page header
+        // (only the dashboard origin ever loads in this WebView).
+        webView.addJavascriptInterface(AppBridge(), "LyrionApp")
         webView.webViewClient = object : WebViewClient() {
             override fun shouldOverrideUrlLoading(
                 view: WebView?,
@@ -82,7 +86,6 @@ class MainActivity : AppCompatActivity() {
 
         findViewById<View>(R.id.button_retry).setOnClickListener { reload() }
         findViewById<View>(R.id.button_settings).setOnClickListener { openSettings() }
-        findViewById<View>(R.id.button_open_settings).setOnClickListener { openSettings() }
 
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
@@ -168,6 +171,13 @@ class MainActivity : AppCompatActivity() {
 
     private fun openSettings() {
         startActivity(Intent(this, SettingsActivity::class.java))
+    }
+
+    private inner class AppBridge {
+        @JavascriptInterface
+        fun openSettings() {
+            runOnUiThread { this@MainActivity.openSettings() }
+        }
     }
 
     private fun isDashboardUrl(url: Uri): Boolean {
