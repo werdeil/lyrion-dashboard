@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="settings_title">Paramètres</string>
+    <string name="menu_settings">Paramètres</string>
+    <string name="menu_reload">Recharger</string>
+    <string name="menu_quit">Quitter</string>
+
+    <string name="error_cannot_connect">Impossible de joindre le serveur Lyrion Custom Data. Vérifiez qu\'il est démarré et que l\'URL est correcte.</string>
+    <string name="error_retry">Réessayer</string>
+
+    <string name="pref_category_server">Serveur</string>
+    <string name="pref_server_url">URL du serveur</string>
+    <string name="pref_discover">Découvrir le serveur</string>
+    <string name="pref_discover_summary">Rechercher un Lyrion Music Server sur le réseau local</string>
+
+    <string name="pref_category_display">Affichage</string>
+    <string name="pref_keep_screen_on">Garder l\'écran allumé</string>
+    <string name="pref_keep_screen_on_summary">Empêche l\'écran de s\'éteindre tant que le tableau de bord est affiché</string>
+
+    <string name="discover_in_progress">Recherche de serveurs Lyrion…</string>
+    <string name="discover_no_server">Aucun serveur Lyrion trouvé sur le réseau</string>
+    <string name="discover_choose_server">Choisir un serveur</string>
+    <string name="discover_url_set">URL du serveur définie sur %1$s — ajustez le port si l\'application tourne ailleurs</string>
+</resources>

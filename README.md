@@ -16,6 +16,7 @@ A Flask web app for [Lyrion Music Server](https://github.com/LMS-Community/slims
 - **Web lyrics fallback** -- When the library has no (synced) lyrics, a segmented control lets you search the web (LRCLIB, Musixmatch, Genius) on demand or automatically for every track.
 - **Library statistics** -- Albums, artists, played/unplayed tracks, genres, ratings, lyrics, 30-day listening velocity.
 - **File server** -- Serves files from a configurable directory.
+- **Android app** -- A thin WebView wrapper (same principle as [lms-material-app](https://github.com/CDrummond/lms-material-app)) with LMS auto-discovery, see [`android/`](android/README.md).
 
 ## Project structure
 
@@ -42,6 +43,7 @@ A Flask web app for [Lyrion Music Server](https://github.com/LMS-Community/slims
 ├── scripts/
 │   ├── embed_lyrics.py                    # Embed web lyrics into files' tags
 │   └── embed_lyrics_cron.sh               # Cron wrapper: only re-tags changed files
+├── android/                               # Android app (WebView wrapper)
 ├── tests/
 └── docs/screenshots/                      # README screenshots
 ```
