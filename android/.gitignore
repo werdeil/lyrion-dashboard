@@ -4,3 +4,6 @@ local.properties
 .idea/
 *.keystore
 *.jks
+# The debug keystore is deliberately committed so all CI debug builds
+# share the same signature and can update each other.
+!app/debug.keystore

@@ -15,9 +15,22 @@ android {
         versionName = "0.1.0"
     }
 
+    // A fixed debug keystore (standard debug credentials, committed on
+    // purpose) so every CI build signs the debug APK with the same key —
+    // otherwise each ephemeral runner generates its own and Android
+    // refuses to update the app over a previous install.
+    signingConfigs {
+        getByName("debug") {
+            storeFile = file("debug.keystore")
+            storePassword = "android"
+            keyAlias = "androiddebugkey"
+            keyPassword = "android"
+        }
+    }
+
     // Release signing is driven by environment variables so CI can sign
-    // without a keystore ever being committed. Without them the release
-    // build stays unsigned (app-release-unsigned.apk).
+    // without the release keystore ever being committed. Without them the
+    // release build stays unsigned (app-release-unsigned.apk).
     val keystorePath = System.getenv("ANDROID_KEYSTORE_PATH")
     if (keystorePath != null) {
         signingConfigs {
