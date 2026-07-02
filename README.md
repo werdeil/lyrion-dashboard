@@ -4,29 +4,46 @@
 
 A Flask web app for [Lyrion Music Server](https://github.com/LMS-Community/slimserver) (formerly Logitech Media Server / Squeezebox Server).
 
+<p>
+  <img src="docs/screenshots/dashboard-en.png" alt="Dashboard" width="600">
+  <img src="docs/screenshots/dashboard-mobile.png" alt="Mobile view" width="180">
+</p>
+
 ## Features
 
-- **Now Playing** -- Automatically detects the player currently playing and shows its track (cover art, title, artist, album) and lyrics, refreshed live via Lyrion's JSON-RPC API. Lyrics with LRC timestamps are displayed line-by-line with real-time highlighting and auto-scroll synced to playback.
-- **Web lyrics fallback** -- When the library has no lyrics, a segmented control lets you search the web (LRCLIB, Musixmatch, Genius) on demand or automatically for every track.
+- **Now Playing** -- Automatically detects the player currently playing and shows its track (cover art, title, artist, album), refreshed live via Lyrion's JSON-RPC API. The accent color adapts to the cover art automatically.
+- **Synced lyrics** -- Lyrics with LRC timestamps are displayed line-by-line with real-time highlighting and auto-scroll synced to playback, karaoke-style.
+- **Web lyrics fallback** -- When the library has no (synced) lyrics, a segmented control lets you search the web (LRCLIB, Musixmatch, Genius) on demand or automatically for every track.
 - **Library statistics** -- Albums, artists, played/unplayed tracks, genres, ratings, lyrics, 30-day listening velocity.
 - **File server** -- Serves files from a configurable directory.
 
 ## Project structure
 
 ```
-├── app.py                 # Flask entry point (factory)
-├── config.py              # Centralized configuration (env vars)
-├── requirements.txt       # Python dependencies
-├── docker-compose.yml     # Docker deployment
-├── .env.example           # Configuration template
+├── app.py                                 # Flask entry point (factory)
+├── config.py                              # Centralized configuration (env vars)
+├── i18n.py                                # FR/EN UI translations
+├── requirements.txt                       # Python dependencies (web app)
+├── requirements-cli.txt                   # Python dependencies (scripts/ only)
+├── docker-compose.yml                     # Docker deployment
+├── docker-compose.override.yml.example    # Local Compose customization template
+├── .env.example                           # Configuration template
 ├── routes/
-│   ├── nowplaying.py      # Routes: /  and  /now-playing.json
-│   └── custom.py          # Route: /files/<path>
+│   ├── nowplaying.py                      # Routes: /, /now-playing.json, /cover, /lyrics.json
+│   └── custom.py                          # Route: /files/<path>
 ├── services/
-│   ├── lyrion.py          # Lyrion JSON-RPC client
-│   └── database.py        # SQLite access (lyrics, stats)
-└── templates/
-    └── nowplaying.html    # Main dashboard
+│   ├── lyrion.py                          # Lyrion JSON-RPC client
+│   ├── database.py                        # SQLite access (lyrics, stats)
+│   ├── lyrics.py                          # Web lyrics fallback (LRCLIB, Musixmatch, Genius)
+│   └── tags.py                            # Read/embed lyrics into audio file tags
+├── templates/
+│   └── nowplaying.html                    # Main dashboard
+├── static/                                # CSS, JS, icons
+├── scripts/
+│   ├── embed_lyrics.py                    # Embed web lyrics into files' tags
+│   └── embed_lyrics_cron.sh               # Cron wrapper: only re-tags changed files
+├── tests/
+└── docs/screenshots/                      # README screenshots
 ```
 
 ## Requirements

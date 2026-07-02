@@ -4,29 +4,46 @@
 
 Application web Flask pour [Lyrion Music Server](https://github.com/LMS-Community/slimserver) (anciennement Logitech Media Server / Squeezebox Server).
 
+<p>
+  <img src="docs/screenshots/dashboard-fr.png" alt="Tableau de bord" width="600">
+  <img src="docs/screenshots/dashboard-mobile.png" alt="Vue mobile" width="180">
+</p>
+
 ## Fonctionnalités
 
-- **Now Playing** -- Détecte automatiquement le lecteur en cours de lecture et affiche sa piste (pochette, titre, artiste, album) et ses paroles, rafraîchi via l'API JSON-RPC de Lyrion. Les paroles avec timestamps LRC sont affichées ligne par ligne avec surlignage et défilement automatiques synchronisés à la lecture.
-- **Recherche web de paroles** -- Quand la bibliothèque n'a pas de paroles, un contrôle segmenté permet de chercher sur le web (LRCLIB, Musixmatch, Genius) à la demande ou automatiquement pour chaque morceau.
+- **Now Playing** -- Détecte automatiquement le lecteur en cours de lecture et affiche sa piste (pochette, titre, artiste, album), rafraîchi via l'API JSON-RPC de Lyrion. La couleur d'accent s'adapte automatiquement à la pochette.
+- **Paroles synchronisées** -- Les paroles avec timestamps LRC sont affichées ligne par ligne avec surlignage et défilement automatiques synchronisés à la lecture, façon karaoké.
+- **Recherche web de paroles** -- Quand la bibliothèque n'a pas de paroles (synchronisées), un contrôle segmenté permet de chercher sur le web (LRCLIB, Musixmatch, Genius) à la demande ou automatiquement pour chaque morceau.
 - **Statistiques de la bibliothèque** -- Albums, artistes, morceaux joués/non joués, genres, notes, paroles, vélocité d'écoute sur 30 jours.
 - **Serveur de fichiers** -- Sert les fichiers depuis un répertoire configurable.
 
 ## Structure du projet
 
 ```
-├── app.py                 # Point d'entrée Flask (factory)
-├── config.py              # Configuration centralisée (env vars)
-├── requirements.txt       # Dépendances Python
-├── docker-compose.yml     # Déploiement via Docker
-├── .env.example           # Modèle de configuration
+├── app.py                                 # Point d'entrée Flask (factory)
+├── config.py                              # Configuration centralisée (env vars)
+├── i18n.py                                # Traductions FR/EN de l'interface
+├── requirements.txt                       # Dépendances Python (application web)
+├── requirements-cli.txt                   # Dépendances Python (scripts/ uniquement)
+├── docker-compose.yml                     # Déploiement via Docker
+├── docker-compose.override.yml.example    # Modèle de personnalisation Compose locale
+├── .env.example                           # Modèle de configuration
 ├── routes/
-│   ├── nowplaying.py      # Routes : /  et  /now-playing.json
-│   └── custom.py          # Routes : /files/<path>
+│   ├── nowplaying.py                      # Routes : /, /now-playing.json, /cover, /lyrics.json
+│   └── custom.py                          # Route : /files/<path>
 ├── services/
-│   ├── lyrion.py          # Client JSON-RPC Lyrion
-│   └── database.py        # Accès SQLite (paroles, stats)
-└── templates/
-    └── nowplaying.html    # Dashboard principal
+│   ├── lyrion.py                          # Client JSON-RPC Lyrion
+│   ├── database.py                        # Accès SQLite (paroles, stats)
+│   ├── lyrics.py                          # Recherche web de paroles (LRCLIB, Musixmatch, Genius)
+│   └── tags.py                            # Lecture/écriture des paroles dans les tags audio
+├── templates/
+│   └── nowplaying.html                    # Dashboard principal
+├── static/                                # CSS, JS, icônes
+├── scripts/
+│   ├── embed_lyrics.py                    # Intègre les paroles web dans les tags des fichiers
+│   └── embed_lyrics_cron.sh               # Wrapper cron : ne retague que les fichiers modifiés
+├── tests/
+└── docs/screenshots/                      # Captures d'écran du README
 ```
 
 ## Pré-requis
