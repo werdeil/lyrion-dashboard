@@ -5,5 +5,7 @@
         <item name="android:navigationBarColor">@color/background</item>
         <item name="android:windowBackground">@color/background</item>
         <item name="preferenceTheme">@style/PreferenceThemeOverlay</item>
+        <!-- The window background behind the system bars is always dark. -->
+        <item name="android:windowLightStatusBar">false</item>
     </style>
 </resources>
