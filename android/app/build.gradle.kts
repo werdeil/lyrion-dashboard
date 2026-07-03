@@ -3,6 +3,23 @@ plugins {
     id("org.jetbrains.kotlin.android")
 }
 
+// On a GitHub release, CI exports the tag (vX.Y.Z) as APP_VERSION_NAME and
+// the version is derived from it — no manual bump needed. Local and everyday
+// CI builds fall back to the dev default below.
+val releaseVersion = System.getenv("APP_VERSION_NAME")?.removePrefix("v")
+
+// Packs X.Y.Z into an integer that grows with every release (X*10000 +
+// Y*100 + Z), so Android accepts each release as an update of the previous
+// one. Assumes Y and Z stay below 100.
+fun semverCode(version: String): Int? {
+    val parts = version.split(".").map { it.takeWhile(Char::isDigit) }
+    if (parts.size != 3 || parts.any { it.isEmpty() }) {
+        return null
+    }
+    val (major, minor, patch) = parts.map { it.toInt() }
+    return major * 10000 + minor * 100 + patch
+}
+
 android {
     namespace = "com.werdeil.lyrioncustomdata"
     compileSdk = 35
@@ -11,8 +28,13 @@ android {
         applicationId = "com.werdeil.lyrioncustomdata"
         minSdk = 26
         targetSdk = 35
-        versionCode = 1
-        versionName = "0.1.0"
+        versionCode = if (releaseVersion != null) {
+            semverCode(releaseVersion)
+                ?: error("Release tag must look like vX.Y.Z, got: $releaseVersion")
+        } else {
+            1
+        }
+        versionName = releaseVersion ?: "0.1.0-dev"
     }
 
     // A fixed debug keystore (standard debug credentials, committed on

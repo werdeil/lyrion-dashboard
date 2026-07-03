@@ -50,6 +50,12 @@ The GitHub Actions workflow `.github/workflows/android.yml`:
   `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS` and `ANDROID_KEY_PASSWORD`
   repository secrets are configured, and unsigned otherwise.
 
+Versioning is automatic: tag the release `vX.Y.Z` and the APK gets
+`versionName = X.Y.Z` with a `versionCode` derived from it
+(`X*10000 + Y*100 + Z`), so each release installs as an update of the
+previous one — no manual bump in `build.gradle.kts`. A tag that doesn't
+look like `vX.Y.Z` fails the release build.
+
 To create a keystore and export it for CI:
 
 ```bash
