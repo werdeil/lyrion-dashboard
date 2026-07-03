@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.LyrionCustomData" parent="Theme.Material3.DayNight.NoActionBar">
+        <!-- Align the controls (settings switch, dialog buttons, ...) with
+             the dashboard's accent instead of the Material3 baseline hue. -->
+        <item name="colorPrimary">@color/accent</item>
+        <item name="colorControlActivated">@color/accent</item>
+        <item name="android:statusBarColor">@color/background</item>
+        <item name="android:navigationBarColor">@color/background</item>
+        <item name="android:windowBackground">@color/background</item>
+        <item name="preferenceTheme">@style/PreferenceThemeOverlay</item>
+        <!-- The window background behind the system bars is always dark. -->
+        <item name="android:windowLightStatusBar">false</item>
+    </style>
+</resources>

@@ -11,6 +11,19 @@ document.querySelectorAll('.stat-group-title').forEach(function(title) {
 
 var LYRION_HOST = document.body.dataset.lyrionHost || '';
 
+// Inside the Android app a native bridge (window.LyrionApp) is injected;
+// reveal the header's settings button and wire it to the native screen.
+(function () {
+    var appSettings = document.getElementById('app-settings');
+    if (appSettings && window.LyrionApp && window.LyrionApp.openSettings) {
+        appSettings.hidden = false;
+        appSettings.addEventListener('click', function (e) {
+            e.preventDefault();
+            window.LyrionApp.openSettings();
+        });
+    }
+})();
+
 var nowPlaying = document.getElementById('now-playing');
 var el = {
     player: document.getElementById('np-player'),
@@ -83,7 +96,6 @@ var lyricsTried = false;
 var webResult = null;
 
 var lrcLines = null;
-var lrcOffset = 0;
 
 // Whether the lyrics box auto-scrolls to keep the karaoke-highlighted line in
 // view. A manual scroll (wheel/touch) pauses it so the user can read ahead or

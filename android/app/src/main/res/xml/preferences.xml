@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <PreferenceCategory android:title="@string/pref_category_server">
+
+        <EditTextPreference
+            android:key="server_url"
+            android:title="@string/pref_server_url"
+            app:useSimpleSummaryProvider="true" />
+
+        <Preference
+            android:key="discover"
+            android:title="@string/pref_discover"
+            android:summary="@string/pref_discover_summary" />
+    </PreferenceCategory>
+
+    <PreferenceCategory android:title="@string/pref_category_display">
+
+        <SwitchPreferenceCompat
+            android:defaultValue="true"
+            android:key="keep_screen_on"
+            android:summary="@string/pref_keep_screen_on_summary"
+            android:title="@string/pref_keep_screen_on"
+            app:widgetLayout="@layout/preference_widget_material_switch" />
+    </PreferenceCategory>
+</PreferenceScreen>

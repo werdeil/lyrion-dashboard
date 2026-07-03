@@ -563,9 +563,16 @@ hr {
     background: color-mix(in srgb, var(--accent-color) 30%, transparent);
 }
 
-.lyrion-link img {
+.lyrion-link img,
+.lyrion-link svg {
     width: 1rem;
     height: 1rem;
+}
+
+/* display:inline-flex would override the hidden attribute (used by the
+   app-settings button, revealed only inside the Android app). */
+.lyrion-link[hidden] {
+    display: none;
 }
 
 .page-header {

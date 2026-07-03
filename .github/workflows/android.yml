@@ -1,0 +1,93 @@
+name: Android app
+
+on:
+  push:
+    branches:
+      - main
+      - master
+    paths:
+      - "android/**"
+      - ".github/workflows/android.yml"
+  pull_request:
+    paths:
+      - "android/**"
+      - ".github/workflows/android.yml"
+  release:
+    types: [published]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: android
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - uses: gradle/actions/setup-gradle@v6
+
+      - name: Android Lint
+        run: ./gradlew lintDebug
+
+      - name: Upload lint report
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: android-lint-report
+          path: android/app/build/reports/lint-results-debug.html
+
+      - name: Build debug APK
+        run: ./gradlew assembleDebug
+
+      - name: Upload debug APK
+        uses: actions/upload-artifact@v7
+        with:
+          name: lyrion-custom-data-debug
+          path: android/app/build/outputs/apk/debug/app-debug.apk
+
+      # The release APK is signed only when the signing secrets are
+      # configured in the repository; otherwise it is built unsigned.
+      # F-Droid builds from the source at the tag, so the version must be
+      # committed in build.gradle.kts — this only guards their coherence.
+      - name: Check that the release tag matches the app version
+        if: github.event_name == 'release'
+        run: |
+          version=$(grep -oP 'versionName = "\K[^"]+' app/build.gradle.kts)
+          tag="${{ github.event.release.tag_name }}"
+          if [ "v$version" != "$tag" ]; then
+            echo "::error::Release tag $tag does not match versionName $version in android/app/build.gradle.kts"
+            exit 1
+          fi
+
+      - name: Build release APK
+        if: github.event_name == 'release'
+        env:
+          KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          if [ -n "$KEYSTORE_BASE64" ]; then
+            echo "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/keystore.jks"
+            export ANDROID_KEYSTORE_PATH="$RUNNER_TEMP/keystore.jks"
+          fi
+          ./gradlew assembleRelease
+
+      - name: Attach release APK to the GitHub release
+        if: github.event_name == 'release'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          apk=$(ls app/build/outputs/apk/release/*.apk | head -n 1)
+          cp "$apk" "lyrion-custom-data-${{ github.event.release.tag_name }}.apk"
+          gh release upload "${{ github.event.release.tag_name }}" \
+            "lyrion-custom-data-${{ github.event.release.tag_name }}.apk" --clobber

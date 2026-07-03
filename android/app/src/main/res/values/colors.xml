@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Matches the dark background of the web dashboard (static/style.css). -->
+    <color name="background">#303030</color>
+    <!-- The page's default accent (ACCENT_DEFAULT in static/nowplaying.js). -->
+    <color name="accent">#4f86c6</color>
+</resources>

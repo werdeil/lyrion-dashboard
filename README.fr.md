@@ -16,6 +16,7 @@ Application web Flask pour [Lyrion Music Server](https://github.com/LMS-Communit
 - **Recherche web de paroles** -- Quand la bibliothèque n'a pas de paroles (synchronisées), un contrôle segmenté permet de chercher sur le web (LRCLIB, Musixmatch, Genius) à la demande ou automatiquement pour chaque morceau.
 - **Statistiques de la bibliothèque** -- Albums, artistes, morceaux joués/non joués, genres, notes, paroles, vélocité d'écoute sur 30 jours.
 - **Serveur de fichiers** -- Sert les fichiers depuis un répertoire configurable.
+- **Application Android** -- Une fine surcouche WebView (même principe que [lms-material-app](https://github.com/CDrummond/lms-material-app)) avec découverte automatique du serveur LMS, voir [`android/`](android/README.md).
 
 ## Structure du projet
 
@@ -42,6 +43,7 @@ Application web Flask pour [Lyrion Music Server](https://github.com/LMS-Communit
 ├── scripts/
 │   ├── embed_lyrics.py                    # Intègre les paroles web dans les tags des fichiers
 │   └── embed_lyrics_cron.sh               # Wrapper cron : ne retague que les fichiers modifiés
+├── android/                               # Application Android (surcouche WebView)
 ├── tests/
 └── docs/screenshots/                      # Captures d'écran du README
 ```
