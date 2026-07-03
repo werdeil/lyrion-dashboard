@@ -64,6 +64,8 @@ cp .env.example .env
 docker compose up -d
 ```
 
+Le déploiement part directement de `python:3.12-slim` et installe les dépendances (versions figées) à chaque démarrage — pas d'image à construire ni à publier, au prix de quelques secondes et d'un accès réseau à chaque redémarrage.
+
 ### Personnalisation locale Docker Compose
 
 Pour ajouter des services ou des options locales sans polluer les changements Git, copiez le modèle d'override :

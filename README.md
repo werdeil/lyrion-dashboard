@@ -64,6 +64,8 @@ cp .env.example .env
 docker compose up -d
 ```
 
+This deploys straight from `python:3.12-slim` and installs pinned dependencies on each start — no custom image to build or publish, at the cost of a few seconds and network access on every restart.
+
 ### Local Docker Compose customization
 
 To add services or local options without polluting Git changes, copy the override template:
