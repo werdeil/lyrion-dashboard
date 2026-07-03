@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="{{ lang }}">
 <head>
-    <title>Lyrion+</title>
+    <title>Lyrion Dashboard</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='favicon.svg') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
@@ -10,7 +10,8 @@
     <div class="page-header">
         <h1>
             <img class="page-logo" src="{{ url_for('static', filename='favicon.svg') }}" alt="Lyrion logo">
-            Lyrion+
+            <span class="page-title-full">Lyrion Dashboard</span>
+            <span class="page-title-short">Lyrion</span>
         </h1>
         <a class="lyrion-link" id="lyrion-link"
            href="{{ (lyrion_host ~ '/material/') if lyrion_host else '#' }}"
@@ -31,7 +32,7 @@
             <div class="now-playing is-empty" id="now-playing">
                 <div class="np-cover">
                     <img id="np-cover-img" alt="{{ t.cover_alt }}"
-                         onerror="this.src='https://via.placeholder.com/300?text=No+Cover'">
+                         onerror="this.src='{{ url_for('static', filename='no-cover.svg') }}'">
                 </div>
                 <div class="np-meta">
                     <p class="np-player" id="np-player"></p>

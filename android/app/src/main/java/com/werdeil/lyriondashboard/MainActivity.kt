@@ -1,4 +1,4 @@
-package com.werdeil.lyrioncustomdata
+package com.werdeil.lyriondashboard
 
 import android.annotation.SuppressLint
 import android.content.ActivityNotFoundException
@@ -19,7 +19,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.preference.PreferenceManager
 
 /**
- * Full screen WebView wrapping the Lyrion Custom Data dashboard, following
+ * Full screen WebView wrapping the Lyrion Dashboard app, following
  * the same principle as lms-material-app: the whole UI lives in the web page,
  * the app only provides the shell (settings, reload, keep-screen-on).
  */

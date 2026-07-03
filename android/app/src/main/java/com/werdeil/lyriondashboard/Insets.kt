@@ -1,4 +1,4 @@
-package com.werdeil.lyrioncustomdata
+package com.werdeil.lyriondashboard
 
 import android.app.Activity
 import android.view.View

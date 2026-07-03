@@ -1,6 +1,6 @@
 [English](README.md) | [Français](README.fr.md)
 
-# Lyrion Custom Data
+# Lyrion Dashboard
 
 Application web Flask pour [Lyrion Music Server](https://github.com/LMS-Community/slimserver) (anciennement Logitech Media Server / Squeezebox Server).
 
@@ -64,6 +64,8 @@ cp .env.example .env
 docker compose up -d
 ```
 
+Le déploiement part directement de `python:3.12-slim` et installe les dépendances (versions figées) à chaque démarrage — pas d'image à construire ni à publier, au prix de quelques secondes et d'un accès réseau à chaque redémarrage.
+
 ### Personnalisation locale Docker Compose
 
 Pour ajouter des services ou des options locales sans polluer les changements Git, copiez le modèle d'override :
@@ -93,19 +95,28 @@ L'application est accessible sur `http://localhost:1111`.
 | Variable | Description | Défaut |
 |---|---|---|
 | `LYRION_HOST` | URL du serveur Lyrion (ex: `https://lyrion.local:9000`) | -- |
-| `DB_PATH` | Chemin absolu vers la base SQLite de Lyrion | -- |
-| `DB_PERSIST_PATH` | Chemin absolu vers la base persistante de Lyrion | -- |
+| `DB_DIR` | Répertoire contenant `library.db` de Lyrion | -- |
+| `DB_PERSIST_DIR` | Répertoire contenant `persist.db` de Lyrion | -- |
 | `SECRET_KEY` | Clé secrète Flask | `supersecretkey` |
 | `CUSTOM_DATA_DIR` | Répertoire des fichiers générés | `/opt/scripts/custom_data` |
 | `HOST` | Adresse d'écoute | `0.0.0.0` |
 | `PORT` | Port d'écoute | `1111` |
+| `LYRICS_PROVIDERS` | Fournisseurs de paroles web, essayés dans l'ordre (`lrclib`, `musixmatch`, `genius`) | `lrclib,musixmatch,genius` |
+| `MUSIXMATCH_TOKEN` | Jeton Musixmatch fixe (sinon récupéré automatiquement) | -- |
+| `LRCLIB_TIMEOUT` | Délai d'expiration des requêtes LRCLIB, en secondes | `15` |
+| `LYRICS_VERIFY_DURATION_TOLERANCE` | Écart max (secondes) toléré par `--verify` dans `embed_lyrics.py` | `3` |
 
 ## Endpoints
 
 | Méthode | Route | Description |
 |---|---|---|
 | GET | `/` | Dashboard principal (now playing + stats) |
+| GET | `/health` | Vérification de l'état du service |
+| GET | `/stats.json` | Statistiques de la bibliothèque (JSON) |
 | GET | `/now-playing.json` | État live de la piste du lecteur en cours de lecture, détecté automatiquement (JSON) |
+| GET | `/cover/<coverid>.jpg` | Relaie une pochette depuis Lyrion, en same-origin |
+| GET | `/cover/remote.jpg` | Relaie la pochette de la piste distante/streamée en cours de lecture |
+| GET | `/lyrics.json` | Récupère les paroles d'une piste sur le web, à la demande |
 | GET | `/files/<path>` | Sert un fichier depuis le répertoire custom data |
 
 ## Scripts

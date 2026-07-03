@@ -1,6 +1,6 @@
-# Lyrion Custom Data — Android app
+# Lyrion Dashboard — Android app
 
-A thin Android WebView wrapper around the Lyrion Custom Data dashboard,
+A thin Android WebView wrapper around the Lyrion Dashboard app,
 following the same principle as
 [lms-material-app](https://github.com/CDrummond/lms-material-app): the whole
 UI lives in the web page served by the Flask app, the Android app only
@@ -12,7 +12,7 @@ provides the native shell.
 - Settings screen (server URL, keep screen on)
 - Automatic discovery of the Lyrion Music Server on the local network
   (UDP broadcast on port 3483, the standard LMS discovery protocol); the
-  suggested URL assumes Lyrion Custom Data runs on the same host on port 1111.
+  suggested URL assumes Lyrion Dashboard runs on the same host on port 1111.
   Note: discovery cannot work while a VPN is active on the phone (UDP
   broadcasts do not cross the tunnel) — disable the VPN during discovery or
   enter the URL manually
@@ -24,7 +24,7 @@ provides the native shell.
 ## Requirements
 
 - Android 8.0 (API 26) or newer
-- A running Lyrion Custom Data instance reachable from the phone
+- A running Lyrion Dashboard instance reachable from the phone
 
 ## Building
 
@@ -64,7 +64,7 @@ versions parseable at each tag, and app-store texts under
 `fastlane/metadata/android/`. To get listed, submit a packaging request
 (https://gitlab.com/fdroid/rfp) or a merge request to
 https://gitlab.com/fdroid/fdroiddata with a recipe using
-`Repo: https://github.com/werdeil/lyrion_custom_data`, gradle subdir
+`Repo: https://github.com/werdeil/lyrion-dashboard`, gradle subdir
 `android/app`, `UpdateCheckMode: Tags` and `AutoUpdateMode: Version` —
 the same setup as lms-material-app. New tags are then picked up and
 built by F-Droid automatically.

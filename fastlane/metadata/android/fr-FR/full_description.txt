@@ -1,4 +1,4 @@
-Application compagnon du tableau de bord web Lyrion Custom Data, une vue
+Application compagnon de l'application web Lyrion Dashboard, une vue
 « lecture en cours » auto-hébergée pour Lyrion Music Server (anciennement
 Logitech Media Server / Squeezebox).
 
@@ -12,5 +12,5 @@ Fonctionnalités :
 * Découverte automatique du serveur Lyrion sur le réseau local
 * Écran maintenu allumé pendant l'affichage (configurable)
 
-Cette application nécessite une instance du serveur Lyrion Custom Data
+Cette application nécessite une instance du serveur Lyrion Dashboard
 sur votre réseau — voir la page du projet pour l'installation.

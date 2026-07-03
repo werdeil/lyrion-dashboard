@@ -1,13 +1,13 @@
 """UI translations (FR/EN).
 
 Language is picked per-request from the browser's Accept-Language header,
-falling back to French. The whole dict for the chosen language is handed to the
-template (and serialised to JS) so every visible string has a single source of
-truth here.
+falling back to English. The whole dict for the chosen language is handed to
+the template (and serialised to JS) so every visible string has a single
+source of truth here.
 """
 
 SUPPORTED = ("fr", "en")
-DEFAULT_LANG = "fr"
+DEFAULT_LANG = "en"
 
 TRANSLATIONS = {
     "fr": {
@@ -84,5 +84,5 @@ TRANSLATIONS = {
 
 
 def pick_lang(accept_languages):
-    """Best supported language from a Werkzeug Accept-Language, defaulting to FR."""
+    """Best supported language from a Werkzeug Accept-Language, defaulting to EN."""
     return accept_languages.best_match(SUPPORTED) or DEFAULT_LANG

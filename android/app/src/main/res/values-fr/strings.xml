@@ -5,7 +5,7 @@
     <string name="menu_reload">Recharger</string>
     <string name="menu_quit">Quitter</string>
 
-    <string name="error_cannot_connect">Impossible de joindre le serveur Lyrion Custom Data. Vérifiez qu\'il est démarré et que l\'URL est correcte.</string>
+    <string name="error_cannot_connect">Impossible de joindre le serveur Lyrion Dashboard. Vérifiez qu\'il est démarré et que l\'URL est correcte.</string>
     <string name="error_retry">Réessayer</string>
 
     <string name="pref_category_server">Serveur</string>
