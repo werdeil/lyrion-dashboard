@@ -64,7 +64,7 @@ versions parseable at each tag, and app-store texts under
 `fastlane/metadata/android/`. To get listed, submit a packaging request
 (https://gitlab.com/fdroid/rfp) or a merge request to
 https://gitlab.com/fdroid/fdroiddata with a recipe using
-`Repo: https://github.com/werdeil/lyrion_custom_data`, gradle subdir
+`Repo: https://github.com/werdeil/lyrion-dashboard`, gradle subdir
 `android/app`, `UpdateCheckMode: Tags` and `AutoUpdateMode: Version` —
 the same setup as lms-material-app. New tags are then picked up and
 built by F-Droid automatically.
