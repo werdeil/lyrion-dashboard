@@ -50,11 +50,24 @@ The GitHub Actions workflow `.github/workflows/android.yml`:
   `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS` and `ANDROID_KEY_PASSWORD`
   repository secrets are configured, and unsigned otherwise.
 
-Versioning is automatic: tag the release `vX.Y.Z` and the APK gets
-`versionName = X.Y.Z` with a `versionCode` derived from it
-(`X*10000 + Y*100 + Z`), so each release installs as an update of the
-previous one — no manual bump in `build.gradle.kts`. A tag that doesn't
-look like `vX.Y.Z` fails the release build.
+Versioning: bump `versionCode` and `versionName` in `app/build.gradle.kts`
+before releasing, then tag the release `vX.Y.Z` with the matching version.
+The values are static in the source on purpose — F-Droid builds from the
+tag and parses them from the gradle file — and the release workflow fails
+if the tag doesn't match `versionName`. `versionCode` packs the semver as
+`X*10000 + Y*100 + Z` (e.g. 0.1.0 → 100).
+
+## F-Droid
+
+The repo is F-Droid-ready: MIT license, FOSS dependencies only, static
+versions parseable at each tag, and app-store texts under
+`fastlane/metadata/android/`. To get listed, submit a packaging request
+(https://gitlab.com/fdroid/rfp) or a merge request to
+https://gitlab.com/fdroid/fdroiddata with a recipe using
+`Repo: https://github.com/werdeil/lyrion_custom_data`, gradle subdir
+`android/app`, `UpdateCheckMode: Tags` and `AutoUpdateMode: Version` —
+the same setup as lms-material-app. New tags are then picked up and
+built by F-Droid automatically.
 
 To create a keystore and export it for CI:
 
