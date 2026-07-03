@@ -21,6 +21,7 @@
             android:defaultValue="true"
             android:key="keep_screen_on"
             android:summary="@string/pref_keep_screen_on_summary"
-            android:title="@string/pref_keep_screen_on" />
+            android:title="@string/pref_keep_screen_on"
+            app:widgetLayout="@layout/preference_widget_material_switch" />
     </PreferenceCategory>
 </PreferenceScreen>

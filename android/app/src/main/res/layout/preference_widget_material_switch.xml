@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Material3 switch for SwitchPreferenceCompat (its default widget is the
+     legacy SwitchCompat, whose track only takes a washed-out tint). The id
+     is the one SwitchPreferenceCompat binds to, and MaterialSwitch extends
+     SwitchCompat so the preference drives it as usual; the row itself stays
+     the clickable surface. -->
+<com.google.android.material.materialswitch.MaterialSwitch
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@id/switchWidget"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:background="@null"
+    android:clickable="false"
+    android:focusable="false" />
