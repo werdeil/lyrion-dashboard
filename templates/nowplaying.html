@@ -32,7 +32,7 @@
             <div class="now-playing is-empty" id="now-playing">
                 <div class="np-cover">
                     <img id="np-cover-img" alt="{{ t.cover_alt }}"
-                         onerror="this.src='https://via.placeholder.com/300?text=No+Cover'">
+                         onerror="this.src='{{ url_for('static', filename='no-cover.svg') }}'">
                 </div>
                 <div class="np-meta">
                     <p class="np-player" id="np-player"></p>

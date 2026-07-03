@@ -99,13 +99,22 @@ The app is available at `http://localhost:1111`.
 | `CUSTOM_DATA_DIR` | Generated files directory | `/opt/scripts/custom_data` |
 | `HOST` | Listen address | `0.0.0.0` |
 | `PORT` | Listen port | `1111` |
+| `LYRICS_PROVIDERS` | Web lyrics providers, tried in order (`lrclib`, `musixmatch`, `genius`) | `lrclib,musixmatch,genius` |
+| `MUSIXMATCH_TOKEN` | Fixed Musixmatch token (otherwise fetched automatically) | -- |
+| `LRCLIB_TIMEOUT` | LRCLIB request timeout, in seconds | `15` |
+| `LYRICS_VERIFY_DURATION_TOLERANCE` | Max drift (seconds) tolerated by `--verify` in `embed_lyrics.py` | `3` |
 
 ## Endpoints
 
 | Method | Route | Description |
 |---|---|---|
 | GET | `/` | Main dashboard (now playing + stats) |
+| GET | `/health` | Health check |
+| GET | `/stats.json` | Library statistics (JSON) |
 | GET | `/now-playing.json` | Live state of the currently playing track, auto-detected (JSON) |
+| GET | `/cover/<coverid>.jpg` | Proxies an album cover from Lyrion, same-origin |
+| GET | `/cover/remote.jpg` | Proxies the artwork of the currently playing remote/streaming track |
+| GET | `/lyrics.json` | Fetches lyrics from the web for a track, on demand |
 | GET | `/files/<path>` | Serves a file from the custom data directory |
 
 ## Scripts

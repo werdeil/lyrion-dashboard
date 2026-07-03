@@ -61,6 +61,16 @@ def cover_remote():
     )
 
 
+@nowplaying_bp.route("/stats.json")
+def stats_json():
+    stats = get_stats()
+    return current_app.response_class(
+        response=current_app.json.dumps(stats, indent=2, ensure_ascii=False),
+        status=200,
+        mimetype="application/json",
+    )
+
+
 @nowplaying_bp.route("/lyrics.json")
 def lyrics_json():
     """Fetch lyrics from the web for a track, on explicit user request.
