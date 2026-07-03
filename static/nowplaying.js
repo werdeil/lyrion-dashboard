@@ -96,7 +96,6 @@ var lyricsTried = false;
 var webResult = null;
 
 var lrcLines = null;
-var lrcOffset = 0;
 
 // Whether the lyrics box auto-scrolls to keep the karaoke-highlighted line in
 // view. A manual scroll (wheel/touch) pauses it so the user can read ahead or

@@ -32,6 +32,16 @@ jobs:
 
       - uses: gradle/actions/setup-gradle@v6
 
+      - name: Android Lint
+        run: ./gradlew lintDebug
+
+      - name: Upload lint report
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: android-lint-report
+          path: android/app/build/reports/lint-results-debug.html
+
       - name: Build debug APK
         run: ./gradlew assembleDebug
 
