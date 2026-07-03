@@ -4,11 +4,11 @@ plugins {
 }
 
 android {
-    namespace = "com.werdeil.lyrioncustomdata"
+    namespace = "com.werdeil.lyriondashboard"
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "com.werdeil.lyrioncustomdata"
+        applicationId = "com.werdeil.lyriondashboard"
         minSdk = 26
         targetSdk = 35
         // Static literals on purpose: F-Droid builds from the source at the

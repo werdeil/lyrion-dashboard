@@ -1,4 +1,4 @@
-package com.werdeil.lyrioncustomdata
+package com.werdeil.lyriondashboard
 
 import java.io.ByteArrayOutputStream
 import java.net.DatagramPacket
@@ -12,7 +12,7 @@ import java.net.SocketTimeoutException
  * same UDP protocol as lms-material-app: a broadcast request on port 3483
  * ('e' + TLV tags), answered unicast by each server ('E' + TLV values).
  *
- * Lyrion Custom Data itself has no discovery protocol, but it normally runs
+ * Lyrion Dashboard itself has no discovery protocol, but it normally runs
  * on the same host as Lyrion, so the discovered address is used to suggest
  * a dashboard URL on the app's default port.
  */

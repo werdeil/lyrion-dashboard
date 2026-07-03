@@ -1,4 +1,4 @@
-Companion app for the Lyrion Custom Data web dashboard, a self-hosted
+Companion app for the Lyrion Dashboard web app, a self-hosted
 now-playing view for Lyrion Music Server (formerly Logitech Media
 Server / Squeezebox).
 
@@ -12,5 +12,5 @@ Features:
 * Automatic discovery of the Lyrion server on the local network
 * Keeps the screen on while the dashboard is displayed (configurable)
 
-This app requires a running Lyrion Custom Data server instance on your
+This app requires a running Lyrion Dashboard server instance on your
 network — see the project page for server setup.

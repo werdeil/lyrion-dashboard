@@ -14,5 +14,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "LyrionCustomData"
+rootProject.name = "LyrionDashboard"
 include(":app")

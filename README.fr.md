@@ -1,6 +1,6 @@
 [English](README.md) | [Français](README.fr.md)
 
-# Lyrion Custom Data
+# Lyrion Dashboard
 
 Application web Flask pour [Lyrion Music Server](https://github.com/LMS-Community/slimserver) (anciennement Logitech Media Server / Squeezebox Server).
 

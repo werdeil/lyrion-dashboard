@@ -544,6 +544,21 @@ hr {
     margin-right: 0.6rem;
 }
 
+/* Full name on regular screens; on narrow phones the short form keeps the
+   header on one line next to the logo and the Lyrion/settings icons. */
+.page-title-short {
+    display: none;
+}
+
+@media (max-width: 420px) {
+    .page-title-full {
+        display: none;
+    }
+    .page-title-short {
+        display: inline;
+    }
+}
+
 .lyrion-link {
     display: inline-flex;
     align-items: center;

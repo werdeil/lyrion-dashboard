@@ -1,4 +1,4 @@
-package com.werdeil.lyrioncustomdata
+package com.werdeil.lyriondashboard
 
 import android.os.Bundle
 import android.text.InputType
@@ -111,7 +111,7 @@ class SettingsActivity : AppCompatActivity() {
         companion object {
             private const val PREF_DISCOVER = "discover"
 
-            /** Default port of the Lyrion Custom Data Flask app (see config.py). */
+            /** Default port of the Lyrion Dashboard Flask app (see config.py). */
             private const val DEFAULT_APP_PORT = 1111
         }
     }
