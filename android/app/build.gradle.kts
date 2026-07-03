@@ -49,6 +49,13 @@ android {
     }
 
     buildTypes {
+        debug {
+            // Distinct application ID (and label) so a debug build installs
+            // side by side with a signed release build instead of refusing
+            // to install over it (same ID, different signing key).
+            applicationIdSuffix = ".debug"
+            resValue("string", "app_name", "Lyrion Dashboard (debug)")
+        }
         release {
             isMinifyEnabled = true
             isShrinkResources = true
