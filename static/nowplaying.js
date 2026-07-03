@@ -25,6 +25,7 @@ var el = {
     searchStatus: document.getElementById('np-search-status'),
     progressBar: document.getElementById('np-progress-bar'),
     lyrionLink: document.getElementById('lyrion-link'),
+    scrollReset: document.getElementById('np-scroll-reset'),
 };
 
 // Web lyrics auto-search is a single on/off switch:
@@ -83,6 +84,29 @@ var webResult = null;
 
 var lrcLines = null;
 var lrcOffset = 0;
+
+// Whether the lyrics box auto-scrolls to keep the karaoke-highlighted line in
+// view. A manual scroll (wheel/touch) pauses it so the user can read ahead or
+// back without fighting the highlight; the reset button (or a new track)
+// resumes it.
+var autoFollowScroll = true;
+// Cumulative scroll distance (px) tracked while auto-follow is still on, so a
+// deliberate scroll pauses it but a stray wheel tick or finger brush doesn't.
+// Only guards the initial trip out of auto-follow — once paused, scrolling is
+// unrestricted.
+var SCROLL_PAUSE_THRESHOLD = 60;
+var wheelAccum = 0;
+var wheelLastAt = 0;
+var touchStartY = null;
+
+function setAutoFollow(on) {
+    autoFollowScroll = on;
+    if (on) {
+        wheelAccum = 0;
+        touchStartY = null;
+    }
+    if (el.scrollReset) { el.scrollReset.hidden = on; }
+}
 
 var TINT_NEUTRAL = '#8b94a8';
 var ACCENT_DEFAULT = '#4f86c6';
@@ -257,6 +281,9 @@ function parseLRC(text) {
 // changes); by default the view resets to the top (used on a new track).
 function setLyrics(text, isEmpty, keepScroll) {
     var prevScroll = keepScroll ? el.lyrics.scrollTop : 0;
+    // A new track (not just a mode switch on the same one) restarts the
+    // karaoke follow, since any earlier manual pause no longer applies to it.
+    if (!keepScroll) { setAutoFollow(true); }
     el.lyrics.classList.remove('empty', 'lrc-mode');
     el.lyrics.textContent = '';
     lrcLines = null;
@@ -320,7 +347,7 @@ function syncLyrics() {
         }
     }
 
-    if (activeIdx >= 0 && activeIdx < children.length) {
+    if (activeIdx >= 0 && activeIdx < children.length && autoFollowScroll) {
         var active = children[activeIdx];
         // Anchor the active line around the upper third of the box rather than
         // dead centre, so fewer past lines linger and more upcoming lines show.
@@ -350,6 +377,7 @@ function render(data) {
         lastTrackKey = null;
         currentTrack = null;
         lrcLines = null;
+        setAutoFollow(true);
         progress = { time: 0, duration: 0, playing: false, syncedAt: 0 };
         el.progressBar.style.width = '0';
         return;
@@ -522,6 +550,58 @@ if (el.autoSwitch) {
     });
 }
 updateSwitch();
+
+// Short lyrics that already fit the box have nothing to scroll — a gesture
+// on them can't mean "let me scroll away from the highlight", so don't let it
+// trip auto-follow off.
+function isLyricsScrollable() {
+    return el.lyrics.scrollHeight > el.lyrics.clientHeight + 1;
+}
+
+// A deliberate scroll gesture (wheel or touch drag) on the synced lyrics
+// pauses the karaoke auto-follow, so it doesn't fight the user for control.
+// Programmatic scrolling from syncLyrics() never fires these events, so
+// telling it apart from a real gesture needs no extra bookkeeping — only
+// telling a real gesture apart from an incidental bump does, via the
+// SCROLL_PAUSE_THRESHOLD accumulated below. These listeners are passive, so
+// the browser applies the native scroll regardless of that bookkeeping; below
+// the threshold, resync immediately rather than waiting for the next
+// periodic syncLyrics() tick, otherwise the delayed snap-back reads as a
+// bounce. Above the threshold, let the native scroll ride and pause instead.
+el.lyrics.addEventListener('wheel', function(e) {
+    if (!lrcLines || !autoFollowScroll || !isLyricsScrollable()) { return; }
+    var now = Date.now();
+    // A gap between ticks starts a new gesture, so unrelated bumps spread out
+    // over time don't add up into a false trigger.
+    if (now - wheelLastAt > 400) { wheelAccum = 0; }
+    wheelLastAt = now;
+    wheelAccum += Math.abs(e.deltaY);
+    if (wheelAccum > SCROLL_PAUSE_THRESHOLD) {
+        setAutoFollow(false);
+    } else {
+        syncLyrics();
+    }
+}, { passive: true });
+
+el.lyrics.addEventListener('touchstart', function(e) {
+    touchStartY = e.touches.length ? e.touches[0].clientY : null;
+}, { passive: true });
+
+el.lyrics.addEventListener('touchmove', function(e) {
+    if (!lrcLines || !autoFollowScroll || !isLyricsScrollable() || touchStartY === null || !e.touches.length) { return; }
+    if (Math.abs(e.touches[0].clientY - touchStartY) > SCROLL_PAUSE_THRESHOLD) {
+        setAutoFollow(false);
+    } else {
+        syncLyrics();
+    }
+}, { passive: true });
+
+if (el.scrollReset) {
+    el.scrollReset.addEventListener('click', function() {
+        setAutoFollow(true);
+        syncLyrics();
+    });
+}
 
 el.cover.addEventListener('load', sampleCoverTint);
 

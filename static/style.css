@@ -253,6 +253,7 @@ hr {
     grid-column: 2;
     grid-row: 2;
     min-width: 0;
+    position: relative;
 }
 
 .np-title {
@@ -328,10 +329,13 @@ hr {
 .np-lyrics.lrc-mode {
     white-space: normal;
     scroll-behavior: smooth;
-    /* No top padding: the first line starts at the top and the highlight
-       descends until it reaches its anchor (~⅓), instead of opening on a big
-       empty gap. Keep bottom padding so the final lines can still scroll up. */
-    padding: 0 0 40% 0;
+    /* No padding: the first line starts at the top and the highlight descends
+       until it reaches its anchor (~⅓), instead of opening on a big empty
+       gap. With no bottom padding either, the browser clamps scrollTop once
+       the last lines are reached, so the highlight keeps descending past the
+       anchor and settles at the bottom for the end of the song, instead of
+       stopping short with the final lines centred and blank space below. */
+    padding: 0;
 }
 
 .lrc-line {
@@ -395,6 +399,46 @@ hr {
 }
 
 .np-search-status[hidden] {
+    display: none;
+}
+
+/* Floating icon button pinned to the corner of the lyrics block — outside the
+   scrolling #np-lyrics box, so it stays put as the user scrolls it. Shown
+   only while the karaoke auto-scroll is paused by a manual scroll; clicking
+   it snaps back to the current line and resumes following it. */
+.np-scroll-reset {
+    position: absolute;
+    /* Inset below the progress bar and away from the lyrics box's own edges,
+       so it reads as a floating control rather than sitting flush on top of
+       the progress bar or pinned to a corner. */
+    top: 40px;
+    left: 14px;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    border-radius: 50%;
+    border: 1px solid color-mix(in srgb, var(--accent-color) 60%, transparent);
+    background: color-mix(in srgb, #1a1a1a 75%, var(--accent-color) 25%);
+    color: var(--accent-color);
+    cursor: pointer;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+}
+
+.np-scroll-reset svg {
+    width: 15px;
+    height: 15px;
+    fill: currentColor;
+}
+
+.np-scroll-reset:hover {
+    background: color-mix(in srgb, var(--accent-color) 40%, transparent);
+}
+
+.np-scroll-reset[hidden] {
     display: none;
 }
 
