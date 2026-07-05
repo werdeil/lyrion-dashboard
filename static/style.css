@@ -359,7 +359,7 @@ hr {
 .lrc-line.near {
     /* Halfway step of the progression gradient: the lines around the active
        one warm up towards the accent. #e0e0e0 is .np-lyrics's text colour. */
-    color: color-mix(in srgb, var(--accent-color) 40%, #e0e0e0);
+    color: color-mix(in srgb, var(--accent-color) 30%, #e0e0e0);
 }
 
 .lrc-line.active {
