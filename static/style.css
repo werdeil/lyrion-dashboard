@@ -401,14 +401,14 @@ hr {
 /* Icon-only button re-running the web lyrics search (rare need, so no label —
    the title/aria-label carry the explanation). Occupies the spinner's slot:
    auto mode only, and swapped out while a search runs. Kept no taller than
-   the switch (20px), the row's permanent tallest item, so its appearance
-   never changes the row height. */
+   the switch track (18px with border-box borders), the row's permanent
+   tallest item, so its appearance never changes the row height. */
 .np-retry {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 20px;
-    height: 20px;
+    width: 18px;
+    height: 18px;
     padding: 0;
     border: none;
     border-radius: 50%;
@@ -418,8 +418,8 @@ hr {
 }
 
 .np-retry svg {
-    width: 14px;
-    height: 14px;
+    width: 13px;
+    height: 13px;
     fill: currentColor;
 }
 
