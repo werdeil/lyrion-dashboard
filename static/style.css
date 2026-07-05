@@ -367,6 +367,10 @@ hr {
     font-size: 0.78rem;
     color: #828282;
     flex-shrink: 0;
+    /* Explicit line-height so the mic emoji (synced indicator) can't grow the
+       line box: emoji fonts have taller metrics than the text font, which
+       made the whole row shift whenever the emoji appeared or vanished. */
+    line-height: 1.4;
 }
 
 .np-lyrics-source:empty {
