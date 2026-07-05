@@ -311,17 +311,19 @@ hr {
        over-scrolls (notably on mobile, where the lyrics block sits far down
        the page), pinning the active line to the top and hiding past lines. */
     position: relative;
-    margin-top: 12px;
+    /* The active karaoke line is scaled up (1.03) and clipping happens at
+       this box's padding edge, so a near-full-width line used to get cut off
+       on both sides. The card around it already has 20px of padding: extend
+       the box into that existing margin (negative side margins) and give the
+       same amount back as inner padding. Both percentages resolve against the
+       containing block's width, so they cancel exactly: the text wraps at the
+       same width as ever (plain and synced modes stay identical), while the
+       clip edge moves 2% out — beyond the scaled line's ±1.5% overhang. */
+    margin: 12px -2% 0;
+    padding: 0 2%;
     max-height: 420px;
     overflow-y: auto;
-    /* The active karaoke line is scaled up (1.03); clipping happens at the
-       padding edge, so the side padding below gives it room to grow into
-       (±1.5% per side) instead of getting cut off, and no horizontal
-       scrollbar can appear. */
     overflow-x: hidden;
-    /* Same side padding in both modes, so plain and synced lyrics wrap at the
-       exact same width — keeping the two layouts identical is a requirement. */
-    padding: 0 2%;
     white-space: pre-wrap;
     /* Drives line spacing in both plain and synced modes — keep them in sync. */
     line-height: 2.0;
