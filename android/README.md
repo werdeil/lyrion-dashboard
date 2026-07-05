@@ -8,6 +8,9 @@ provides the native shell.
 
 <img src="../docs/screenshots/dashboard-app.png" alt="Android app" width="240">
 
+The Gradle project has two modules: `app/` (the phone app described here)
+and `wear/` (a Wear OS companion, see [below](#wear-os-companion-wear)).
+
 ## Features
 
 - Full screen WebView loading the dashboard
@@ -38,7 +41,38 @@ From the command line (requires the Android SDK, `ANDROID_HOME` set):
 ```bash
 cd android
 ./gradlew assembleDebug
-# APK in app/build/outputs/apk/debug/app-debug.apk
+# Phone APK in app/build/outputs/apk/debug/app-debug.apk
+# Watch APK in wear/build/outputs/apk/debug/wear-debug.apk
+```
+
+## Wear OS companion (`wear/`)
+
+A small native watch app (Compose for Wear OS — a WebView is not available
+on watches) that shows only the lyrics of the track currently playing,
+karaoke-style when they carry LRC timestamps.
+
+- **Standalone**: the watch polls `/now-playing.json` on the Lyrion
+  Dashboard server directly every 5 s and extrapolates the playback
+  position locally between polls, exactly like the web page does. No
+  phone-side component is involved; when the watch has no Wi-Fi, Wear OS
+  transparently proxies the HTTP requests through the paired phone's
+  Bluetooth connection.
+- **Synced lyrics first**: LRC lyrics from the library are highlighted
+  line-by-line and auto-centred. When the library has no synced lyrics,
+  the app asks the dashboard's web fallback (`/lyrics.json`) once per
+  track; plain lyrics are shown as scrollable text.
+- **Settings**: on first launch (or with a long-press on the lyrics
+  screen) set the server URL — typed or dictated through the system
+  input. A toggle keeps the screen on while music plays (on by default).
+- **Requirements**: Wear OS 2.23+ (API 26); the Lyrion Dashboard server
+  reachable from the watch (plain HTTP on the LAN is allowed).
+
+To install on a watch over Wi-Fi, enable ADB debugging in the watch's
+developer options, then:
+
+```bash
+adb connect <watch-ip>:5555
+adb -s <watch-ip>:5555 install wear/build/outputs/apk/debug/wear-debug.apk
 ```
 
 Debug builds use a distinct application ID (`.debug` suffix) and label

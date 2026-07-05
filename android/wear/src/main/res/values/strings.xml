@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name" translatable="false">Lyrion Lyrics</string>
+
+    <string name="settings_title">Settings</string>
+
+    <string name="pref_server_url">Server URL</string>
+    <string name="pref_server_url_hint" translatable="false">http://192.168.1.10:1111</string>
+    <string name="pref_keep_screen_on">Keep screen on</string>
+
+    <string name="no_server">Set the Lyrion Dashboard server URL to get started</string>
+    <string name="error_cannot_connect">Unable to reach the server — check the URL and the network</string>
+    <string name="not_playing">Nothing is playing</string>
+    <string name="no_lyrics">No lyrics for this track</string>
+    <string name="searching_web">Searching the web…</string>
+</resources>

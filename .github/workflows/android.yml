@@ -43,7 +43,9 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: android-lint-report
-          path: android/app/build/reports/lint-results-debug.html
+          path: |
+            android/app/build/reports/lint-results-debug.html
+            android/wear/build/reports/lint-results-debug.html
 
       - name: Build debug APK
         run: ./gradlew assembleDebug
@@ -54,6 +56,12 @@ jobs:
           name: lyrion-custom-data-debug
           path: android/app/build/outputs/apk/debug/app-debug.apk
 
+      - name: Upload Wear OS debug APK
+        uses: actions/upload-artifact@v7
+        with:
+          name: lyrion-custom-data-wear-debug
+          path: android/wear/build/outputs/apk/debug/wear-debug.apk
+
       # The release APK is signed only when the signing secrets are
       # configured in the repository; otherwise it is built unsigned.
       # F-Droid builds from the source at the tag, so the version must be
@@ -61,12 +69,14 @@ jobs:
       - name: Check that the release tag matches the app version
         if: github.event_name == 'release'
         run: |
-          version=$(grep -oP 'versionName = "\K[^"]+' app/build.gradle.kts)
           tag="${{ github.event.release.tag_name }}"
-          if [ "v$version" != "$tag" ]; then
-            echo "::error::Release tag $tag does not match versionName $version in android/app/build.gradle.kts"
-            exit 1
-          fi
+          for module in app wear; do
+            version=$(grep -oP 'versionName = "\K[^"]+' $module/build.gradle.kts)
+            if [ "v$version" != "$tag" ]; then
+              echo "::error::Release tag $tag does not match versionName $version in android/$module/build.gradle.kts"
+              exit 1
+            fi
+          done
 
       - name: Build release APK
         if: github.event_name == 'release'
@@ -89,5 +99,8 @@ jobs:
         run: |
           apk=$(ls app/build/outputs/apk/release/*.apk | head -n 1)
           cp "$apk" "lyrion-custom-data-${{ github.event.release.tag_name }}.apk"
+          wear_apk=$(ls wear/build/outputs/apk/release/*.apk | head -n 1)
+          cp "$wear_apk" "lyrion-custom-data-wear-${{ github.event.release.tag_name }}.apk"
           gh release upload "${{ github.event.release.tag_name }}" \
-            "lyrion-custom-data-${{ github.event.release.tag_name }}.apk" --clobber
+            "lyrion-custom-data-${{ github.event.release.tag_name }}.apk" \
+            "lyrion-custom-data-wear-${{ github.event.release.tag_name }}.apk" --clobber

@@ -19,6 +19,7 @@ A Flask web app for [Lyrion Music Server](https://github.com/LMS-Community/slims
 - **Library statistics** -- Albums, artists, played/unplayed tracks, genres, ratings, lyrics, 30-day listening velocity.
 - **File server** -- Serves files from a configurable directory.
 - **Android app** -- A thin WebView wrapper (same principle as [lms-material-app](https://github.com/CDrummond/lms-material-app)) with LMS auto-discovery, see [`android/`](android/README.md).
+- **Wear OS app** -- A standalone watch companion showing only the synced lyrics of the current track, karaoke-style, see [`android/`](android/README.md#wear-os-companion-wear).
 
 ## Project structure
 
@@ -47,7 +48,7 @@ A Flask web app for [Lyrion Music Server](https://github.com/LMS-Community/slims
 │   ├── embed_lyrics.py                    # Embed web lyrics into files' tags
 │   ├── embed_lyrics_cron.sh               # Cron wrapper: only re-tags changed files
 │   └── generate_screenshots.py            # Regenerate the README screenshots (fake data)
-├── android/                               # Android app (WebView wrapper)
+├── android/                               # Android app (WebView wrapper) + Wear OS app
 ├── tests/
 └── docs/screenshots/                      # README screenshots
 ```
