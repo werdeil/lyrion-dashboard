@@ -314,10 +314,14 @@ hr {
     margin-top: 12px;
     max-height: 420px;
     overflow-y: auto;
-    /* Safety net only: the karaoke emphasis shrinks inactive lines instead of
-       growing the active one (see .lrc-line), so nothing should ever poke out
-       horizontally — but never let it become a horizontal scrollbar if it does. */
+    /* The active karaoke line is scaled up (1.03); clipping happens at the
+       padding edge, so the side padding below gives it room to grow into
+       (±1.5% per side) instead of getting cut off, and no horizontal
+       scrollbar can appear. */
     overflow-x: hidden;
+    /* Same side padding in both modes, so plain and synced lyrics wrap at the
+       exact same width — keeping the two layouts identical is a requirement. */
+    padding: 0 2%;
     white-space: pre-wrap;
     /* Drives line spacing in both plain and synced modes — keep them in sync. */
     line-height: 2.0;
@@ -330,13 +334,15 @@ hr {
 .np-lyrics.lrc-mode {
     white-space: normal;
     scroll-behavior: smooth;
-    /* No padding: the first line starts at the top and the highlight descends
-       until it reaches its anchor (~⅓), instead of opening on a big empty
-       gap. With no bottom padding either, the browser clamps scrollTop once
-       the last lines are reached, so the highlight keeps descending past the
-       anchor and settles at the bottom for the end of the song, instead of
-       stopping short with the final lines centred and blank space below. */
-    padding: 0;
+    /* No *vertical* padding (sides stay as inherited above): the first line
+       starts at the top and the highlight descends until it reaches its
+       anchor (~⅓), instead of opening on a big empty gap. With no bottom
+       padding either, the browser clamps scrollTop once the last lines are
+       reached, so the highlight keeps descending past the anchor and settles
+       at the bottom for the end of the song, instead of stopping short with
+       the final lines centred and blank space below. */
+    padding-top: 0;
+    padding-bottom: 0;
 }
 
 .lrc-line {
@@ -344,11 +350,6 @@ hr {
        sit at the same spacing as plain text. */
     color: #a8adb6;
     transition: color 0.3s ease, transform 0.3s ease;
-    /* Karaoke emphasis works by shrinking the inactive lines a touch and
-       restoring the active one to full size — scaling the active line *up*
-       instead used to clip both ends of near-full-width lines (esp. on
-       mobile), since transforms don't affect layout and overflow-x clips. */
-    transform: scale(0.97);
 }
 
 .lrc-line.near {
@@ -358,7 +359,10 @@ hr {
 .lrc-line.active {
     color: var(--accent-color);
     font-weight: bold;
-    transform: none;
+    /* Transforms don't affect layout, so a near-full-width line grows past
+       the content box — the container's side padding is what keeps it from
+       being clipped (see .np-lyrics). */
+    transform: scale(1.03);
 }
 
 .np-lyrics.empty {
