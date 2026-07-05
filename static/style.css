@@ -349,13 +349,17 @@ hr {
 
 .lrc-line {
     /* No vertical padding: rely on the container's line-height so synced lines
-       sit at the same spacing as plain text. */
-    color: #a8adb6;
+       sit at the same spacing as plain text. Inherit the container's colour so
+       inactive lines always match plain-text lyrics — the two modes must look
+       the same. */
+    color: inherit;
     transition: color 0.3s ease, transform 0.3s ease;
 }
 
 .lrc-line.near {
-    color: #d0d3d8;
+    /* Halfway step of the progression gradient: the lines around the active
+       one warm up towards the accent. #e0e0e0 is .np-lyrics's text colour. */
+    color: color-mix(in srgb, var(--accent-color) 40%, #e0e0e0);
 }
 
 .lrc-line.active {
