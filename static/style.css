@@ -388,6 +388,10 @@ hr {
     gap: 6px 10px;
     margin-top: 12px;
     flex-shrink: 0;
+    /* Match the tallest swappable item (the 22px retry button), so the row
+       keeps its height when the button, the spinner or nothing occupies the
+       slot — otherwise the whole line jumps on every swap. */
+    min-height: 22px;
 }
 
 .np-lyrics-mode-icon {
