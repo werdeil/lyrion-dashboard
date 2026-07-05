@@ -395,7 +395,8 @@ hr {
 }
 
 /* Icon-only button re-running the web lyrics search (rare need, so no label —
-   the title/aria-label carry the explanation). Disabled while a search runs. */
+   the title/aria-label carry the explanation). Occupies the spinner's slot:
+   auto mode only, and swapped out while a search runs. */
 .np-retry {
     display: inline-flex;
     align-items: center;
@@ -416,14 +417,14 @@ hr {
     fill: currentColor;
 }
 
-.np-retry:hover:not(:disabled) {
+.np-retry:hover {
     color: var(--accent-color);
     background: rgba(255, 255, 255, 0.08);
 }
 
-.np-retry:disabled {
-    opacity: 0.4;
-    cursor: default;
+/* display:inline-flex above would defeat the hidden attribute without this. */
+.np-retry[hidden] {
+    display: none;
 }
 
 /* Loading hint shown while a web search runs — useful when local lyrics are

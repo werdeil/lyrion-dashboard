@@ -64,6 +64,15 @@ function updateSwitch() {
     var on = lyricsMode === 'auto';
     el.autoSwitch.setAttribute('aria-checked', on ? 'true' : 'false');
     el.autoSwitch.classList.toggle('is-on', on);
+    updateRetry();
+}
+
+// The manual retry button sits in the spinner's slot: it only shows in auto
+// mode and while no search is running (the spinner replaces it meanwhile).
+var searching = false;
+function updateRetry() {
+    if (!el.retry) { return; }
+    el.retry.hidden = searching || lyricsMode !== 'auto';
 }
 
 function persistMode() {
@@ -385,10 +394,11 @@ function setLyricsSource(source) {
 
 // Toggle the "searching the web" spinner. Shown even when local lyrics are
 // already on screen, so the user knows a synced version is still being fetched.
-// The manual retry button is disabled meanwhile so searches don't stack up.
+// The retry button swaps out for it, which also keeps searches from stacking.
 function setSearching(on) {
+    searching = on;
     if (el.searchStatus) { el.searchStatus.hidden = !on; }
-    if (el.retry) { el.retry.disabled = on; }
+    updateRetry();
 }
 
 function render(data) {
@@ -576,11 +586,11 @@ if (el.autoSwitch) {
 updateSwitch();
 
 // Manual retry (rare need, hence icon-only): re-run the web search for the
-// current track, bypassing the server cache. Clicking is explicit intent, so
-// it also works with auto mode off, as a one-shot search. With lyrics already
-// on screen the result only replaces them when the web returns a synced
-// version (same rule as the auto upgrade); from an empty state it searches
-// from scratch and shows whatever comes back.
+// current track, bypassing the server cache. Only reachable in auto mode —
+// see updateRetry(). With lyrics already on screen the result only replaces
+// them when the web returns a synced version (same rule as the auto
+// upgrade); from an empty state it searches from scratch and shows whatever
+// comes back.
 function retryLyrics() {
     if (!currentTrack) { return; }
     webResult = null;
