@@ -388,10 +388,6 @@ hr {
     gap: 6px 10px;
     margin-top: 12px;
     flex-shrink: 0;
-    /* Match the tallest swappable item (the 22px retry button), so the row
-       keeps its height when the button, the spinner or nothing occupies the
-       slot — otherwise the whole line jumps on every swap. */
-    min-height: 22px;
 }
 
 .np-lyrics-mode-icon {
@@ -400,13 +396,15 @@ hr {
 
 /* Icon-only button re-running the web lyrics search (rare need, so no label —
    the title/aria-label carry the explanation). Occupies the spinner's slot:
-   auto mode only, and swapped out while a search runs. */
+   auto mode only, and swapped out while a search runs. Kept no taller than
+   the switch (20px), the row's permanent tallest item, so its appearance
+   never changes the row height. */
 .np-retry {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 22px;
-    height: 22px;
+    width: 20px;
+    height: 20px;
     padding: 0;
     border: none;
     border-radius: 50%;
@@ -416,8 +414,8 @@ hr {
 }
 
 .np-retry svg {
-    width: 15px;
-    height: 15px;
+    width: 14px;
+    height: 14px;
     fill: currentColor;
 }
 
