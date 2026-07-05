@@ -32,7 +32,6 @@ var el = {
     album:  document.getElementById('np-album'),
     lyrics: document.getElementById('np-lyrics'),
     source: document.getElementById('np-lyrics-source'),
-    kind:   document.getElementById('np-lyrics-kind'),
     cover:  document.getElementById('np-cover-img'),
     modeBlock: document.getElementById('np-lyrics-mode-block'),
     autoSwitch: document.getElementById('np-auto-switch'),
@@ -290,21 +289,6 @@ function parseLRC(text) {
     return parsed;
 }
 
-// Badge telling synced (karaoke/LRC) lyrics apart from plain text. Pass null
-// when there are no lyrics on screen to hide it entirely.
-function setLyricsKind(kind) {
-    if (!el.kind) { return; }
-    if (!kind) { el.kind.hidden = true; return; }
-    var synced = kind === 'synced';
-    el.kind.hidden = false;
-    el.kind.classList.toggle('is-synced', synced);
-    el.kind.classList.toggle('is-plain', !synced);
-    el.kind.textContent = synced
-        ? '🎤 ' + I18N.lyrics_synced   // 🎤
-        : '📄 ' + I18N.lyrics_plain;   // 📄
-    el.kind.title = synced ? I18N.lyrics_synced_hint : I18N.lyrics_plain_hint;
-}
-
 // keepScroll preserves the current scroll position (used when only the mode
 // changes); by default the view resets to the top (used on a new track).
 function setLyrics(text, isEmpty, keepScroll) {
@@ -320,14 +304,12 @@ function setLyrics(text, isEmpty, keepScroll) {
         el.lyrics.textContent = text || I18N.no_lyrics;
         el.lyrics.classList.toggle('empty', !!isEmpty || !text);
         el.lyrics.scrollTop = prevScroll;
-        setLyricsKind(null);
         return;
     }
 
     var parsed = parseLRC(text);
     if (parsed) {
         lrcLines = parsed;
-        setLyricsKind('synced');
         el.lyrics.classList.add('lrc-mode');
         for (var i = 0; i < parsed.length; i++) {
             var div = document.createElement('div');
@@ -342,7 +324,6 @@ function setLyrics(text, isEmpty, keepScroll) {
         el.lyrics.scrollTop = prevScroll;
         syncLyrics();
     } else {
-        setLyricsKind('plain');
         el.lyrics.textContent = text;
         el.lyrics.scrollTop = prevScroll;
     }
@@ -387,9 +368,18 @@ function syncLyrics() {
     }
 }
 
+// Doubles as the synced/plain indicator. Every caller runs right after
+// setLyrics() on the same content, so lrcLines already tells whether the
+// lyrics on screen are time-synced: if so, tint the line in the accent
+// colour and append a mic emoji; plain lyrics keep the muted default.
 function setLyricsSource(source) {
     var label = source && SOURCE_LABELS[source];
-    el.source.textContent = label ? I18N.source_prefix + ' ' + label : '';
+    var synced = !!(label && lrcLines);
+    el.source.textContent = label
+        ? I18N.source_prefix + ' ' + label + (synced ? ' 🎤' : '')
+        : '';
+    el.source.classList.toggle('is-synced', synced);
+    el.source.title = synced ? I18N.lyrics_synced_hint : '';
 }
 
 // Toggle the "searching the web" spinner. Shown even when local lyrics are
