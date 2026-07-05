@@ -314,8 +314,9 @@ hr {
     margin-top: 12px;
     max-height: 420px;
     overflow-y: auto;
-    /* The active line is scaled (1.03), which makes it a few px wider than the
-       box; clip horizontally so it doesn't spawn a horizontal scrollbar. */
+    /* Safety net only: the karaoke emphasis shrinks inactive lines instead of
+       growing the active one (see .lrc-line), so nothing should ever poke out
+       horizontally — but never let it become a horizontal scrollbar if it does. */
     overflow-x: hidden;
     white-space: pre-wrap;
     /* Drives line spacing in both plain and synced modes — keep them in sync. */
@@ -343,6 +344,11 @@ hr {
        sit at the same spacing as plain text. */
     color: #a8adb6;
     transition: color 0.3s ease, transform 0.3s ease;
+    /* Karaoke emphasis works by shrinking the inactive lines a touch and
+       restoring the active one to full size — scaling the active line *up*
+       instead used to clip both ends of near-full-width lines (esp. on
+       mobile), since transforms don't affect layout and overflow-x clips. */
+    transform: scale(0.97);
 }
 
 .lrc-line.near {
@@ -352,7 +358,7 @@ hr {
 .lrc-line.active {
     color: var(--accent-color);
     font-weight: bold;
-    transform: scale(1.03);
+    transform: none;
 }
 
 .np-lyrics.empty {
