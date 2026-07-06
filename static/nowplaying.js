@@ -35,6 +35,7 @@ var el = {
     cover:  document.getElementById('np-cover-img'),
     modeBlock: document.getElementById('np-lyrics-mode-block'),
     autoSwitch: document.getElementById('np-auto-switch'),
+    retry:  document.getElementById('np-retry'),
     searchStatus: document.getElementById('np-search-status'),
     progressBar: document.getElementById('np-progress-bar'),
     lyrionLink: document.getElementById('lyrion-link'),
@@ -63,6 +64,15 @@ function updateSwitch() {
     var on = lyricsMode === 'auto';
     el.autoSwitch.setAttribute('aria-checked', on ? 'true' : 'false');
     el.autoSwitch.classList.toggle('is-on', on);
+    updateRetry();
+}
+
+// The manual retry button sits in the spinner's slot: it only shows in auto
+// mode and while no search is running (the spinner replaces it meanwhile).
+var searching = false;
+function updateRetry() {
+    if (!el.retry) { return; }
+    el.retry.hidden = searching || lyricsMode !== 'auto';
 }
 
 function persistMode() {
@@ -368,15 +378,27 @@ function syncLyrics() {
     }
 }
 
+// Doubles as the synced/plain indicator. Every caller runs right after
+// setLyrics() on the same content, so lrcLines already tells whether the
+// lyrics on screen are time-synced: if so, tint the line in the accent
+// colour; plain lyrics keep the muted default.
 function setLyricsSource(source) {
     var label = source && SOURCE_LABELS[source];
-    el.source.textContent = label ? I18N.source_prefix + ' ' + label : '';
+    var synced = !!(label && lrcLines);
+    el.source.textContent = label
+        ? I18N.source_prefix + ' ' + label
+        : '';
+    el.source.classList.toggle('is-synced', synced);
+    el.source.title = synced ? I18N.lyrics_synced_hint : '';
 }
 
 // Toggle the "searching the web" spinner. Shown even when local lyrics are
 // already on screen, so the user knows a synced version is still being fetched.
+// The retry button swaps out for it, which also keeps searches from stacking.
 function setSearching(on) {
+    searching = on;
     if (el.searchStatus) { el.searchStatus.hidden = !on; }
+    updateRetry();
 }
 
 function render(data) {
@@ -562,6 +584,27 @@ if (el.autoSwitch) {
     });
 }
 updateSwitch();
+
+// Manual retry (rare need, hence icon-only): re-run the web search for the
+// current track, bypassing the server cache. Only reachable in auto mode —
+// see updateRetry(). With lyrics already on screen the result only replaces
+// them when the web returns a synced version (same rule as the auto
+// upgrade); from an empty state it searches from scratch and shows whatever
+// comes back.
+function retryLyrics() {
+    if (!currentTrack) { return; }
+    webResult = null;
+    lyricsTried = true;  // force refresh=1 → bypass the server-side cache
+    if (el.lyrics.classList.contains('empty')) {
+        fetchLyrics();
+    } else {
+        trySyncedFromWeb();
+    }
+}
+
+if (el.retry) {
+    el.retry.addEventListener('click', retryLyrics);
+}
 
 // Short lyrics that already fit the box have nothing to scroll — a gesture
 // on them can't mean "let me scroll away from the highlight", so don't let it

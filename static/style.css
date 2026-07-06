@@ -311,11 +311,18 @@ hr {
        over-scrolls (notably on mobile, where the lyrics block sits far down
        the page), pinning the active line to the top and hiding past lines. */
     position: relative;
-    margin-top: 12px;
+    /* The active karaoke line is scaled up (1.03) and clipping happens at
+       this box's padding edge, so a near-full-width line used to get cut off
+       on both sides. The card around it already has 20px of padding: extend
+       the box into that existing margin (negative side margins) and give the
+       same amount back as inner padding. Both percentages resolve against the
+       containing block's width, so they cancel exactly: the text wraps at the
+       same width as ever (plain and synced modes stay identical), while the
+       clip edge moves 2% out — beyond the scaled line's ±1.5% overhang. */
+    margin: 12px -2% 0;
+    padding: 0 2%;
     max-height: 420px;
     overflow-y: auto;
-    /* The active line is scaled (1.03), which makes it a few px wider than the
-       box; clip horizontally so it doesn't spawn a horizontal scrollbar. */
     overflow-x: hidden;
     white-space: pre-wrap;
     /* Drives line spacing in both plain and synced modes — keep them in sync. */
@@ -329,29 +336,38 @@ hr {
 .np-lyrics.lrc-mode {
     white-space: normal;
     scroll-behavior: smooth;
-    /* No padding: the first line starts at the top and the highlight descends
-       until it reaches its anchor (~⅓), instead of opening on a big empty
-       gap. With no bottom padding either, the browser clamps scrollTop once
-       the last lines are reached, so the highlight keeps descending past the
-       anchor and settles at the bottom for the end of the song, instead of
-       stopping short with the final lines centred and blank space below. */
-    padding: 0;
+    /* No *vertical* padding (sides stay as inherited above): the first line
+       starts at the top and the highlight descends until it reaches its
+       anchor (~⅓), instead of opening on a big empty gap. With no bottom
+       padding either, the browser clamps scrollTop once the last lines are
+       reached, so the highlight keeps descending past the anchor and settles
+       at the bottom for the end of the song, instead of stopping short with
+       the final lines centred and blank space below. */
+    padding-top: 0;
+    padding-bottom: 0;
 }
 
 .lrc-line {
     /* No vertical padding: rely on the container's line-height so synced lines
-       sit at the same spacing as plain text. */
-    color: #a8adb6;
+       sit at the same spacing as plain text. Inherit the container's colour so
+       inactive lines always match plain-text lyrics — the two modes must look
+       the same. */
+    color: inherit;
     transition: color 0.3s ease, transform 0.3s ease;
 }
 
 .lrc-line.near {
-    color: #d0d3d8;
+    /* Halfway step of the progression gradient: the lines around the active
+       one warm up towards the accent. #e0e0e0 is .np-lyrics's text colour. */
+    color: color-mix(in srgb, var(--accent-color) 30%, #e0e0e0);
 }
 
 .lrc-line.active {
     color: var(--accent-color);
     font-weight: bold;
+    /* Transforms don't affect layout, so a near-full-width line grows past
+       the content box — the container's side padding is what keeps it from
+       being clipped (see .np-lyrics). */
     transform: scale(1.03);
 }
 
@@ -373,6 +389,12 @@ hr {
     display: none;
 }
 
+/* Accent tint when the lyrics on screen are time-synced (karaoke); plain
+   lyrics keep the muted grey above. */
+.np-lyrics-source.is-synced {
+    color: var(--accent-color);
+}
+
 /* Row holding the auto-lyrics switch, the search spinner and the source line.
    Display (synced karaoke vs plain text) is automatic, so it isn't a control. */
 .np-lyrics-mode-block {
@@ -384,18 +406,54 @@ hr {
     flex-shrink: 0;
 }
 
-.np-lyrics-mode-icon {
-    margin-right: 5px;
+/* Icon-only button re-running the web lyrics search (rare need, so no label —
+   the title/aria-label carry the explanation). Occupies the spinner's slot:
+   auto mode only, and swapped out while a search runs. Kept no taller than
+   the sync switch (20px icon), the row's permanent tallest item, so its
+   appearance never changes the row height. */
+.np-retry {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 18px;
+    padding: 0;
+    border: none;
+    border-radius: 50%;
+    background: transparent;
+    color: #9e9e9e;
+    cursor: pointer;
+}
+
+/* 15px puts the arrow's circle (16/24 of the svg = 10px) exactly on the
+   spinner's mid-border ring (12px box − 2px border), so the swap between
+   the two reads as the same circle starting to spin. */
+.np-retry svg {
+    width: 15px;
+    height: 15px;
+    fill: currentColor;
+}
+
+.np-retry:hover {
+    color: var(--accent-color);
+    background: rgba(255, 255, 255, 0.08);
+}
+
+/* display:inline-flex above would defeat the hidden attribute without this. */
+.np-retry[hidden] {
+    display: none;
 }
 
 /* Loading hint shown while a web search runs — useful when local lyrics are
    already on screen, so it's clear a synced version is still being fetched. */
+/* Same 18×18 box as .np-retry, which it swaps with in the row, so both
+   share the same centre and the swap never shifts anything. */
 .np-search-status {
     display: inline-flex;
     align-items: center;
-    gap: 6px;
-    font-size: 0.78rem;
-    color: #9e9e9e;
+    justify-content: center;
+    width: 18px;
+    height: 18px;
 }
 
 .np-search-status[hidden] {
@@ -455,7 +513,10 @@ hr {
     to { transform: rotate(360deg); }
 }
 
-/* Two-state switch: web lyrics auto-search on / off. */
+/* Two-state switch: web lyrics auto-search on / off. Icon-labelled (mic +
+   lyric lines) rather than text — the title/aria-label carry the wording.
+   The icon inherits the muted grey via currentColor and tints in the accent
+   colour, along with the track, when the switch is on. */
 .np-switch {
     display: inline-flex;
     align-items: center;
@@ -466,11 +527,24 @@ hr {
     border-radius: 0;
     cursor: pointer;
     color: #9e9e9e;
-    font-size: 0.78rem;
+    transition: color 150ms ease;
+}
+
+.np-switch svg {
+    display: block;
 }
 
 .np-switch:hover {
     filter: none;
+    color: #e0e0e0;
+}
+
+.np-switch.is-on {
+    color: var(--accent-color);
+}
+
+.np-switch.is-on:hover {
+    color: var(--accent-color);
 }
 
 .np-switch-track {
