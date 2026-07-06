@@ -381,12 +381,12 @@ function syncLyrics() {
 // Doubles as the synced/plain indicator. Every caller runs right after
 // setLyrics() on the same content, so lrcLines already tells whether the
 // lyrics on screen are time-synced: if so, tint the line in the accent
-// colour and append a mic emoji; plain lyrics keep the muted default.
+// colour; plain lyrics keep the muted default.
 function setLyricsSource(source) {
     var label = source && SOURCE_LABELS[source];
     var synced = !!(label && lrcLines);
     el.source.textContent = label
-        ? I18N.source_prefix + ' ' + label + (synced ? ' 🎤' : '')
+        ? I18N.source_prefix + ' ' + label
         : '';
     el.source.classList.toggle('is-synced', synced);
     el.source.title = synced ? I18N.lyrics_synced_hint : '';

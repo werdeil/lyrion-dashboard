@@ -383,18 +383,14 @@ hr {
     font-size: 0.78rem;
     color: #828282;
     flex-shrink: 0;
-    /* Explicit line-height so the mic emoji (synced indicator) can't grow the
-       line box: emoji fonts have taller metrics than the text font, which
-       made the whole row shift whenever the emoji appeared or vanished. */
-    line-height: 1.4;
 }
 
 .np-lyrics-source:empty {
     display: none;
 }
 
-/* Accent tint when the lyrics on screen are time-synced (karaoke); the JS
-   also appends a mic emoji. Plain lyrics keep the muted grey above. */
+/* Accent tint when the lyrics on screen are time-synced (karaoke); plain
+   lyrics keep the muted grey above. */
 .np-lyrics-source.is-synced {
     color: var(--accent-color);
 }
