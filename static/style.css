@@ -425,9 +425,12 @@ hr {
     cursor: pointer;
 }
 
+/* 15px puts the arrow's circle (16/24 of the svg = 10px) exactly on the
+   spinner's mid-border ring (12px box − 2px border), so the swap between
+   the two reads as the same circle starting to spin. */
 .np-retry svg {
-    width: 13px;
-    height: 13px;
+    width: 15px;
+    height: 15px;
     fill: currentColor;
 }
 
