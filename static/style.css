@@ -410,15 +410,11 @@ hr {
     flex-shrink: 0;
 }
 
-.np-lyrics-mode-icon {
-    margin-right: 5px;
-}
-
 /* Icon-only button re-running the web lyrics search (rare need, so no label —
    the title/aria-label carry the explanation). Occupies the spinner's slot:
    auto mode only, and swapped out while a search runs. Kept no taller than
-   the switch track (18px with border-box borders), the row's permanent
-   tallest item, so its appearance never changes the row height. */
+   the sync switch (20px icon), the row's permanent tallest item, so its
+   appearance never changes the row height. */
 .np-retry {
     display: inline-flex;
     align-items: center;
@@ -516,7 +512,10 @@ hr {
     to { transform: rotate(360deg); }
 }
 
-/* Two-state switch: web lyrics auto-search on / off. */
+/* Two-state switch: web lyrics auto-search on / off. Icon-labelled (mic +
+   lyric lines) rather than text — the title/aria-label carry the wording.
+   The icon inherits the muted grey via currentColor and tints in the accent
+   colour, along with the track, when the switch is on. */
 .np-switch {
     display: inline-flex;
     align-items: center;
@@ -527,11 +526,24 @@ hr {
     border-radius: 0;
     cursor: pointer;
     color: #9e9e9e;
-    font-size: 0.78rem;
+    transition: color 150ms ease;
+}
+
+.np-switch svg {
+    display: block;
 }
 
 .np-switch:hover {
     filter: none;
+    color: #e0e0e0;
+}
+
+.np-switch.is-on {
+    color: var(--accent-color);
+}
+
+.np-switch.is-on:hover {
+    color: var(--accent-color);
 }
 
 .np-switch-track {

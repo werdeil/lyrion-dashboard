@@ -1,0 +1,14 @@
+{# Reusable inline SVG icons, imported with {% import "_icons.html" as icons %}.
+   Icons inherit the surrounding text colour via currentColor and take an
+   optional pixel size (default 20). #}
+
+{% macro lyrics_sync_icon(size=20) -%}
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="{{ size }}" height="{{ size }}" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+    <rect x="4" y="2" width="5" height="10" rx="2.5"/>
+    <path d="M2 9a4.5 4.5 0 0 0 9 0"/>
+    <line x1="6.5" y1="13.5" x2="6.5" y2="16"/>
+    <line x1="14" y1="6" x2="21" y2="6" opacity="0.35"/>
+    <line x1="14" y1="11" x2="22" y2="11" stroke-width="3"/>
+    <line x1="14" y1="16" x2="20" y2="16" opacity="0.35"/>
+</svg>
+{%- endmacro %}

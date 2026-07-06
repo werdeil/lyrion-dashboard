@@ -1,4 +1,4 @@
-<!doctype html>
+{% import "_icons.html" as icons %}<!doctype html>
 <html lang="{{ lang }}">
 <head>
     <title>Lyrion Dashboard</title>
@@ -51,8 +51,8 @@
                         </svg>
                     </button>
                     <div class="np-lyrics-mode-block" id="np-lyrics-mode-block">
-                        <button type="button" class="np-switch" id="np-auto-switch" role="switch" aria-checked="false" title="{{ t.lyrics_search }}" aria-label="{{ t.lyrics_search }}">
-                            <span class="np-switch-text"><span class="np-lyrics-mode-icon">&#128269;</span>{{ t.lyrics_auto }}</span>
+                        <button type="button" class="np-switch" id="np-auto-switch" role="switch" aria-checked="false" title="{{ t.lyrics_search }}" aria-label="{{ t.lyrics_sync_toggle }}">
+                            {{ icons.lyrics_sync_icon() }}
                             <span class="np-switch-track"><span class="np-switch-thumb"></span></span>
                         </button>
                         {# Hidden by default; JS shows it in auto mode when no search runs. #}
