@@ -443,12 +443,14 @@ hr {
 
 /* Loading hint shown while a web search runs — useful when local lyrics are
    already on screen, so it's clear a synced version is still being fetched. */
+/* Same 18×18 box as .np-retry, which it swaps with in the row, so both
+   share the same centre and the swap never shifts anything. */
 .np-search-status {
     display: inline-flex;
     align-items: center;
-    gap: 6px;
-    font-size: 0.78rem;
-    color: #9e9e9e;
+    justify-content: center;
+    width: 18px;
+    height: 18px;
 }
 
 .np-search-status[hidden] {
