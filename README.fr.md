@@ -122,6 +122,27 @@ L'application est accessible sur `http://localhost:1111`.
 | GET | `/lyrics.json` | Récupère les paroles d'une piste sur le web, à la demande |
 | GET | `/files/<path>` | Sert un fichier depuis le répertoire custom data |
 
+### Widget Homepage
+
+`/stats.json` renvoie du JSON brut, il se branche donc directement sur un widget [`customapi`](https://gethomepage.dev/widgets/services/customapi/) de [Homepage](https://gethomepage.dev) pour afficher les statistiques de la bibliothèque sur votre tableau de bord :
+
+```yaml
+- Lyrion Dashboard:
+    href: http://lyrion-dashboard:1111
+    widget:
+      type: customapi
+      url: http://lyrion-dashboard:1111/stats.json
+      mappings:
+        - field: albums_total
+          label: Albums
+        - field: songs_total
+          label: Morceaux
+        - field: velocity_30d
+          label: Écoutés (30 j)
+```
+
+N'importe quelle clé du JSON fonctionne comme `field` — ouvrez `/stats.json` dans un navigateur pour choisir celles qui vous intéressent.
+
 ## Scripts
 
 ### Intégrer les paroles dans les fichiers (`scripts/embed_lyrics.py`)

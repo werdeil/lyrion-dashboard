@@ -122,6 +122,27 @@ The app is available at `http://localhost:1111`.
 | GET | `/lyrics.json` | Fetches lyrics from the web for a track, on demand |
 | GET | `/files/<path>` | Serves a file from the custom data directory |
 
+### Homepage widget
+
+`/stats.json` returns plain JSON, so it plugs directly into a [Homepage](https://gethomepage.dev) [`customapi`](https://gethomepage.dev/widgets/services/customapi/) widget to surface library stats on your dashboard:
+
+```yaml
+- Lyrion Dashboard:
+    href: http://lyrion-dashboard:1111
+    widget:
+      type: customapi
+      url: http://lyrion-dashboard:1111/stats.json
+      mappings:
+        - field: albums_total
+          label: Albums
+        - field: songs_total
+          label: Tracks
+        - field: velocity_30d
+          label: Played (30 d)
+```
+
+Any key from the JSON works as a `field` — check `/stats.json` in a browser to pick the ones you want.
+
 ## Scripts
 
 ### Embed lyrics into files (`scripts/embed_lyrics.py`)
