@@ -7,7 +7,9 @@ library stats), then captures it with headless Chromium via Playwright:
 
 - dashboard-en.png   desktop 1440x820, English, rose cover
 - dashboard-fr.png   desktop 1440x820, French, same rose cover
-- dashboard-mobile.png  phone 390x844, French, teal cover
+- dashboard-mobile.png  phone 390x844, French, teal cover; the library has
+                     no lyrics for this track so the (mocked) web search
+                     provides them, showing "Source: LRCLIB"
 - dashboard-app.png  phone 390x844 in a device frame, English, ember cover,
                      with the Android bridge injected so the in-app settings
                      button shows
@@ -141,7 +143,11 @@ TRACKS = {
             "album": "Signaux", "coverid": "fake-teal", "artwork_url": None,
             "player_name": "Chambre", "player_id": "aa:bb:cc:dd:ee:02",
         },
-        "lyrics": _lrc(7, 5, [
+        # No library lyrics: the auto web search (mocked below) finds the
+        # synced version, so this capture shows a web source (LRCLIB).
+        "lyrics": None,
+        "web_source": "lrclib",
+        "web_lyrics": _lrc(7, 5, [
             "Les diodes clignotent comme des lucioles",
             "Sous les arbres de fibre, la ville s'envole",
             "",
@@ -253,9 +259,20 @@ np_routes.get_active_now_playing = lambda: dict(SCENARIO["now"])
 np_routes.get_track_lyrics = lambda track_id: SCENARIO["lyrics"]
 np_routes.get_stats = lambda: FAKE_STATS
 np_routes.fetch_cover = lambda coverid: (COVER_PNGS[coverid], "image/png")
-# The page (in auto mode) still asks the web for a synced upgrade; return
-# nothing so it keeps the library lyrics and the retry button reappears.
-np_routes.fetch_lyrics = lambda **kw: {"lyrics": None, "synced": None, "source": None}
+
+
+def _fake_web_lyrics(**kw):
+    """The page (in auto mode) always asks the web: for a synced upgrade when
+    the library has lyrics (return nothing, it keeps them), or from scratch
+    when it doesn't (return the scenario's synced text with its provider)."""
+    return {
+        "lyrics": None,
+        "synced": SCENARIO.get("web_lyrics"),
+        "source": SCENARIO.get("web_source"),
+    }
+
+
+np_routes.fetch_lyrics = _fake_web_lyrics
 
 
 # ---------------------------------------------------------------------------
@@ -280,6 +297,7 @@ ANDROID_BRIDGE_JS = "window.LyrionApp = { openSettings: function () {} };"
 
 
 def capture(browser, base_url, track, *, locale, viewport, dpr, android=False):
+    SCENARIO.clear()
     SCENARIO.update(TRACKS[track])
     ctx = browser.new_context(
         locale=locale, viewport=viewport, device_scale_factor=dpr,
