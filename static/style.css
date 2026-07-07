@@ -479,9 +479,11 @@ hr {
     height: 28px;
     padding: 0;
     border-radius: 50%;
-    border: 1px solid color-mix(in srgb, var(--accent-color) 60%, transparent);
-    background: color-mix(in srgb, #1a1a1a 75%, var(--accent-color) 25%);
-    color: var(--accent-color);
+    border: none;
+    /* Solid accent + dark glyph, same scheme as the app's standard buttons;
+       the global button:hover brightness applies to it unchanged. */
+    background: var(--accent-color);
+    color: #1a1a1a;
     cursor: pointer;
     box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
 }
@@ -490,10 +492,6 @@ hr {
     width: 15px;
     height: 15px;
     fill: currentColor;
-}
-
-.np-scroll-reset:hover {
-    background: color-mix(in srgb, var(--accent-color) 40%, transparent);
 }
 
 .np-scroll-reset[hidden] {

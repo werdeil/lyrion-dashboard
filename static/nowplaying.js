@@ -127,7 +127,15 @@ function setAutoFollow(on) {
         wheelAccum = 0;
         touchStartY = null;
     }
-    if (el.scrollReset) { el.scrollReset.hidden = on; }
+    updateScrollReset();
+}
+
+// The reset button only makes sense while synced lyrics are on screen with the
+// karaoke follow paused. Plain lyrics have no follow to resume, so keep the
+// button hidden even if a pause is still remembered (it survives a mode switch
+// via keepScroll and reapplies when the synced view comes back).
+function updateScrollReset() {
+    if (el.scrollReset) { el.scrollReset.hidden = autoFollowScroll || !lrcLines; }
 }
 
 var TINT_NEUTRAL = '#8b94a8';
@@ -314,6 +322,7 @@ function setLyrics(text, isEmpty, keepScroll) {
         el.lyrics.textContent = text || I18N.no_lyrics;
         el.lyrics.classList.toggle('empty', !!isEmpty || !text);
         el.lyrics.scrollTop = prevScroll;
+        updateScrollReset();
         return;
     }
 
@@ -337,6 +346,7 @@ function setLyrics(text, isEmpty, keepScroll) {
         el.lyrics.textContent = text;
         el.lyrics.scrollTop = prevScroll;
     }
+    updateScrollReset();
 }
 
 function currentTime() {
