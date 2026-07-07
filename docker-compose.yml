@@ -1,7 +1,7 @@
 services:
-  lyrion-app:
+  lyrion-dashboard:
     image: python:3.12-slim
-    container_name: lyrion-app
+    container_name: lyrion-dashboard
     restart: unless-stopped
     working_dir: /app
     command: >

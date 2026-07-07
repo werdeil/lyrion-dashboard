@@ -3,7 +3,7 @@
 # Ce fichier est ignoré par Git via .gitignore.
 
 services:
-  lyrion-app:
+  lyrion-dashboard:
     environment:
       # Exemple : activer un mode debug local
       - DEBUG=1
