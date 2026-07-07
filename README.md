@@ -7,6 +7,7 @@ A Flask web app for [Lyrion Music Server](https://github.com/LMS-Community/slims
 <p>
   <img src="docs/screenshots/dashboard-en.png" alt="Dashboard" width="600">
   <img src="docs/screenshots/dashboard-mobile.png" alt="Mobile view" width="180">
+  <img src="docs/screenshots/dashboard-app.png" alt="Android app" width="179">
 </p>
 
 ## Features
@@ -43,7 +44,8 @@ A Flask web app for [Lyrion Music Server](https://github.com/LMS-Community/slims
 ├── static/                                # CSS, JS, icons
 ├── scripts/
 │   ├── embed_lyrics.py                    # Embed web lyrics into files' tags
-│   └── embed_lyrics_cron.sh               # Cron wrapper: only re-tags changed files
+│   ├── embed_lyrics_cron.sh               # Cron wrapper: only re-tags changed files
+│   └── generate_screenshots.py            # Regenerate the README screenshots (fake data)
 ├── android/                               # Android app (WebView wrapper)
 ├── tests/
 └── docs/screenshots/                      # README screenshots
@@ -158,6 +160,16 @@ scripts/embed_lyrics_cron.sh /path/to/music [MARKER] [-- OPTIONS]
 ```
 
 > `ctime` (not `mtime`) is used on purpose: it also catches in-place tag rewrites and files copied while preserving their `mtime` (`rsync -a`, `cp -p`).
+
+### Regenerate the README screenshots (`scripts/generate_screenshots.py`)
+
+Runs the real app with the Lyrion/database layers mocked (fake now-playing track, synced LRC lyrics, generated cover art, canned stats) and captures the README images with headless Chromium: desktop in both languages, the responsive mobile view and the Android app view in a device frame. Each capture uses a different cover on purpose, to show the accent color adapting to the artwork. No Lyrion server or database is needed.
+
+```bash
+pip install -r requirements.txt playwright
+playwright install chromium   # once
+python scripts/generate_screenshots.py
+```
 
 ## License
 

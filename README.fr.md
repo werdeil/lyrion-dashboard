@@ -7,6 +7,7 @@ Application web Flask pour [Lyrion Music Server](https://github.com/LMS-Communit
 <p>
   <img src="docs/screenshots/dashboard-fr.png" alt="Tableau de bord" width="600">
   <img src="docs/screenshots/dashboard-mobile.png" alt="Vue mobile" width="180">
+  <img src="docs/screenshots/dashboard-app.png" alt="Application Android" width="179">
 </p>
 
 ## Fonctionnalités
@@ -43,7 +44,8 @@ Application web Flask pour [Lyrion Music Server](https://github.com/LMS-Communit
 ├── static/                                # CSS, JS, icônes
 ├── scripts/
 │   ├── embed_lyrics.py                    # Intègre les paroles web dans les tags des fichiers
-│   └── embed_lyrics_cron.sh               # Wrapper cron : ne retague que les fichiers modifiés
+│   ├── embed_lyrics_cron.sh               # Wrapper cron : ne retague que les fichiers modifiés
+│   └── generate_screenshots.py            # Regénère les captures des README (données factices)
 ├── android/                               # Application Android (surcouche WebView)
 ├── tests/
 └── docs/screenshots/                      # Captures d'écran du README
@@ -158,6 +160,16 @@ scripts/embed_lyrics_cron.sh /chemin/vers/musique [MARQUEUR] [-- OPTIONS]
 ```
 
 > Le `ctime` (et non le `mtime`) est utilisé volontairement : il capte aussi les ré-écritures de tags en place et les fichiers copiés en conservant leur `mtime` (`rsync -a`, `cp -p`).
+
+### Regénérer les captures d'écran des README (`scripts/generate_screenshots.py`)
+
+Lance la vraie application avec les couches Lyrion/base de données mockées (piste factice en cours de lecture, paroles LRC synchronisées, pochettes générées, statistiques fixes) et capture les images des README avec Chromium headless : le desktop dans les deux langues, la vue mobile responsive et la vue application Android dans un cadre de téléphone. Chaque capture utilise volontairement une pochette différente, pour montrer l'adaptation de la couleur d'accent à la pochette. Aucun serveur Lyrion ni base de données n'est nécessaire.
+
+```bash
+pip install -r requirements.txt playwright
+playwright install chromium   # une seule fois
+python scripts/generate_screenshots.py
+```
 
 ## Licence
 
