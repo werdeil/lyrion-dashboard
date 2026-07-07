@@ -39,6 +39,10 @@ cd android
 # APK in app/build/outputs/apk/debug/app-debug.apk
 ```
 
+Debug builds use a distinct application ID (`.debug` suffix) and label
+("Lyrion Dashboard (debug)"), so they install side by side with the signed
+release app instead of refusing to install over it.
+
 ## CI builds
 
 The GitHub Actions workflow `.github/workflows/android.yml`:

@@ -12,8 +12,8 @@ A Flask web app for [Lyrion Music Server](https://github.com/LMS-Community/slims
 ## Features
 
 - **Now Playing** -- Automatically detects the player currently playing and shows its track (cover art, title, artist, album), refreshed live via Lyrion's JSON-RPC API. The accent color adapts to the cover art automatically.
-- **Synced lyrics** -- Lyrics with LRC timestamps are displayed line-by-line with real-time highlighting and auto-scroll synced to playback, karaoke-style.
-- **Web lyrics fallback** -- When the library has no (synced) lyrics, a segmented control lets you search the web (LRCLIB, Musixmatch, Genius) on demand or automatically for every track.
+- **Synced lyrics** -- Lyrics with LRC timestamps are displayed line-by-line with real-time highlighting and auto-scroll synced to playback, karaoke-style. The source line is tinted in the accent color when the lyrics on screen are time-synced.
+- **Web lyrics fallback** -- When the library has no (synced) lyrics, a sync switch lets you search the web (LRCLIB, Musixmatch, Genius) on demand or automatically for every track. In auto mode, a retry button re-runs the search for the current track, bypassing the cache.
 - **Library statistics** -- Albums, artists, played/unplayed tracks, genres, ratings, lyrics, 30-day listening velocity.
 - **File server** -- Serves files from a configurable directory.
 - **Android app** -- A thin WebView wrapper (same principle as [lms-material-app](https://github.com/CDrummond/lms-material-app)) with LMS auto-discovery, see [`android/`](android/README.md).
@@ -38,6 +38,7 @@ A Flask web app for [Lyrion Music Server](https://github.com/LMS-Community/slims
 │   ├── lyrics.py                          # Web lyrics fallback (LRCLIB, Musixmatch, Genius)
 │   └── tags.py                            # Read/embed lyrics into audio file tags
 ├── templates/
+│   ├── _icons.html                        # Reusable inline SVG icons (Jinja macros)
 │   └── nowplaying.html                    # Main dashboard
 ├── static/                                # CSS, JS, icons
 ├── scripts/

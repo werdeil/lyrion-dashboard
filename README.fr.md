@@ -12,8 +12,8 @@ Application web Flask pour [Lyrion Music Server](https://github.com/LMS-Communit
 ## Fonctionnalités
 
 - **Now Playing** -- Détecte automatiquement le lecteur en cours de lecture et affiche sa piste (pochette, titre, artiste, album), rafraîchi via l'API JSON-RPC de Lyrion. La couleur d'accent s'adapte automatiquement à la pochette.
-- **Paroles synchronisées** -- Les paroles avec timestamps LRC sont affichées ligne par ligne avec surlignage et défilement automatiques synchronisés à la lecture, façon karaoké.
-- **Recherche web de paroles** -- Quand la bibliothèque n'a pas de paroles (synchronisées), un contrôle segmenté permet de chercher sur le web (LRCLIB, Musixmatch, Genius) à la demande ou automatiquement pour chaque morceau.
+- **Paroles synchronisées** -- Les paroles avec timestamps LRC sont affichées ligne par ligne avec surlignage et défilement automatiques synchronisés à la lecture, façon karaoké. La ligne « Source » est teintée de la couleur d'accent quand les paroles affichées sont synchronisées.
+- **Recherche web de paroles** -- Quand la bibliothèque n'a pas de paroles (synchronisées), un interrupteur de synchronisation permet de chercher sur le web (LRCLIB, Musixmatch, Genius) à la demande ou automatiquement pour chaque morceau. En mode auto, un bouton permet de relancer la recherche pour le morceau en cours, en contournant le cache.
 - **Statistiques de la bibliothèque** -- Albums, artistes, morceaux joués/non joués, genres, notes, paroles, vélocité d'écoute sur 30 jours.
 - **Serveur de fichiers** -- Sert les fichiers depuis un répertoire configurable.
 - **Application Android** -- Une fine surcouche WebView (même principe que [lms-material-app](https://github.com/CDrummond/lms-material-app)) avec découverte automatique du serveur LMS, voir [`android/`](android/README.md).
@@ -38,6 +38,7 @@ Application web Flask pour [Lyrion Music Server](https://github.com/LMS-Communit
 │   ├── lyrics.py                          # Recherche web de paroles (LRCLIB, Musixmatch, Genius)
 │   └── tags.py                            # Lecture/écriture des paroles dans les tags audio
 ├── templates/
+│   ├── _icons.html                        # Icônes SVG inline réutilisables (macros Jinja)
 │   └── nowplaying.html                    # Dashboard principal
 ├── static/                                # CSS, JS, icônes
 ├── scripts/
