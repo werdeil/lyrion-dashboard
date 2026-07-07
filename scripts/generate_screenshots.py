@@ -40,11 +40,14 @@ sys.path.insert(0, REPO_ROOT)
 # Config reads env at import time; the host only feeds the "open Lyrion" link.
 os.environ.setdefault("LYRION_HOST", "https://lyrion.local:9000")
 
+# These imports need the sys.path/env setup above to run first.
+# pylint: disable=wrong-import-position
 from playwright.sync_api import sync_playwright  # noqa: E402
 from werkzeug.serving import make_server  # noqa: E402
 
-import routes.nowplaying as np_routes  # noqa: E402
-from app import create_app  # noqa: E402
+# Repo-root imports, resolved by the sys.path insert (invisible to pylint).
+import routes.nowplaying as np_routes  # noqa: E402  pylint: disable=import-error
+from app import create_app  # noqa: E402  pylint: disable=import-error
 
 
 # ---------------------------------------------------------------------------
@@ -193,7 +196,7 @@ TRACKS = {
 # Generated cover art (SVG rendered to PNG by the same headless Chromium)
 # ---------------------------------------------------------------------------
 
-def _wave(y0, amp, period, phase, width=600, step=6):
+def _wave(y0, amp, period, phase, *, width=600, step=6):  # pylint: disable=too-many-arguments
     pts = [
         f"{x},{y0 + amp * math.sin(2 * math.pi * x / period + phase):.1f}"
         for x in range(0, width + step, step)
@@ -261,7 +264,7 @@ np_routes.get_stats = lambda: FAKE_STATS
 np_routes.fetch_cover = lambda coverid: (COVER_PNGS[coverid], "image/png")
 
 
-def _fake_web_lyrics(**kw):
+def _fake_web_lyrics(**_kw):
     """The page (in auto mode) always asks the web: for a synced upgrade when
     the library has lyrics (return nothing, it keeps them), or from scratch
     when it doesn't (return the scenario's synced text with its provider)."""
@@ -296,7 +299,10 @@ AUTO_MODE_JS = "try { localStorage.setItem('np-lyrics-mode', 'auto'); } catch (e
 ANDROID_BRIDGE_JS = "window.LyrionApp = { openSettings: function () {} };"
 
 
-def capture(browser, base_url, track, *, locale, viewport, dpr, android=False):
+def capture(browser, base_url, track, *, locale, viewport, dpr, android=False):  # pylint: disable=too-many-arguments
+    """Point a fresh browser context at the app showing `track` and return a
+    PNG screenshot; `android` injects the WebView bridge so the in-app
+    settings button appears."""
     SCENARIO.clear()
     SCENARIO.update(TRACKS[track])
     ctx = browser.new_context(
@@ -315,6 +321,7 @@ def capture(browser, base_url, track, *, locale, viewport, dpr, android=False):
 
 
 def render_cover(browser, svg):
+    """Rasterise an SVG cover to PNG bytes with the browser already running."""
     ctx = browser.new_context(viewport={"width": 600, "height": 600})
     page = ctx.new_page()
     page.set_content(f"<body style='margin:0'>{svg}</body>")
@@ -365,7 +372,8 @@ def frame_phone(browser, screenshot_png):
     return png
 
 
-def main():
+def main():  # pylint: disable=too-many-locals
+    """Serve the mocked app on a random port and write every screenshot."""
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument(
         "--out", default=os.path.join(REPO_ROOT, "docs", "screenshots"),
