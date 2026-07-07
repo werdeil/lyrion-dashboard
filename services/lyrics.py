@@ -265,7 +265,7 @@ def _parse_genius_html(html):
     return text or None
 
 
-def _provider_genius(artist, title, album, duration):
+def _provider_genius(artist, title, album, _duration):
     if BeautifulSoup is None:
         return None
 

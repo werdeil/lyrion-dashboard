@@ -3,7 +3,10 @@
 The batch tool writes lyrics permanently into tags, so it must reject a
 provider's result when the matched track doesn't line up with the file. These
 cover the normalisation, the match rule, and fetch_lyrics' verify wiring.
+
+White-box tests: they reach into services.lyrics' private helpers on purpose.
 """
+# pylint: disable=protected-access
 
 import os
 import tempfile
@@ -12,7 +15,7 @@ import unittest
 os.environ.setdefault("DB_DIR", tempfile.mkdtemp())
 os.environ.setdefault("DB_PERSIST_DIR", tempfile.mkdtemp())
 
-import services.lyrics as L
+import services.lyrics as L  # pylint: disable=wrong-import-position
 
 
 class NormalizeTest(unittest.TestCase):
@@ -76,7 +79,7 @@ class FetchLyricsVerifyTest(unittest.TestCase):
         L._cache.clear()
 
     def _stub_provider(self, meta):
-        def provider(artist, title, album, duration):
+        def provider(_artist, _title, _album, _duration):
             return {"lyrics": "la la la", "synced": None, "meta": meta}
         L._enabled_providers = lambda: [("fake", provider)]
 

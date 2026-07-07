@@ -196,7 +196,7 @@ TRACKS = {
 # Generated cover art (SVG rendered to PNG by the same headless Chromium)
 # ---------------------------------------------------------------------------
 
-def _wave(y0, amp, period, phase, *, width=600, step=6):  # pylint: disable=too-many-arguments
+def _wave(y0, amp, period, phase, *, width=600, step=6):
     pts = [
         f"{x},{y0 + amp * math.sin(2 * math.pi * x / period + phase):.1f}"
         for x in range(0, width + step, step)
@@ -299,7 +299,7 @@ AUTO_MODE_JS = "try { localStorage.setItem('np-lyrics-mode', 'auto'); } catch (e
 ANDROID_BRIDGE_JS = "window.LyrionApp = { openSettings: function () {} };"
 
 
-def capture(browser, base_url, track, *, locale, viewport, dpr, android=False):  # pylint: disable=too-many-arguments
+def capture(browser, base_url, track, *, locale, viewport, dpr, android=False):
     """Point a fresh browser context at the app showing `track` and return a
     PNG screenshot; `android` injects the WebView bridge so the in-app
     settings button appears."""

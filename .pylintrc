@@ -1,0 +1,27 @@
+[MAIN]
+# Lints everything Python CI checks: app.py config.py i18n.py routes services
+# scripts tests. Needs requirements.txt + requirements-cli.txt + playwright
+# installed so imports resolve.
+
+[MESSAGES CONTROL]
+# The project documents through docstrings where they add something and
+# through comments elsewhere; systematic docstrings are not enforced.
+# Broad `except Exception` is deliberate resilience around web providers and
+# tag writers, where any failure must not break the chain.
+disable=
+    missing-module-docstring,
+    missing-class-docstring,
+    missing-function-docstring,
+    too-few-public-methods,
+    broad-exception-caught
+
+[FORMAT]
+# Long SQL/comment lines in services/database.py set the ceiling.
+max-line-length=130
+
+[DESIGN]
+# fetch_lyrics() takes 7 positional arguments; it is the project's widest
+# public signature and splitting it would not make callers clearer.
+max-args=7
+max-positional-arguments=7
+max-returns=8
