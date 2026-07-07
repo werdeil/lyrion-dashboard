@@ -52,6 +52,13 @@ class SettingsActivity : AppCompatActivity() {
                 discoverServers()
                 true
             }
+
+            findPreference<Preference>(PREF_WEAR_INSTALL)?.setOnPreferenceClickListener {
+                startActivity(
+                    android.content.Intent(requireContext(), WearInstallActivity::class.java)
+                )
+                true
+            }
         }
 
         override fun onDestroy() {
@@ -110,6 +117,7 @@ class SettingsActivity : AppCompatActivity() {
 
         companion object {
             private const val PREF_DISCOVER = "discover"
+            private const val PREF_WEAR_INSTALL = "wear_install"
 
             /** Default port of the Lyrion Dashboard Flask app (see config.py). */
             private const val DEFAULT_APP_PORT = 1111

@@ -67,13 +67,39 @@ karaoke-style when they carry LRC timestamps.
 - **Requirements**: Wear OS 2.23+ (API 26); the Lyrion Dashboard server
   reachable from the watch (plain HTTP on the LAN is allowed).
 
-To install on a watch over Wi-Fi, enable ADB debugging in the watch's
-developer options, then:
+### Installing on the watch
+
+The easiest way is the **“Install the watch app” button in the phone
+app's settings**. Modern watches (Wear OS 4+, e.g. Pixel Watch) only
+expose *wireless debugging*, whose pairing protocol requires the real
+`adb` binary — so the phone app delegates the install to the Lyrion
+Dashboard server (`POST /wear/install.json`), which runs
+`adb pair` / `adb connect` / `adb install` from the LAN. To enable it:
+
+1. Make `adb` available to the server. With Docker, uncomment the
+   `command:` override in `docker-compose.override.yml.example` (installs
+   the Debian `adb` package at container start); on bare metal, install
+   `adb`/`android-tools` and optionally set `ADB_PATH`.
+2. Provide the APK: the server looks at `WEAR_APK_PATH` (default
+   `<custom data dir>/lyrion-wear.apk`). If the file is missing it
+   downloads the wear APK of the latest GitHub release. While testing
+   pre-release builds, drop the CI artifact (`lyrion-custom-data-wear-debug`)
+   there under that name.
+3. On the watch, enable developer options and *Wireless debugging*, tap
+   *Pair new device*, and copy the addresses/code into the phone app's
+   install screen. Pairing is only needed the first time; later updates
+   just need the connection address.
+
+Manual alternative from a computer (works on any watch):
 
 ```bash
-adb connect <watch-ip>:5555
-adb -s <watch-ip>:5555 install wear/build/outputs/apk/debug/wear-debug.apk
+adb pair <watch-ip>:<pairing-port> <6-digit-code>   # first time only
+adb connect <watch-ip>:<connect-port>
+adb -s <watch-ip>:<connect-port> install -r wear/build/outputs/apk/debug/wear-debug.apk
 ```
+
+(Watches still offering the legacy *Debug over Wi-Fi* skip the pair step
+and use port 5555.)
 
 Debug builds use a distinct application ID (`.debug` suffix) and label
 ("Lyrion Dashboard (debug)"), so they install side by side with the signed

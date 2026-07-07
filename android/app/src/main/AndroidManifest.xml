@@ -27,5 +27,10 @@
             android:name=".SettingsActivity"
             android:exported="false"
             android:label="@string/settings_title" />
+
+        <activity
+            android:name=".WearInstallActivity"
+            android:exported="false"
+            android:label="@string/wear_install_title" />
     </application>
 </manifest>

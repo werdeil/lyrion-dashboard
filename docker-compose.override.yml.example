@@ -12,6 +12,14 @@ services:
       # Exemple : monter un répertoire local en lecture-écriture
       - ./local_data:/opt/scripts/custom_data:rw
 
+    # Exemple : activer l'installation de l'app montre (bouton « Installer
+    # l'app montre » de l'app Android) — le serveur a besoin du binaire adb
+    # pour s'associer à la montre et pousser l'APK (voir android/README.md).
+    # command: >
+    #   sh -c "apt-get update -qq && apt-get install -y -qq --no-install-recommends adb
+    #   && pip install --no-cache-dir -r requirements.txt
+    #   && gunicorn -w 1 --threads 4 -b 0.0.0.0:1111 app:app --access-logfile - --error-logfile - --log-level info"
+
 # Exemple d'ajout de service auxiliaire : Redis
 # services:
 #   redis:
