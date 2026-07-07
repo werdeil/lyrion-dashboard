@@ -7,6 +7,7 @@ A Flask web app for [Lyrion Music Server](https://github.com/LMS-Community/slims
 <p>
   <img src="docs/screenshots/dashboard-en.png" alt="Dashboard" width="600">
   <img src="docs/screenshots/dashboard-mobile.png" alt="Mobile view" width="180">
+  <img src="docs/screenshots/dashboard-app.png" alt="Android app" width="179">
 </p>
 
 ## Features
@@ -43,7 +44,8 @@ A Flask web app for [Lyrion Music Server](https://github.com/LMS-Community/slims
 ├── static/                                # CSS, JS, icons
 ├── scripts/
 │   ├── embed_lyrics.py                    # Embed web lyrics into files' tags
-│   └── embed_lyrics_cron.sh               # Cron wrapper: only re-tags changed files
+│   ├── embed_lyrics_cron.sh               # Cron wrapper: only re-tags changed files
+│   └── generate_screenshots.py            # Regenerate the README screenshots (fake data)
 ├── android/                               # Android app (WebView wrapper)
 ├── tests/
 └── docs/screenshots/                      # README screenshots
@@ -120,6 +122,27 @@ The app is available at `http://localhost:1111`.
 | GET | `/lyrics.json` | Fetches lyrics from the web for a track, on demand |
 | GET | `/files/<path>` | Serves a file from the custom data directory |
 
+### Homepage widget
+
+`/stats.json` returns plain JSON, so it plugs directly into a [Homepage](https://gethomepage.dev) [`customapi`](https://gethomepage.dev/widgets/services/customapi/) widget to surface library stats on your dashboard:
+
+```yaml
+- Lyrion Dashboard:
+    href: http://lyrion-dashboard:1111
+    widget:
+      type: customapi
+      url: http://lyrion-dashboard:1111/stats.json
+      mappings:
+        - field: albums_total
+          label: Albums
+        - field: songs_total
+          label: Tracks
+        - field: velocity_30d
+          label: Played (30 d)
+```
+
+Any key from the JSON works as a `field` — check `/stats.json` in a browser to pick the ones you want.
+
 ## Scripts
 
 ### Embed lyrics into files (`scripts/embed_lyrics.py`)
@@ -158,6 +181,16 @@ scripts/embed_lyrics_cron.sh /path/to/music [MARKER] [-- OPTIONS]
 ```
 
 > `ctime` (not `mtime`) is used on purpose: it also catches in-place tag rewrites and files copied while preserving their `mtime` (`rsync -a`, `cp -p`).
+
+### Regenerate the README screenshots (`scripts/generate_screenshots.py`)
+
+Runs the real app with the Lyrion/database layers mocked (fake now-playing track, synced LRC lyrics, generated cover art, canned stats) and captures the README images with headless Chromium: desktop in both languages, the responsive mobile view and the Android app view in a device frame. Each capture uses a different cover on purpose, to show the accent color adapting to the artwork. No Lyrion server or database is needed.
+
+```bash
+pip install -r requirements.txt playwright
+playwright install chromium   # once
+python scripts/generate_screenshots.py
+```
 
 ## License
 

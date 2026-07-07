@@ -6,6 +6,8 @@ following the same principle as
 UI lives in the web page served by the Flask app, the Android app only
 provides the native shell.
 
+<img src="../docs/screenshots/dashboard-app.png" alt="Android app" width="240">
+
 ## Features
 
 - Full screen WebView loading the dashboard

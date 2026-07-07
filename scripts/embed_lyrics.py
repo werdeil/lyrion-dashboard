@@ -59,6 +59,7 @@ try:
 except ImportError:  # python-dotenv is optional; fall back to the real env.
     pass
 
+# pylint: disable=wrong-import-position
 from services.lyrics import fetch_lyrics  # noqa: E402
 from services import tags  # noqa: E402
 
@@ -151,7 +152,9 @@ def parse_args(argv):
     return parser.parse_args(argv)
 
 
-def main(argv=None):
+# The CLI's whole walk/fetch/write/report loop lives here on purpose; slicing
+# it up would only scatter the sequential logic.
+def main(argv=None):  # pylint: disable=too-many-branches,too-many-statements
     args = parse_args(argv)
     targets, missing = resolve_targets(args.targets)
     for pattern in missing:

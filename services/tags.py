@@ -127,7 +127,7 @@ def write_lyrics(path, text):
     try:
         audio.save()
     except Exception as exc:
-        raise LyricsTagError(f"write failed: {exc}")
+        raise LyricsTagError(f"write failed: {exc}") from exc
 
 
 def clear_lyrics(path):
@@ -156,5 +156,5 @@ def clear_lyrics(path):
     try:
         audio.save()
     except Exception as exc:
-        raise LyricsTagError(f"clear failed: {exc}")
+        raise LyricsTagError(f"clear failed: {exc}") from exc
     return True

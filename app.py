@@ -6,17 +6,17 @@ from routes.custom import custom_bp
 
 
 def create_app():
-    app = Flask(__name__)
-    app.config.from_object(Config)
+    flask_app = Flask(__name__)
+    flask_app.config.from_object(Config)
 
-    @app.route("/health", methods=["GET"])
+    @flask_app.route("/health", methods=["GET"])
     def healthcheck():
         return {"status": "ok"}, 200
 
-    app.register_blueprint(nowplaying_bp)
-    app.register_blueprint(custom_bp)
+    flask_app.register_blueprint(nowplaying_bp)
+    flask_app.register_blueprint(custom_bp)
 
-    return app
+    return flask_app
 
 
 app = create_app()

@@ -1,6 +1,7 @@
 import sqlite3
-from flask import current_app
 from contextlib import contextmanager
+
+from flask import current_app
 
 
 @contextmanager
