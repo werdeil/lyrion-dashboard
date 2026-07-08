@@ -1,7 +1,12 @@
 from flask import Blueprint, render_template, current_app, jsonify, request, Response, abort
 
 from services.lyrion import get_active_now_playing, fetch_cover, fetch_remote_cover
-from services.database import get_track_lyrics, get_stats
+from services.database import (
+    get_track_lyrics,
+    get_stats,
+    get_random_cover_ids,
+    get_recent_album_covers,
+)
 from services.lyrics import fetch_lyrics
 from i18n import pick_lang, TRANSLATIONS
 
@@ -32,8 +37,14 @@ def now_playing_json():
 @nowplaying_bp.route("/cover/<coverid>.jpg")
 def cover(coverid):
     """Proxy an album cover from Lyrion, served same-origin so the page can
-    sample its colours on a canvas. Cached client-side since covers are stable."""
-    content, content_type = fetch_cover(coverid)
+    sample its colours on a canvas. Cached client-side since covers are stable.
+
+    ?size=N asks Lyrion for an NxN thumbnail instead of the full artwork; the
+    mosaic uses it to load its many blurred covers cheaply."""
+    size = request.args.get("size", type=int)
+    if size is not None:
+        size = min(max(size, 16), 512)
+    content, content_type = fetch_cover(coverid, size)
     return Response(
         content,
         content_type=content_type,
@@ -59,6 +70,22 @@ def cover_remote():
         content_type=content_type,
         headers={"Cache-Control": "public, max-age=86400"},
     )
+
+
+@nowplaying_bp.route("/mosaic-covers.json")
+def mosaic_covers_json():
+    """Album cover ids for the empty-state mosaic: the most recently played
+    albums, newest first, one cover per album.
+
+    The page passes ?limit= (how many tiles its panel fits), clamped to keep
+    the query and the page sane. A library with no play history yet falls back
+    to a random selection so the backdrop is never empty.
+    """
+    limit = min(max(request.args.get("limit", default=24, type=int), 1), 200)
+    covers = get_recent_album_covers(limit)
+    if not covers:
+        covers = get_random_cover_ids(limit)
+    return jsonify(covers)
 
 
 @nowplaying_bp.route("/stats.json")

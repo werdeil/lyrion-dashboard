@@ -40,6 +40,9 @@ var el = {
     progressBar: document.getElementById('np-progress-bar'),
     lyrionLink: document.getElementById('lyrion-link'),
     scrollReset: document.getElementById('np-scroll-reset'),
+    empty: document.getElementById('np-empty'),
+    emptyMosaic: document.getElementById('np-empty-mosaic'),
+    emptyOpen: document.getElementById('np-empty-open'),
 };
 
 // Web lyrics auto-search is a single on/off switch:
@@ -82,21 +85,28 @@ function persistMode() {
 var MATERIAL_BASE = LYRION_HOST ? LYRION_HOST + '/material/' : '#';
 var IS_ANDROID = /Android/i.test(navigator.userAgent || '');
 var MATERIAL_APP_PKG = 'com.craigd.lmsmaterial.app';
-function setLyrionLink(playerId) {
-    if (!el.lyrionLink) { return; }
-    if (!LYRION_HOST) { el.lyrionLink.href = '#'; return; }
+function setMaterialLink(anchor, playerId) {
+    if (!anchor) { return; }
+    if (!LYRION_HOST) { anchor.href = '#'; return; }
     var web = MATERIAL_BASE + (playerId ? '?player=' + encodeURIComponent(playerId) : '');
     if (IS_ANDROID) {
-        el.lyrionLink.href = 'intent://' + web.replace(/^https?:\/\//, '') +
+        anchor.href = 'intent://' + web.replace(/^https?:\/\//, '') +
             '#Intent;scheme=https;type=text/html;package=' + MATERIAL_APP_PKG +
             ';S.browser_fallback_url=' + encodeURIComponent(web) + ';end';
     } else {
-        el.lyrionLink.href = web;
-        el.lyrionLink.target = 'lyrion';
+        anchor.href = web;
+        anchor.target = 'lyrion';
         // rel="noopener"/"noreferrer" makes a named target behave like
         // _blank, defeating tab reuse; clear it for the (trusted) server.
-        el.lyrionLink.rel = '';
+        anchor.rel = '';
     }
+}
+
+function setLyrionLink(playerId) {
+    setMaterialLink(el.lyrionLink, playerId);
+    // The empty-state "open Lyrion" button always targets the plain Material
+    // page: with nothing playing there is no player to focus.
+    setMaterialLink(el.emptyOpen, null);
 }
 var lastTrackKey = null;
 var currentTrack = null;
@@ -411,9 +421,201 @@ function setSearching(on) {
     updateRetry();
 }
 
+// Square cover tile (px) the mosaic layout is sized around: sets how many
+// rows and columns of covers fit the card. Kept fairly small so the belt stays
+// dense enough that its wrap seam is never a visible gap, even on short phone
+// cards with few rows.
+var MOSAIC_TILE = 130;
+// Thumbnail size requested for mosaic covers. They're blurred and downscaled,
+// so a small thumbnail is indistinguishable from full art but loads far
+// faster (dozens fetch at once) — a bit above the tile size for DPR headroom.
+var MOSAIC_COVER_SIZE = 200;
+// Gap between covers on the belt (both between covers in a row and between
+// rows), and how fast the belt travels (px/s).
+var MOSAIC_GAP = 10;
+var MOSAIC_SPEED = 26;
+
+// The covers ride one continuous serpentine belt: laid end to end, they cross
+// row 0 left→right, drop to row 1 and cross it right→left, and so on down the
+// card, then wrap from the bottom back to the top. `mosaicGeom` holds the
+// measured geometry; positionMosaic() maps each tile's position along the belt
+// (phase) to an (x, y) on screen, and stepMosaic() advances the phase.
+var mosaicGeom = null;
+var mosaicIds = null;
+var mosaicRAFStarted = false;
+
+function positionMosaic(phase) {
+    var g = mosaicGeom;
+    if (!g) { return; }
+    for (var i = 0; i < g.tiles.length; i++) {
+        // Distance of this tile along the belt, wrapped into [0, total length).
+        var p = (i * g.step + phase) % g.length;
+        if (p < 0) { p += g.length; }
+        var row = Math.floor(p / g.rowLen);
+        var within = p - row * g.rowLen;
+        // Even rows travel right, odd rows left (so a cover leaving one row's
+        // edge continues from the row below): boustrophedon.
+        var x = (row % 2 === 0) ? within : (g.rowLen - within);
+        // Shift left by one step so tiles enter from just off the left/right
+        // edge rather than popping in at x=0. The tile is MOSAIC_GAP shorter
+        // than its row band, so half a gap of top padding centres it and leaves
+        // a gap between rows.
+        var y = row * g.rowH + MOSAIC_GAP / 2;
+        g.tiles[i].style.transform =
+            'translate3d(' + (x - g.step) + 'px,' + y + 'px,0)';
+    }
+}
+
+function stepMosaic(ts) {
+    var g = mosaicGeom;
+    // Only advance while the empty state is actually on screen (offsetParent is
+    // null when a parent is display:none, i.e. something is playing).
+    if (g && el.emptyMosaic.offsetParent !== null) {
+        if (!g.last) { g.last = ts; }
+        // Clamp dt so a background tab (rAF paused) doesn't lurch on return.
+        var dt = Math.min(ts - g.last, 100);
+        g.last = ts;
+        g.phase = (g.phase + MOSAIC_SPEED * dt / 1000) % g.length;
+        positionMosaic(g.phase);
+    } else if (g) {
+        g.last = 0;
+    }
+    requestAnimationFrame(stepMosaic);
+}
+
+// Covers are fetched in parallel (fast) but revealed strictly in belt order —
+// row 0 left→right, row 1 right→left, and so on — so the collage fills in along
+// the caterpillar's path instead of popping in at random. Tiles start hidden
+// (CSS opacity 0); the cursor uncovers them one by one, waiting whenever the
+// next tile hasn't downloaded yet and resuming from that tile's load handler.
+var MOSAIC_REVEAL_STEP = 25;   // ms between covers appearing
+var mosaicRevealCursor = 0;
+var mosaicRevealTimer = null;
+
+function advanceMosaicReveal() {
+    mosaicRevealTimer = null;
+    var g = mosaicGeom;
+    if (!g) { return; }
+    if (mosaicRevealCursor >= g.tiles.length) { return; }
+    var img = g.tiles[mosaicRevealCursor];
+    // `complete` is true once the image has loaded *or* errored, so a rare
+    // failed cover advances the caterpillar instead of stalling it.
+    if (!img.complete) { return; }
+    img.classList.add('is-shown');
+    mosaicRevealCursor++;
+    mosaicRevealTimer = setTimeout(advanceMosaicReveal, MOSAIC_REVEAL_STEP);
+}
+
+// Lay the fetched covers out along the belt, sized to the current card. Called
+// on first load and again on resize (reusing the covers already fetched).
+function layoutMosaic(ids) {
+    el.emptyMosaic.textContent = '';
+    if (mosaicRevealTimer) { clearTimeout(mosaicRevealTimer); mosaicRevealTimer = null; }
+    mosaicRevealCursor = 0;
+    var reduce = window.matchMedia &&
+        window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    var W = el.emptyMosaic.offsetWidth || 900;
+    var H = el.emptyMosaic.offsetHeight || 500;
+    var rows = Math.max(3, Math.round(H / MOSAIC_TILE));
+    var rowH = H / rows;
+    // Tile is a gap shorter than the row band so rows don't touch vertically;
+    // the horizontal step keeps the same gap between covers along the row.
+    var tile = rowH - MOSAIC_GAP;
+    var step = tile + MOSAIC_GAP;
+    // One extra slot per row so a cover is always entering as another leaves.
+    var perRow = Math.ceil(W / step) + 1;
+    // With fewer covers than a full grid, drop rows so each surviving row stays
+    // full of distinct covers rather than repeating them across the card.
+    if (ids.length >= perRow) {
+        rows = Math.min(rows, Math.floor(ids.length / perRow));
+    } else {
+        rows = 1;
+        perRow = ids.length;
+    }
+    var count = rows * perRow;
+
+    el.emptyMosaic.style.setProperty('--mosaic-tile', tile + 'px');
+    var tiles = [];
+    for (var i = 0; i < count; i++) {
+        var img = document.createElement('img');
+        img.className = 'np-mosaic-tile';
+        // A finished download (or error) may need to un-stall the reveal cursor
+        // if it was waiting on this very tile.
+        img.onload = img.onerror = function() {
+            if (mosaicRevealTimer === null) { advanceMosaicReveal(); }
+        };
+        img.src = '/cover/' + encodeURIComponent(ids[i % ids.length]) + '.jpg?size=' + MOSAIC_COVER_SIZE;
+        img.alt = '';
+        img.decoding = 'async';
+        if (reduce) { img.classList.add('is-shown'); }
+        el.emptyMosaic.appendChild(img);
+        tiles.push(img);
+    }
+    mosaicGeom = {
+        tiles: tiles, step: step, rowH: rowH,
+        rowLen: perRow * step, length: rows * perRow * step,
+        phase: 0, last: 0,
+    };
+    positionMosaic(0);
+    // Reduced motion: no caterpillar fill, show everything at once (tiles were
+    // already marked shown above); otherwise start the ordered reveal.
+    if (reduce) {
+        mosaicRevealCursor = tiles.length;
+    } else {
+        advanceMosaicReveal();
+    }
+}
+
+// Fill the empty-state background with random covers from the library, once
+// per page load (the selection is random anyway, no point refreshing it).
+// On failure the guard resets so the next poll retries; without covers the
+// empty state simply stays as plain text, same as before.
+var mosaicLoading = false;
+var mosaicLoaded = false;
+function loadMosaic() {
+    if (mosaicLoaded || mosaicLoading || !el.emptyMosaic) { return; }
+    mosaicLoading = true;
+    // Ask for about as many covers as the belt has slots: rows that fill the
+    // card height times a row a little wider than the card. The endpoint
+    // returns the most recently played albums (newest first), so the belt's
+    // ordered reveal draws the latest listens first.
+    var cols = Math.ceil(el.emptyMosaic.offsetWidth / MOSAIC_TILE) || 6;
+    var rows = Math.max(3, Math.round(el.emptyMosaic.offsetHeight / MOSAIC_TILE));
+    var wanted = Math.min(rows * (cols + 2), 200);
+    fetch('/mosaic-covers.json?limit=' + wanted)
+        .then(function(r) { return r.json(); })
+        .then(function(ids) {
+            mosaicLoading = false;
+            mosaicLoaded = true;
+            if (!ids || !ids.length) { return; }
+            mosaicIds = ids;
+            layoutMosaic(ids);
+            if (el.empty) { el.empty.classList.add('has-mosaic'); }
+            // Honour reduced-motion: lay the belt out but leave it still.
+            var reduce = window.matchMedia &&
+                window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+            if (!reduce && !mosaicRAFStarted) {
+                mosaicRAFStarted = true;
+                requestAnimationFrame(stepMosaic);
+            }
+        })
+        .catch(function() { mosaicLoading = false; });
+}
+
+// Re-lay the belt to the new size on resize (debounced); reuses the covers
+// already fetched, so no extra network. The running rAF picks up the new
+// geometry automatically.
+var mosaicResizeTimer = null;
+window.addEventListener('resize', function() {
+    if (!mosaicIds) { return; }
+    if (mosaicResizeTimer) { clearTimeout(mosaicResizeTimer); }
+    mosaicResizeTimer = setTimeout(function() { layoutMosaic(mosaicIds); }, 300);
+});
+
 function render(data) {
     if (!data || !data.track_id) {
         nowPlaying.classList.add('is-empty');
+        loadMosaic();
         el.player.textContent = '';
         el.cover.removeAttribute('src');
         setLyrionLink(null);

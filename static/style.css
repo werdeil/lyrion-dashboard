@@ -579,13 +579,88 @@ hr {
 
 .np-empty {
     display: none;
+    position: relative;
+    overflow: hidden;
     grid-column: 1 / -1;
+    /* Span both template rows of the big-screen layout (auto 1fr) so the
+       mosaic fills the whole card height, not just the first auto row. */
+    grid-row: 1 / -1;
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: center;
+    min-height: 280px;
+    /* The card's 12px outer radius minus its 1px border: the collage below
+       bleeds to the border edge (negative margin), so clip it on the same
+       curve to keep it from poking past the card's rounded corners. */
+    border-radius: 11px;
+    /* Pull the collage out to the card's padding edge so it reads as the
+       card's own background rather than an inset picture. */
+    margin: -20px;
+    color: #828282;
+}
+
+/* Decorative collage of random library covers behind the message. Oversized
+   and slightly rotated so its edges never show inside the card. The covers ride
+   a single serpentine belt (positioned tile by tile in nowplaying.js): each row
+   scrolls the opposite way to its neighbour, a cover leaving one side drops onto
+   the next row down, and the belt loops back to the top — so every cover passes
+   through the well-lit centre instead of idling in a dim corner. */
+.np-empty-mosaic {
+    position: absolute;
+    /* Overscan just big enough for the 3° tilt to never expose the card's
+       corners. The margin the tilt needs is mostly an absolute distance
+       (≈ half the card width × sin3°), so a pure percentage collapses to
+       nothing on a short phone card and leaves gaps: pair a small percentage
+       (which keeps up on very large screens) with a fixed floor. Far less waste
+       than the old inset:-8% + scale:1.15, which pushed a third of every row
+       off-card for nothing. */
+    inset: calc(-3% - 16px);
+    overflow: hidden;
+    transform: rotate(-3deg);
+    filter: blur(1px) saturate(0.7) brightness(0.4);
+    pointer-events: none;
+}
+
+/* Every tile is absolutely placed; JS drives its transform along the belt.
+   Tiles start hidden and are faded in one by one in belt order (see the reveal
+   cursor in nowplaying.js), so the collage fills along the caterpillar's path
+   rather than popping in at random as covers download. */
+.np-mosaic-tile {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: var(--mosaic-tile, 130px);
+    height: var(--mosaic-tile, 130px);
+    object-fit: cover;
+    border-radius: 8px;
+    will-change: transform;
+    opacity: 0;
+    transition: opacity 450ms ease;
+}
+
+.np-mosaic-tile.is-shown {
+    opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .np-mosaic-tile {
+        transition: none;
+    }
+}
+
+.np-empty-content {
+    position: relative;
+    display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
     gap: 12px;
-    min-height: 220px;
-    color: #828282;
+    flex: 1;
+    padding: 40px 20px;
+    /* Quiet vignette behind the message so it stays readable over covers. */
+    background: radial-gradient(55% 55% at 50% 50%,
+        rgba(33, 33, 33, 0.55) 0%,
+        rgba(33, 33, 33, 0.1) 100%);
 }
 
 .np-empty-icon {
@@ -593,10 +668,46 @@ hr {
     opacity: 0.6;
 }
 
+.np-empty.has-mosaic .np-empty-icon {
+    color: #c8c8c8;
+    opacity: 0.9;
+}
+
 .np-empty-text {
     margin: 0;
     font-size: 1.1rem;
     letter-spacing: 0.5px;
+}
+
+.np-empty.has-mosaic .np-empty-text {
+    color: #d8d8d8;
+}
+
+.np-empty-open {
+    margin-top: 8px;
+    padding: 8px 16px;
+    border-radius: 5px;
+    background: var(--accent-color);
+    color: #1a1a1a;
+    font-size: 0.9rem;
+    font-weight: bold;
+    text-decoration: none;
+}
+
+.np-empty-open:hover {
+    filter: brightness(1.05);
+}
+
+@media (max-width: 540px) {
+    .np-empty {
+        min-height: 200px;
+    }
+}
+
+/* The card's default align-items:start would shrink the empty block to its
+   content height; stretch it so the mosaic fills the whole card. */
+.now-playing.is-empty {
+    align-items: stretch;
 }
 
 .now-playing.is-empty .np-cover,

@@ -39,6 +39,56 @@ def get_track_lyrics(track_id):
     return None
 
 
+def get_random_cover_ids(limit=24):
+    """Cover ids of random albums that have artwork, for the empty-state mosaic.
+
+    `albums.artwork` holds the coverid of the album's artwork track — the same
+    id the /cover/<coverid>.jpg route serves.
+    """
+    with get_db_conn() as conn:
+        rows = conn.execute(
+            """
+            SELECT DISTINCT artwork FROM albums
+            WHERE artwork IS NOT NULL
+            ORDER BY RANDOM() LIMIT ?
+            """,
+            (limit,),
+        ).fetchall()
+    return [row["artwork"] for row in rows]
+
+
+def get_recent_album_covers(limit=24):
+    """Cover ids of the most recently played albums, newest first, for the
+    empty-state mosaic.
+
+    Uses the Alternative Play Count table rather than tracks_persistent.
+    tracks_persistent.lastplayed is bumped on skips too, so it would surface
+    albums that were only skipped past; alternativeplaycount keeps real plays
+    (playcount / lastplayed) separate from skips (skipcount / lastskipped).
+    So we count only tracks with an actual play (playcount > 0) and order by
+    their real last-play time. Grouping by the album's artwork gives one cover
+    per album — an album whose tracks were played several times appears once.
+    """
+    with get_db_conn() as conn:
+        rows = conn.execute(
+            """
+            SELECT al.artwork AS artwork
+            FROM tracks t
+            JOIN alternativeplaycount apc ON apc.urlmd5 = t.urlmd5
+            JOIN albums al ON al.id = t.album
+            WHERE t.audio = 1
+              AND al.artwork IS NOT NULL
+              AND apc.playcount > 0
+              AND apc.lastplayed IS NOT NULL
+            GROUP BY al.artwork
+            ORDER BY MAX(apc.lastplayed) DESC
+            LIMIT ?
+            """,
+            (limit,),
+        ).fetchall()
+    return [row["artwork"] for row in rows]
+
+
 def get_stats():
     with get_db_conn() as conn:
         cur = conn.cursor()

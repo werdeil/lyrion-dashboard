@@ -68,8 +68,16 @@
                     </div>
                 </div>
                 <div class="np-empty" id="np-empty">
-                    <span class="np-empty-icon">&#9835;</span>
-                    <p class="np-empty-text">{{ t.empty_state }}</p>
+                    {# Background collage of random library covers, filled by JS
+                       from /random-covers.json. Decorative only. #}
+                    <div class="np-empty-mosaic" id="np-empty-mosaic" aria-hidden="true"></div>
+                    <div class="np-empty-content">
+                        <span class="np-empty-icon">&#9835;</span>
+                        <p class="np-empty-text">{{ t.empty_state }}</p>
+                        <a class="np-empty-open" id="np-empty-open"
+                           href="{{ (lyrion_host ~ '/material/') if lyrion_host else '#' }}"
+                           target="_blank" rel="noopener noreferrer">{{ t.open_lyrion }}</a>
+                    </div>
                 </div>
             </div>
         </div>
