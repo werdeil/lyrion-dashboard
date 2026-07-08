@@ -483,10 +483,37 @@ function stepMosaic(ts) {
     requestAnimationFrame(stepMosaic);
 }
 
+// Covers are fetched in parallel (fast) but revealed strictly in belt order —
+// row 0 left→right, row 1 right→left, and so on — so the collage fills in along
+// the caterpillar's path instead of popping in at random. Tiles start hidden
+// (CSS opacity 0); the cursor uncovers them one by one, waiting whenever the
+// next tile hasn't downloaded yet and resuming from that tile's load handler.
+var MOSAIC_REVEAL_STEP = 25;   // ms between covers appearing
+var mosaicRevealCursor = 0;
+var mosaicRevealTimer = null;
+
+function advanceMosaicReveal() {
+    mosaicRevealTimer = null;
+    var g = mosaicGeom;
+    if (!g) { return; }
+    if (mosaicRevealCursor >= g.tiles.length) { return; }
+    var img = g.tiles[mosaicRevealCursor];
+    // `complete` is true once the image has loaded *or* errored, so a rare
+    // failed cover advances the caterpillar instead of stalling it.
+    if (!img.complete) { return; }
+    img.classList.add('is-shown');
+    mosaicRevealCursor++;
+    mosaicRevealTimer = setTimeout(advanceMosaicReveal, MOSAIC_REVEAL_STEP);
+}
+
 // Lay the fetched covers out along the belt, sized to the current card. Called
 // on first load and again on resize (reusing the covers already fetched).
 function layoutMosaic(ids) {
     el.emptyMosaic.textContent = '';
+    if (mosaicRevealTimer) { clearTimeout(mosaicRevealTimer); mosaicRevealTimer = null; }
+    mosaicRevealCursor = 0;
+    var reduce = window.matchMedia &&
+        window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     var W = el.emptyMosaic.offsetWidth || 900;
     var H = el.emptyMosaic.offsetHeight || 500;
     var rows = Math.max(3, Math.round(H / MOSAIC_TILE));
@@ -512,9 +539,15 @@ function layoutMosaic(ids) {
     for (var i = 0; i < count; i++) {
         var img = document.createElement('img');
         img.className = 'np-mosaic-tile';
+        // A finished download (or error) may need to un-stall the reveal cursor
+        // if it was waiting on this very tile.
+        img.onload = img.onerror = function() {
+            if (mosaicRevealTimer === null) { advanceMosaicReveal(); }
+        };
         img.src = '/cover/' + encodeURIComponent(ids[i % ids.length]) + '.jpg?size=' + MOSAIC_COVER_SIZE;
         img.alt = '';
         img.decoding = 'async';
+        if (reduce) { img.classList.add('is-shown'); }
         el.emptyMosaic.appendChild(img);
         tiles.push(img);
     }
@@ -524,6 +557,13 @@ function layoutMosaic(ids) {
         phase: 0, last: 0,
     };
     positionMosaic(0);
+    // Reduced motion: no caterpillar fill, show everything at once (tiles were
+    // already marked shown above); otherwise start the ordered reveal.
+    if (reduce) {
+        mosaicRevealCursor = tiles.length;
+    } else {
+        advanceMosaicReveal();
+    }
 }
 
 // Fill the empty-state background with random covers from the library, once

@@ -621,7 +621,10 @@ hr {
     pointer-events: none;
 }
 
-/* Every tile is absolutely placed; JS drives its transform along the belt. */
+/* Every tile is absolutely placed; JS drives its transform along the belt.
+   Tiles start hidden and are faded in one by one in belt order (see the reveal
+   cursor in nowplaying.js), so the collage fills along the caterpillar's path
+   rather than popping in at random as covers download. */
 .np-mosaic-tile {
     position: absolute;
     top: 0;
@@ -631,6 +634,18 @@ hr {
     object-fit: cover;
     border-radius: 8px;
     will-change: transform;
+    opacity: 0;
+    transition: opacity 450ms ease;
+}
+
+.np-mosaic-tile.is-shown {
+    opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .np-mosaic-tile {
+        transition: none;
+    }
 }
 
 .np-empty-content {
