@@ -430,23 +430,23 @@ var mosaicLoaded = false;
 function loadMosaic() {
     if (mosaicLoaded || mosaicLoading || !el.emptyMosaic) { return; }
     mosaicLoading = true;
-    fetch('/random-covers.json')
+    // Ask for as many covers as the collage needs to fill the card: tiles are
+    // >=110px (+10px gap) squares, so width/120 bounds the column count and
+    // height/120 the rows; one spare row absorbs the rounding. Each cover
+    // appears at most once (the endpoint returns distinct ids) — a library
+    // with fewer albums than tiles just fills less of the card.
+    var cols = Math.ceil(el.emptyMosaic.offsetWidth / 120) || 6;
+    var rows = (Math.ceil(el.emptyMosaic.offsetHeight / 120) || 4) + 1;
+    var wanted = Math.max(cols * rows, 24);
+    fetch('/random-covers.json?limit=' + wanted)
         .then(function(r) { return r.json(); })
         .then(function(ids) {
             mosaicLoading = false;
             mosaicLoaded = true;
             if (!ids || !ids.length) { return; }
-            // Cycle through the ids until the collage covers the whole card:
-            // tiles are >=110px (+10px gap) squares, so width/120 bounds the
-            // column count and height/120 the rows; one spare row absorbs the
-            // rounding. Small libraries just repeat their covers more often,
-            // and duplicate URLs come out of the browser cache for free.
-            var cols = Math.ceil(el.emptyMosaic.offsetWidth / 120) || 6;
-            var rows = (Math.ceil(el.emptyMosaic.offsetHeight / 120) || 4) + 1;
-            var TILES = Math.max(cols * rows, 24);
-            for (var i = 0; i < TILES; i++) {
+            for (var i = 0; i < ids.length; i++) {
                 var img = document.createElement('img');
-                img.src = '/cover/' + encodeURIComponent(ids[i % ids.length]) + '.jpg';
+                img.src = '/cover/' + encodeURIComponent(ids[i]) + '.jpg';
                 img.alt = '';
                 el.emptyMosaic.appendChild(img);
             }

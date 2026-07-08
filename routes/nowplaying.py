@@ -64,8 +64,13 @@ def cover_remote():
 @nowplaying_bp.route("/random-covers.json")
 def random_covers_json():
     """Random album cover ids, fetched by the page to build the empty-state
-    mosaic. Not cacheable: every call returns a fresh random selection."""
-    return jsonify(get_random_cover_ids())
+    mosaic. Not cacheable: every call returns a fresh random selection.
+
+    The page passes ?limit= (how many tiles its panel fits) so every tile can
+    show a different album; clamped to keep the query and the page sane.
+    """
+    limit = min(max(request.args.get("limit", default=24, type=int), 1), 200)
+    return jsonify(get_random_cover_ids(limit))
 
 
 @nowplaying_bp.route("/stats.json")
