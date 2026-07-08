@@ -422,39 +422,100 @@ function setSearching(on) {
 }
 
 // Square cover tile (px) the mosaic layout is sized around: sets how many
-// rows and columns of the carousel fit the card.
+// rows and columns of covers fit the card.
 var MOSAIC_TILE = 130;
 // Thumbnail size requested for mosaic covers. They're blurred and downscaled,
 // so a small thumbnail is indistinguishable from full art but loads far
 // faster (dozens fetch at once) — a bit above the tile size for DPR headroom.
 var MOSAIC_COVER_SIZE = 200;
+// Gap between covers on the belt, and how fast the belt travels (px/s).
+var MOSAIC_GAP = 8;
+var MOSAIC_SPEED = 26;
 
-// Build one scrolling row: a track holding rowIds twice over (so a -50%
-// translate loops seamlessly), moving at a constant pixel speed whichever
-// way its direction runs.
-function buildMosaicRow(rowIds, reverse, rowIndex) {
-    var row = document.createElement('div');
-    row.className = 'np-mosaic-row' + (reverse ? ' reverse' : '');
+// The covers ride one continuous serpentine belt: laid end to end, they cross
+// row 0 left→right, drop to row 1 and cross it right→left, and so on down the
+// card, then wrap from the bottom back to the top. `mosaicGeom` holds the
+// measured geometry; positionMosaic() maps each tile's position along the belt
+// (phase) to an (x, y) on screen, and stepMosaic() advances the phase.
+var mosaicGeom = null;
+var mosaicIds = null;
+var mosaicRAFStarted = false;
 
-    var track = document.createElement('div');
-    track.className = 'np-mosaic-track';
-    // Constant speed, slightly detuned per row so neighbouring rows don't drift
-    // in lockstep. One copy is rowIds.length tiles wide; at ~26px/s that width
-    // takes width/26 seconds to cross.
-    var speed = 24 + (rowIndex % 3) * 5;
-    track.style.setProperty('--mosaic-dur', Math.round(rowIds.length * MOSAIC_TILE / speed) + 's');
-
-    for (var copy = 0; copy < 2; copy++) {
-        for (var i = 0; i < rowIds.length; i++) {
-            var img = document.createElement('img');
-            img.src = '/cover/' + encodeURIComponent(rowIds[i]) + '.jpg?size=' + MOSAIC_COVER_SIZE;
-            img.alt = '';
-            img.decoding = 'async';
-            track.appendChild(img);
-        }
+function positionMosaic(phase) {
+    var g = mosaicGeom;
+    if (!g) { return; }
+    for (var i = 0; i < g.tiles.length; i++) {
+        // Distance of this tile along the belt, wrapped into [0, total length).
+        var p = (i * g.step + phase) % g.length;
+        if (p < 0) { p += g.length; }
+        var row = Math.floor(p / g.rowLen);
+        var within = p - row * g.rowLen;
+        // Even rows travel right, odd rows left (so a cover leaving one row's
+        // edge continues from the row below): boustrophedon.
+        var x = (row % 2 === 0) ? within : (g.rowLen - within);
+        // Shift left by one step so tiles enter from just off the left/right
+        // edge rather than popping in at x=0.
+        g.tiles[i].style.transform =
+            'translate3d(' + (x - g.step) + 'px,' + (row * g.rowH) + 'px,0)';
     }
-    row.appendChild(track);
-    return row;
+}
+
+function stepMosaic(ts) {
+    var g = mosaicGeom;
+    // Only advance while the empty state is actually on screen (offsetParent is
+    // null when a parent is display:none, i.e. something is playing).
+    if (g && el.emptyMosaic.offsetParent !== null) {
+        if (!g.last) { g.last = ts; }
+        // Clamp dt so a background tab (rAF paused) doesn't lurch on return.
+        var dt = Math.min(ts - g.last, 100);
+        g.last = ts;
+        g.phase = (g.phase + MOSAIC_SPEED * dt / 1000) % g.length;
+        positionMosaic(g.phase);
+    } else if (g) {
+        g.last = 0;
+    }
+    requestAnimationFrame(stepMosaic);
+}
+
+// Lay the fetched covers out along the belt, sized to the current card. Called
+// on first load and again on resize (reusing the covers already fetched).
+function layoutMosaic(ids) {
+    el.emptyMosaic.textContent = '';
+    var W = el.emptyMosaic.offsetWidth || 900;
+    var H = el.emptyMosaic.offsetHeight || 500;
+    var rows = Math.max(3, Math.round(H / MOSAIC_TILE));
+    var rowH = H / rows;
+    var tile = rowH;
+    var step = tile + MOSAIC_GAP;
+    // One extra slot per row so a cover is always entering as another leaves.
+    var perRow = Math.ceil(W / step) + 1;
+    // With fewer covers than a full grid, drop rows so each surviving row stays
+    // full of distinct covers rather than repeating them across the card.
+    if (ids.length >= perRow) {
+        rows = Math.min(rows, Math.floor(ids.length / perRow));
+    } else {
+        rows = 1;
+        perRow = ids.length;
+    }
+    var count = rows * perRow;
+
+    el.emptyMosaic.style.setProperty('--mosaic-tile', tile + 'px');
+    var tiles = [];
+    for (var i = 0; i < count; i++) {
+        var img = document.createElement('img');
+        img.className = 'np-mosaic-tile';
+        img.src = '/cover/' + encodeURIComponent(ids[i % ids.length]) + '.jpg?size=' + MOSAIC_COVER_SIZE;
+        img.alt = '';
+        img.decoding = 'async';
+        el.emptyMosaic.appendChild(img);
+        tiles.push(img);
+    }
+    mosaicGeom = {
+        tiles: tiles, step: step, rowH: rowH,
+        rowLen: perRow * step, length: rows * perRow * step,
+        phase: 0, last: 0,
+    };
+    positionMosaic(0);
 }
 
 // Fill the empty-state background with random covers from the library, once
@@ -466,37 +527,40 @@ var mosaicLoaded = false;
 function loadMosaic() {
     if (mosaicLoaded || mosaicLoading || !el.emptyMosaic) { return; }
     mosaicLoading = true;
-    // Size the carousel to the card: rows stack to fill the height, each a bit
-    // wider than the card (cols + 2) so a full-width unique strip always has
-    // covers scrolling in from off-screen and the two loop copies never show
-    // the same cover at once. Ask for rows * perRow distinct covers — kept
-    // tight so desktop doesn't fetch more thumbnails than it needs.
+    // Ask for about as many distinct covers as the belt has slots: rows that
+    // fill the card height times a row a little wider than the card.
     var cols = Math.ceil(el.emptyMosaic.offsetWidth / MOSAIC_TILE) || 6;
     var rows = Math.max(3, Math.round(el.emptyMosaic.offsetHeight / MOSAIC_TILE));
-    var perRow = cols + 2;
-    var wanted = Math.min(rows * perRow, 200);
+    var wanted = Math.min(rows * (cols + 2), 200);
     fetch('/random-covers.json?limit=' + wanted)
         .then(function(r) { return r.json(); })
         .then(function(ids) {
             mosaicLoading = false;
             mosaicLoaded = true;
             if (!ids || !ids.length) { return; }
-            // Give each row its own slice of unique covers. If the library
-            // returned fewer than a full grid, drop rows so each surviving row
-            // is still full and duplicate-free (a tiny library becomes a
-            // single short row rather than repeating covers across rows).
-            var rowsActual = ids.length >= perRow
-                ? Math.min(rows, Math.floor(ids.length / perRow))
-                : 1;
-            var effPer = rowsActual === 1 ? ids.length : perRow;
-            for (var r = 0; r < rowsActual; r++) {
-                var rowIds = ids.slice(r * effPer, r * effPer + effPer);
-                el.emptyMosaic.appendChild(buildMosaicRow(rowIds, r % 2 === 1, r));
-            }
+            mosaicIds = ids;
+            layoutMosaic(ids);
             if (el.empty) { el.empty.classList.add('has-mosaic'); }
+            // Honour reduced-motion: lay the belt out but leave it still.
+            var reduce = window.matchMedia &&
+                window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+            if (!reduce && !mosaicRAFStarted) {
+                mosaicRAFStarted = true;
+                requestAnimationFrame(stepMosaic);
+            }
         })
         .catch(function() { mosaicLoading = false; });
 }
+
+// Re-lay the belt to the new size on resize (debounced); reuses the covers
+// already fetched, so no extra network. The running rAF picks up the new
+// geometry automatically.
+var mosaicResizeTimer = null;
+window.addEventListener('resize', function() {
+    if (!mosaicIds) { return; }
+    if (mosaicResizeTimer) { clearTimeout(mosaicResizeTimer); }
+    mosaicResizeTimer = setTimeout(function() { layoutMosaic(mosaicIds); }, 300);
+});
 
 function render(data) {
     if (!data || !data.track_id) {
