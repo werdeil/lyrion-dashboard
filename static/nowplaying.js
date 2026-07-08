@@ -421,6 +421,37 @@ function setSearching(on) {
     updateRetry();
 }
 
+// Square cover tile (px) the mosaic layout is sized around: sets how many
+// rows and columns of the carousel fit the card.
+var MOSAIC_TILE = 130;
+
+// Build one scrolling row: a track holding rowIds twice over (so a -50%
+// translate loops seamlessly), moving at a constant pixel speed whichever
+// way its direction runs.
+function buildMosaicRow(rowIds, reverse, rowIndex) {
+    var row = document.createElement('div');
+    row.className = 'np-mosaic-row' + (reverse ? ' reverse' : '');
+
+    var track = document.createElement('div');
+    track.className = 'np-mosaic-track';
+    // Constant speed, slightly detuned per row so neighbouring rows don't drift
+    // in lockstep. One copy is rowIds.length tiles wide; at ~26px/s that width
+    // takes width/26 seconds to cross.
+    var speed = 24 + (rowIndex % 3) * 5;
+    track.style.setProperty('--mosaic-dur', Math.round(rowIds.length * MOSAIC_TILE / speed) + 's');
+
+    for (var copy = 0; copy < 2; copy++) {
+        for (var i = 0; i < rowIds.length; i++) {
+            var img = document.createElement('img');
+            img.src = '/cover/' + encodeURIComponent(rowIds[i]) + '.jpg';
+            img.alt = '';
+            track.appendChild(img);
+        }
+    }
+    row.appendChild(track);
+    return row;
+}
+
 // Fill the empty-state background with random covers from the library, once
 // per page load (the selection is random anyway, no point refreshing it).
 // On failure the guard resets so the next poll retries; without covers the
@@ -430,25 +461,31 @@ var mosaicLoaded = false;
 function loadMosaic() {
     if (mosaicLoaded || mosaicLoading || !el.emptyMosaic) { return; }
     mosaicLoading = true;
-    // Ask for as many covers as the collage needs to fill the card: tiles are
-    // >=110px (+10px gap) squares, so width/120 bounds the column count and
-    // height/120 the rows; one spare row absorbs the rounding. Each cover
-    // appears at most once (the endpoint returns distinct ids) — a library
-    // with fewer albums than tiles just fills less of the card.
-    var cols = Math.ceil(el.emptyMosaic.offsetWidth / 120) || 6;
-    var rows = (Math.ceil(el.emptyMosaic.offsetHeight / 120) || 4) + 1;
-    var wanted = Math.max(cols * rows, 24);
+    // Size the carousel to the card: rows stack to fill the height, each a bit
+    // wider than the card (cols + 4) so a full-width unique strip always has
+    // covers scrolling in from off-screen and the two loop copies never show
+    // the same cover at once. Ask for rows * perRow distinct covers.
+    var cols = Math.ceil(el.emptyMosaic.offsetWidth / MOSAIC_TILE) || 6;
+    var rows = Math.max(3, Math.round(el.emptyMosaic.offsetHeight / MOSAIC_TILE));
+    var perRow = cols + 4;
+    var wanted = Math.min(rows * perRow, 200);
     fetch('/random-covers.json?limit=' + wanted)
         .then(function(r) { return r.json(); })
         .then(function(ids) {
             mosaicLoading = false;
             mosaicLoaded = true;
             if (!ids || !ids.length) { return; }
-            for (var i = 0; i < ids.length; i++) {
-                var img = document.createElement('img');
-                img.src = '/cover/' + encodeURIComponent(ids[i]) + '.jpg';
-                img.alt = '';
-                el.emptyMosaic.appendChild(img);
+            // Give each row its own slice of unique covers. If the library
+            // returned fewer than a full grid, drop rows so each surviving row
+            // is still full and duplicate-free (a tiny library becomes a
+            // single short row rather than repeating covers across rows).
+            var rowsActual = ids.length >= perRow
+                ? Math.min(rows, Math.floor(ids.length / perRow))
+                : 1;
+            var effPer = rowsActual === 1 ? ids.length : perRow;
+            for (var r = 0; r < rowsActual; r++) {
+                var rowIds = ids.slice(r * effPer, r * effPer + effPer);
+                el.emptyMosaic.appendChild(buildMosaicRow(rowIds, r % 2 === 1, r));
             }
             if (el.empty) { el.empty.classList.add('has-mosaic'); }
         })

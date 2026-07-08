@@ -600,24 +600,69 @@ hr {
 }
 
 /* Decorative collage of random library covers behind the message. Oversized
-   and slightly rotated so its edges never show inside the card. */
+   and slightly rotated so its edges never show inside the card. Stacked rows,
+   each scrolling horizontally (see .np-mosaic-row), so it reads as a live
+   carousel rather than a static grid. */
 .np-empty-mosaic {
     position: absolute;
     inset: -8%;
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
     gap: 10px;
-    align-content: center;
     transform: rotate(-3deg) scale(1.15);
     filter: blur(2px) saturate(0.7) brightness(0.4);
     pointer-events: none;
 }
 
-.np-empty-mosaic img {
-    width: 100%;
+/* One horizontal strip. Overflow is clipped so only the covers crossing the
+   card show; the rest slide in and out off-screen. */
+.np-mosaic-row {
+    flex: 1 1 0;
+    min-height: 0;
+    overflow: hidden;
+    display: flex;
+}
+
+/* The moving belt: JS fills it with the row's covers twice in a row, so a
+   translate of exactly one copy width (-50%) loops seamlessly. Duration is
+   set per row (constant pixel speed) and even/odd rows run opposite ways. */
+.np-mosaic-track {
+    display: flex;
+    height: 100%;
+    flex: none;
+    will-change: transform;
+    animation: mosaic-scroll var(--mosaic-dur, 60s) linear infinite;
+}
+
+.np-mosaic-row.reverse .np-mosaic-track {
+    animation-direction: reverse;
+}
+
+.np-mosaic-track img {
+    height: 100%;
+    width: auto;
     aspect-ratio: 1 / 1;
     object-fit: cover;
     border-radius: 8px;
+    /* Spacing via margin (not the flex gap) so each cover measures exactly
+       width + margin: one copy is then N*(w+margin) wide and -50% lands on a
+       cover boundary, keeping the loop seam invisible. */
+    margin-right: 10px;
+    flex: none;
+}
+
+@keyframes mosaic-scroll {
+    from { transform: translateX(0); }
+    to   { transform: translateX(-50%); }
+}
+
+/* Motion is pure decoration; hold the carousel still when the viewer asks
+   for reduced motion. */
+@media (prefers-reduced-motion: reduce) {
+    .np-mosaic-track {
+        animation: none;
+    }
 }
 
 .np-empty-content {
@@ -673,9 +718,6 @@ hr {
 @media (max-width: 540px) {
     .np-empty {
         min-height: 200px;
-    }
-    .np-empty-mosaic {
-        grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
     }
 }
 
