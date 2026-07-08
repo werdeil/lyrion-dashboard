@@ -575,12 +575,14 @@ var mosaicLoaded = false;
 function loadMosaic() {
     if (mosaicLoaded || mosaicLoading || !el.emptyMosaic) { return; }
     mosaicLoading = true;
-    // Ask for about as many distinct covers as the belt has slots: rows that
-    // fill the card height times a row a little wider than the card.
+    // Ask for about as many covers as the belt has slots: rows that fill the
+    // card height times a row a little wider than the card. The endpoint
+    // returns the most recently played albums (newest first), so the belt's
+    // ordered reveal draws the latest listens first.
     var cols = Math.ceil(el.emptyMosaic.offsetWidth / MOSAIC_TILE) || 6;
     var rows = Math.max(3, Math.round(el.emptyMosaic.offsetHeight / MOSAIC_TILE));
     var wanted = Math.min(rows * (cols + 2), 200);
-    fetch('/random-covers.json?limit=' + wanted)
+    fetch('/mosaic-covers.json?limit=' + wanted)
         .then(function(r) { return r.json(); })
         .then(function(ids) {
             mosaicLoading = false;

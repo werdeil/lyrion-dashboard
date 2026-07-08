@@ -57,6 +57,34 @@ def get_random_cover_ids(limit=24):
     return [row["artwork"] for row in rows]
 
 
+def get_recent_album_covers(limit=24):
+    """Cover ids of the most recently played albums, newest first, for the
+    empty-state mosaic.
+
+    Play history lives in persist.tracks_persistent (lastplayed, epoch
+    seconds); joining it to the library by url and grouping by the album's
+    artwork gives one cover per album — so an album whose tracks were played
+    several times still appears once — ordered by that album's latest play.
+    """
+    with get_db_conn() as conn:
+        rows = conn.execute(
+            """
+            SELECT al.artwork AS artwork
+            FROM persist.tracks_persistent tp
+            JOIN tracks t ON t.url = tp.url
+            JOIN albums al ON al.id = t.album
+            WHERE t.audio = 1
+              AND tp.lastplayed IS NOT NULL
+              AND al.artwork IS NOT NULL
+            GROUP BY al.artwork
+            ORDER BY MAX(tp.lastplayed) DESC
+            LIMIT ?
+            """,
+            (limit,),
+        ).fetchall()
+    return [row["artwork"] for row in rows]
+
+
 def get_stats():
     with get_db_conn() as conn:
         cur = conn.cursor()

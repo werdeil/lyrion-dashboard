@@ -1,7 +1,12 @@
 from flask import Blueprint, render_template, current_app, jsonify, request, Response, abort
 
 from services.lyrion import get_active_now_playing, fetch_cover, fetch_remote_cover
-from services.database import get_track_lyrics, get_stats, get_random_cover_ids
+from services.database import (
+    get_track_lyrics,
+    get_stats,
+    get_random_cover_ids,
+    get_recent_album_covers,
+)
 from services.lyrics import fetch_lyrics
 from i18n import pick_lang, TRANSLATIONS
 
@@ -67,16 +72,20 @@ def cover_remote():
     )
 
 
-@nowplaying_bp.route("/random-covers.json")
-def random_covers_json():
-    """Random album cover ids, fetched by the page to build the empty-state
-    mosaic. Not cacheable: every call returns a fresh random selection.
+@nowplaying_bp.route("/mosaic-covers.json")
+def mosaic_covers_json():
+    """Album cover ids for the empty-state mosaic: the most recently played
+    albums, newest first, one cover per album.
 
-    The page passes ?limit= (how many tiles its panel fits) so every tile can
-    show a different album; clamped to keep the query and the page sane.
+    The page passes ?limit= (how many tiles its panel fits), clamped to keep
+    the query and the page sane. A library with no play history yet falls back
+    to a random selection so the backdrop is never empty.
     """
     limit = min(max(request.args.get("limit", default=24, type=int), 1), 200)
-    return jsonify(get_random_cover_ids(limit))
+    covers = get_recent_album_covers(limit)
+    if not covers:
+        covers = get_random_cover_ids(limit)
+    return jsonify(covers)
 
 
 @nowplaying_bp.route("/stats.json")
