@@ -261,7 +261,7 @@ COVER_PNGS = {}    # coverid -> PNG bytes, filled once Chromium is up
 np_routes.get_active_now_playing = lambda: dict(SCENARIO["now"])
 np_routes.get_track_lyrics = lambda track_id: SCENARIO["lyrics"]
 np_routes.get_stats = lambda: FAKE_STATS
-np_routes.fetch_cover = lambda coverid: (COVER_PNGS[coverid], "image/png")
+np_routes.fetch_cover = lambda coverid, size=None: (COVER_PNGS[coverid], "image/png")
 
 
 def _fake_web_lyrics(**_kw):
