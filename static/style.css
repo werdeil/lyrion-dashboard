@@ -768,7 +768,7 @@ hr {
 }
 
 /* display:inline-flex would override the hidden attribute (used by the
-   app-settings button, revealed only inside the Android app). */
+   app-menu button, revealed only inside the Android app). */
 .lyrion-link[hidden] {
     display: none;
 }

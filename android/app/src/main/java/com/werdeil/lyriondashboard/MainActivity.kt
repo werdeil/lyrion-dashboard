@@ -30,6 +30,14 @@ class MainActivity : AppCompatActivity() {
     private var loadedUrl: String? = null
     private var mainFrameFailed = false
 
+    // Only intercepts back while the WebView has history; otherwise the
+    // system handles it (predictive back, app exit).
+    private val backCallback = object : OnBackPressedCallback(false) {
+        override fun handleOnBackPressed() {
+            webView.goBack()
+        }
+    }
+
     @SuppressLint("SetJavaScriptEnabled")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -43,7 +51,7 @@ class MainActivity : AppCompatActivity() {
             javaScriptEnabled = true
             domStorageEnabled = true
         }
-        // Lets the dashboard show its own settings button in the page header
+        // Lets the dashboard show its own menu button in the page header
         // (only the dashboard origin ever loads in this WebView).
         webView.addJavascriptInterface(AppBridge(), "LyrionApp")
         webView.webViewClient = object : WebViewClient() {
@@ -72,6 +80,10 @@ class MainActivity : AppCompatActivity() {
                 }
             }
 
+            override fun doUpdateVisitedHistory(view: WebView?, url: String?, isReload: Boolean) {
+                backCallback.isEnabled = webView.canGoBack()
+            }
+
             override fun onReceivedError(
                 view: WebView?,
                 request: WebResourceRequest?,
@@ -87,15 +99,7 @@ class MainActivity : AppCompatActivity() {
         findViewById<View>(R.id.button_retry).setOnClickListener { reload() }
         findViewById<View>(R.id.button_settings).setOnClickListener { openSettings() }
 
-        onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
-            override fun handleOnBackPressed() {
-                if (webView.canGoBack()) {
-                    webView.goBack()
-                } else {
-                    showMenuDialog()
-                }
-            }
-        })
+        onBackPressedDispatcher.addCallback(this, backCallback)
     }
 
     override fun onResume() {
@@ -174,6 +178,12 @@ class MainActivity : AppCompatActivity() {
     }
 
     private inner class AppBridge {
+        @JavascriptInterface
+        fun openMenu() {
+            runOnUiThread { this@MainActivity.showMenuDialog() }
+        }
+
+        // Kept for dashboards older than the openMenu bridge.
         @JavascriptInterface
         fun openSettings() {
             runOnUiThread { this@MainActivity.openSettings() }

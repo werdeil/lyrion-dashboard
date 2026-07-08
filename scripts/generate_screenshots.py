@@ -296,13 +296,15 @@ READY_JS = """
 """
 
 AUTO_MODE_JS = "try { localStorage.setItem('np-lyrics-mode', 'auto'); } catch (e) {}"
-ANDROID_BRIDGE_JS = "window.LyrionApp = { openSettings: function () {} };"
+ANDROID_BRIDGE_JS = (
+    "window.LyrionApp = { openMenu: function () {}, openSettings: function () {} };"
+)
 
 
 def capture(browser, base_url, track, *, locale, viewport, dpr, android=False):
     """Point a fresh browser context at the app showing `track` and return a
     PNG screenshot; `android` injects the WebView bridge so the in-app
-    settings button appears."""
+    menu button appears."""
     SCENARIO.clear()
     SCENARIO.update(TRACKS[track])
     ctx = browser.new_context(
