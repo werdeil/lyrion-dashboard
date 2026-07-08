@@ -617,7 +617,7 @@ hr {
     inset: calc(-3% - 16px);
     overflow: hidden;
     transform: rotate(-3deg);
-    filter: blur(2px) saturate(0.7) brightness(0.4);
+    filter: blur(1px) saturate(0.7) brightness(0.4);
     pointer-events: none;
 }
 
