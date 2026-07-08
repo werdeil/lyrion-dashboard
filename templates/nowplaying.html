@@ -8,21 +8,21 @@
 </head>
 <body data-lyrion-host="{{ lyrion_host or '' }}">
     <div class="page-header">
+        {# Only shown inside the Android app (which injects window.LyrionApp);
+           sits left of the title, mirroring the Lyrion link on the right. #}
+        <a class="lyrion-link" id="app-menu" href="#" hidden title="{{ t.app_menu }}">
+            <svg viewBox="0 0 24 24" fill="#e8e8e8" aria-hidden="true">
+                <path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/>
+            </svg>
+        </a>
         <h1>
             <img class="page-logo" src="{{ url_for('static', filename='favicon.svg') }}" alt="Lyrion logo">
-            <span class="page-title-full">Lyrion Dashboard</span>
-            <span class="page-title-short">Lyrion</span>
+            Lyrion Dashboard
         </h1>
         <a class="lyrion-link" id="lyrion-link"
            href="{{ (lyrion_host ~ '/material/') if lyrion_host else '#' }}"
            target="_blank" rel="noopener noreferrer" title="{{ t.open_lyrion }}">
             <img src="{{ url_for('static', filename='lyrion.svg') }}" alt="Logo Lyrion">
-        </a>
-        {# Only shown inside the Android app (which injects window.LyrionApp). #}
-        <a class="lyrion-link" id="app-menu" href="#" hidden title="{{ t.app_menu }}">
-            <svg viewBox="0 0 24 24" fill="#e8e8e8" aria-hidden="true">
-                <path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/>
-            </svg>
         </a>
     </div>
 
