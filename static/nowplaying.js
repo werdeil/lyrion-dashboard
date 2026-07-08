@@ -428,8 +428,9 @@ var MOSAIC_TILE = 130;
 // so a small thumbnail is indistinguishable from full art but loads far
 // faster (dozens fetch at once) — a bit above the tile size for DPR headroom.
 var MOSAIC_COVER_SIZE = 200;
-// Gap between covers on the belt, and how fast the belt travels (px/s).
-var MOSAIC_GAP = 8;
+// Gap between covers on the belt (both between covers in a row and between
+// rows), and how fast the belt travels (px/s).
+var MOSAIC_GAP = 10;
 var MOSAIC_SPEED = 26;
 
 // The covers ride one continuous serpentine belt: laid end to end, they cross
@@ -454,9 +455,12 @@ function positionMosaic(phase) {
         // edge continues from the row below): boustrophedon.
         var x = (row % 2 === 0) ? within : (g.rowLen - within);
         // Shift left by one step so tiles enter from just off the left/right
-        // edge rather than popping in at x=0.
+        // edge rather than popping in at x=0. The tile is MOSAIC_GAP shorter
+        // than its row band, so half a gap of top padding centres it and leaves
+        // a gap between rows.
+        var y = row * g.rowH + MOSAIC_GAP / 2;
         g.tiles[i].style.transform =
-            'translate3d(' + (x - g.step) + 'px,' + (row * g.rowH) + 'px,0)';
+            'translate3d(' + (x - g.step) + 'px,' + y + 'px,0)';
     }
 }
 
@@ -485,7 +489,9 @@ function layoutMosaic(ids) {
     var H = el.emptyMosaic.offsetHeight || 500;
     var rows = Math.max(3, Math.round(H / MOSAIC_TILE));
     var rowH = H / rows;
-    var tile = rowH;
+    // Tile is a gap shorter than the row band so rows don't touch vertically;
+    // the horizontal step keeps the same gap between covers along the row.
+    var tile = rowH - MOSAIC_GAP;
     var step = tile + MOSAIC_GAP;
     // One extra slot per row so a cover is always entering as another leaves.
     var perRow = Math.ceil(W / step) + 1;
