@@ -13,7 +13,6 @@ import android.webkit.WebResourceError
 import android.webkit.WebResourceRequest
 import android.webkit.WebView
 import android.webkit.WebViewClient
-import androidx.activity.OnBackPressedCallback
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.preference.PreferenceManager
@@ -29,14 +28,6 @@ class MainActivity : AppCompatActivity() {
     private lateinit var errorView: View
     private var loadedUrl: String? = null
     private var mainFrameFailed = false
-
-    // Only intercepts back while the WebView has history; otherwise the
-    // system handles it (predictive back, app exit).
-    private val backCallback = object : OnBackPressedCallback(false) {
-        override fun handleOnBackPressed() {
-            webView.goBack()
-        }
-    }
 
     @SuppressLint("SetJavaScriptEnabled")
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -80,10 +71,6 @@ class MainActivity : AppCompatActivity() {
                 }
             }
 
-            override fun doUpdateVisitedHistory(view: WebView?, url: String?, isReload: Boolean) {
-                backCallback.isEnabled = webView.canGoBack()
-            }
-
             override fun onReceivedError(
                 view: WebView?,
                 request: WebResourceRequest?,
@@ -99,7 +86,8 @@ class MainActivity : AppCompatActivity() {
         findViewById<View>(R.id.button_retry).setOnClickListener { reload() }
         findViewById<View>(R.id.button_settings).setOnClickListener { openSettings() }
 
-        onBackPressedDispatcher.addCallback(this, backCallback)
+        // No back handling: the dashboard is a single page (external links
+        // leave the WebView), so back always just exits the app.
     }
 
     override fun onResume() {

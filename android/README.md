@@ -21,8 +21,7 @@ provides the native shell.
 - Keeps the screen on while the dashboard is displayed (configurable)
 - Works over plain HTTP on the local network (cleartext traffic allowed)
 - App menu (Settings / Reload / Quit) opened from the ⋮ button in the
-  dashboard header; the back button/gesture behaves as usual (WebView
-  history, then leaves the app)
+  dashboard header; the back button/gesture simply leaves the app
 
 ## Requirements
 
