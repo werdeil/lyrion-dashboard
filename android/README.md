@@ -20,8 +20,8 @@ provides the native shell.
   enter the URL manually
 - Keeps the screen on while the dashboard is displayed (configurable)
 - Works over plain HTTP on the local network (cleartext traffic allowed)
-- Back button navigates the WebView history; on the start page it opens a
-  small menu (Settings / Reload / Quit)
+- App menu (Settings / Reload / Quit) opened from the ⋮ button in the
+  dashboard header; the back button/gesture simply leaves the app
 
 ## Requirements
 

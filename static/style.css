@@ -764,14 +764,14 @@ hr {
 }
 
 /* display:inline-flex would override the hidden attribute (used by the
-   app-settings button, revealed only inside the Android app). */
+   app-menu button, revealed only inside the Android app). */
 .lyrion-link[hidden] {
     display: none;
 }
 
-/* Settings (app only) | centered title | Lyrion link. The 1fr side columns
+/* App menu (app only) | centered title | Lyrion link. The 1fr side columns
    keep the title centered and the buttons symmetric, and the layout holds
-   when the settings button is hidden (web). */
+   when the menu button is hidden (web). */
 .page-header {
     display: grid;
     grid-template-columns: 1fr auto 1fr;
@@ -788,7 +788,7 @@ hr {
     justify-self: end;
 }
 
-#app-settings {
+#app-menu {
     grid-column: 1;
     justify-self: start;
 }

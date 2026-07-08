@@ -12,14 +12,20 @@ document.querySelectorAll('.stat-group-title').forEach(function(title) {
 var LYRION_HOST = document.body.dataset.lyrionHost || '';
 
 // Inside the Android app a native bridge (window.LyrionApp) is injected;
-// reveal the header's settings button and wire it to the native screen.
+// reveal the header's menu button and wire it to the native app menu
+// (falling back to the settings screen with app versions that predate it).
 (function () {
-    var appSettings = document.getElementById('app-settings');
-    if (appSettings && window.LyrionApp && window.LyrionApp.openSettings) {
-        appSettings.hidden = false;
-        appSettings.addEventListener('click', function (e) {
+    var appMenu = document.getElementById('app-menu');
+    var bridge = window.LyrionApp;
+    if (appMenu && bridge && (bridge.openMenu || bridge.openSettings)) {
+        appMenu.hidden = false;
+        appMenu.addEventListener('click', function (e) {
             e.preventDefault();
-            window.LyrionApp.openSettings();
+            if (bridge.openMenu) {
+                bridge.openMenu();
+            } else {
+                bridge.openSettings();
+            }
         });
     }
 })();

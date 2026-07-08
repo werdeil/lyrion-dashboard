@@ -13,7 +13,6 @@ import android.webkit.WebResourceError
 import android.webkit.WebResourceRequest
 import android.webkit.WebView
 import android.webkit.WebViewClient
-import androidx.activity.OnBackPressedCallback
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.preference.PreferenceManager
@@ -43,7 +42,7 @@ class MainActivity : AppCompatActivity() {
             javaScriptEnabled = true
             domStorageEnabled = true
         }
-        // Lets the dashboard show its own settings button in the page header
+        // Lets the dashboard show its own menu button in the page header
         // (only the dashboard origin ever loads in this WebView).
         webView.addJavascriptInterface(AppBridge(), "LyrionApp")
         webView.webViewClient = object : WebViewClient() {
@@ -87,15 +86,8 @@ class MainActivity : AppCompatActivity() {
         findViewById<View>(R.id.button_retry).setOnClickListener { reload() }
         findViewById<View>(R.id.button_settings).setOnClickListener { openSettings() }
 
-        onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
-            override fun handleOnBackPressed() {
-                if (webView.canGoBack()) {
-                    webView.goBack()
-                } else {
-                    showMenuDialog()
-                }
-            }
-        })
+        // No back handling: the dashboard is a single page (external links
+        // leave the WebView), so back always just exits the app.
     }
 
     override fun onResume() {
@@ -174,6 +166,12 @@ class MainActivity : AppCompatActivity() {
     }
 
     private inner class AppBridge {
+        @JavascriptInterface
+        fun openMenu() {
+            runOnUiThread { this@MainActivity.showMenuDialog() }
+        }
+
+        // Kept for dashboards older than the openMenu bridge.
         @JavascriptInterface
         fun openSettings() {
             runOnUiThread { this@MainActivity.openSettings() }
