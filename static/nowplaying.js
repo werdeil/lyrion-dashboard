@@ -424,6 +424,10 @@ function setSearching(on) {
 // Square cover tile (px) the mosaic layout is sized around: sets how many
 // rows and columns of the carousel fit the card.
 var MOSAIC_TILE = 130;
+// Thumbnail size requested for mosaic covers. They're blurred and downscaled,
+// so a small thumbnail is indistinguishable from full art but loads far
+// faster (dozens fetch at once) — a bit above the tile size for DPR headroom.
+var MOSAIC_COVER_SIZE = 200;
 
 // Build one scrolling row: a track holding rowIds twice over (so a -50%
 // translate loops seamlessly), moving at a constant pixel speed whichever
@@ -443,8 +447,9 @@ function buildMosaicRow(rowIds, reverse, rowIndex) {
     for (var copy = 0; copy < 2; copy++) {
         for (var i = 0; i < rowIds.length; i++) {
             var img = document.createElement('img');
-            img.src = '/cover/' + encodeURIComponent(rowIds[i]) + '.jpg';
+            img.src = '/cover/' + encodeURIComponent(rowIds[i]) + '.jpg?size=' + MOSAIC_COVER_SIZE;
             img.alt = '';
+            img.decoding = 'async';
             track.appendChild(img);
         }
     }
@@ -462,12 +467,13 @@ function loadMosaic() {
     if (mosaicLoaded || mosaicLoading || !el.emptyMosaic) { return; }
     mosaicLoading = true;
     // Size the carousel to the card: rows stack to fill the height, each a bit
-    // wider than the card (cols + 4) so a full-width unique strip always has
+    // wider than the card (cols + 2) so a full-width unique strip always has
     // covers scrolling in from off-screen and the two loop copies never show
-    // the same cover at once. Ask for rows * perRow distinct covers.
+    // the same cover at once. Ask for rows * perRow distinct covers — kept
+    // tight so desktop doesn't fetch more thumbnails than it needs.
     var cols = Math.ceil(el.emptyMosaic.offsetWidth / MOSAIC_TILE) || 6;
     var rows = Math.max(3, Math.round(el.emptyMosaic.offsetHeight / MOSAIC_TILE));
-    var perRow = cols + 4;
+    var perRow = cols + 2;
     var wanted = Math.min(rows * perRow, 200);
     fetch('/random-covers.json?limit=' + wanted)
         .then(function(r) { return r.json(); })

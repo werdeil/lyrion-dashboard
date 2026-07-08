@@ -16,15 +16,25 @@ def lyrion_request(payload):
     return r.json()
 
 
-def fetch_cover(coverid):
+def fetch_cover(coverid, size=None):
     """Fetch an album cover from Lyrion so the page can serve it same-origin.
 
     Loading the cover through our own host (instead of pointing the <img> at
     LYRION_HOST directly) lets the page read the image pixels on a canvas to
     derive a tint colour — cross-origin images would taint the canvas.
+
+    With `size` set, ask Lyrion for a square thumbnail (`cover_NxN_o.jpg`, `o`
+    = keep aspect ratio) instead of the full-resolution artwork — used by the
+    blurred empty-state mosaic, where dozens of covers load at once and full
+    art would be needlessly heavy. Lyrion generates and caches these itself;
+    if a given server doesn't serve the resized form we fall back to the full
+    cover so the tile still shows.
     """
     host = current_app.config["LYRION_HOST"]
-    r = requests.get(f"{host}/music/{coverid}/cover.jpg", verify=False, timeout=5)
+    name = f"cover_{size}x{size}_o.jpg" if size else "cover.jpg"
+    r = requests.get(f"{host}/music/{coverid}/{name}", verify=False, timeout=5)
+    if size and r.status_code == 404:
+        r = requests.get(f"{host}/music/{coverid}/cover.jpg", verify=False, timeout=5)
     r.raise_for_status()
     return r.content, r.headers.get("Content-Type", "image/jpeg")
 

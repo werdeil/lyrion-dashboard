@@ -32,8 +32,14 @@ def now_playing_json():
 @nowplaying_bp.route("/cover/<coverid>.jpg")
 def cover(coverid):
     """Proxy an album cover from Lyrion, served same-origin so the page can
-    sample its colours on a canvas. Cached client-side since covers are stable."""
-    content, content_type = fetch_cover(coverid)
+    sample its colours on a canvas. Cached client-side since covers are stable.
+
+    ?size=N asks Lyrion for an NxN thumbnail instead of the full artwork; the
+    mosaic uses it to load its many blurred covers cheaply."""
+    size = request.args.get("size", type=int)
+    if size is not None:
+        size = min(max(size, 16), 512)
+    content, content_type = fetch_cover(coverid, size)
     return Response(
         content,
         content_type=content_type,
