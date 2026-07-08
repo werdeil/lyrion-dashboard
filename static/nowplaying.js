@@ -422,7 +422,9 @@ function setSearching(on) {
 }
 
 // Square cover tile (px) the mosaic layout is sized around: sets how many
-// rows and columns of covers fit the card.
+// rows and columns of covers fit the card. Kept fairly small so the belt stays
+// dense enough that its wrap seam is never a visible gap, even on short phone
+// cards with few rows.
 var MOSAIC_TILE = 130;
 // Thumbnail size requested for mosaic covers. They're blurred and downscaled,
 // so a small thumbnail is indistinguishable from full art but loads far
