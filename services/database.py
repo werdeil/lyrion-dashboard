@@ -39,6 +39,24 @@ def get_track_lyrics(track_id):
     return None
 
 
+def get_random_cover_ids(limit=24):
+    """Cover ids of random albums that have artwork, for the empty-state mosaic.
+
+    `albums.artwork` holds the coverid of the album's artwork track — the same
+    id the /cover/<coverid>.jpg route serves.
+    """
+    with get_db_conn() as conn:
+        rows = conn.execute(
+            """
+            SELECT DISTINCT artwork FROM albums
+            WHERE artwork IS NOT NULL
+            ORDER BY RANDOM() LIMIT ?
+            """,
+            (limit,),
+        ).fetchall()
+    return [row["artwork"] for row in rows]
+
+
 def get_stats():
     with get_db_conn() as conn:
         cur = conn.cursor()

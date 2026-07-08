@@ -1,7 +1,7 @@
 from flask import Blueprint, render_template, current_app, jsonify, request, Response, abort
 
 from services.lyrion import get_active_now_playing, fetch_cover, fetch_remote_cover
-from services.database import get_track_lyrics, get_stats
+from services.database import get_track_lyrics, get_stats, get_random_cover_ids
 from services.lyrics import fetch_lyrics
 from i18n import pick_lang, TRANSLATIONS
 
@@ -59,6 +59,13 @@ def cover_remote():
         content_type=content_type,
         headers={"Cache-Control": "public, max-age=86400"},
     )
+
+
+@nowplaying_bp.route("/random-covers.json")
+def random_covers_json():
+    """Random album cover ids, fetched by the page to build the empty-state
+    mosaic. Not cacheable: every call returns a fresh random selection."""
+    return jsonify(get_random_cover_ids())
 
 
 @nowplaying_bp.route("/stats.json")

@@ -40,6 +40,9 @@ var el = {
     progressBar: document.getElementById('np-progress-bar'),
     lyrionLink: document.getElementById('lyrion-link'),
     scrollReset: document.getElementById('np-scroll-reset'),
+    empty: document.getElementById('np-empty'),
+    emptyMosaic: document.getElementById('np-empty-mosaic'),
+    emptyOpen: document.getElementById('np-empty-open'),
 };
 
 // Web lyrics auto-search is a single on/off switch:
@@ -82,21 +85,28 @@ function persistMode() {
 var MATERIAL_BASE = LYRION_HOST ? LYRION_HOST + '/material/' : '#';
 var IS_ANDROID = /Android/i.test(navigator.userAgent || '');
 var MATERIAL_APP_PKG = 'com.craigd.lmsmaterial.app';
-function setLyrionLink(playerId) {
-    if (!el.lyrionLink) { return; }
-    if (!LYRION_HOST) { el.lyrionLink.href = '#'; return; }
+function setMaterialLink(anchor, playerId) {
+    if (!anchor) { return; }
+    if (!LYRION_HOST) { anchor.href = '#'; return; }
     var web = MATERIAL_BASE + (playerId ? '?player=' + encodeURIComponent(playerId) : '');
     if (IS_ANDROID) {
-        el.lyrionLink.href = 'intent://' + web.replace(/^https?:\/\//, '') +
+        anchor.href = 'intent://' + web.replace(/^https?:\/\//, '') +
             '#Intent;scheme=https;type=text/html;package=' + MATERIAL_APP_PKG +
             ';S.browser_fallback_url=' + encodeURIComponent(web) + ';end';
     } else {
-        el.lyrionLink.href = web;
-        el.lyrionLink.target = 'lyrion';
+        anchor.href = web;
+        anchor.target = 'lyrion';
         // rel="noopener"/"noreferrer" makes a named target behave like
         // _blank, defeating tab reuse; clear it for the (trusted) server.
-        el.lyrionLink.rel = '';
+        anchor.rel = '';
     }
+}
+
+function setLyrionLink(playerId) {
+    setMaterialLink(el.lyrionLink, playerId);
+    // The empty-state "open Lyrion" button always targets the plain Material
+    // page: with nothing playing there is no player to focus.
+    setMaterialLink(el.emptyOpen, null);
 }
 var lastTrackKey = null;
 var currentTrack = null;
@@ -411,9 +421,44 @@ function setSearching(on) {
     updateRetry();
 }
 
+// Fill the empty-state background with random covers from the library, once
+// per page load (the selection is random anyway, no point refreshing it).
+// On failure the guard resets so the next poll retries; without covers the
+// empty state simply stays as plain text, same as before.
+var mosaicLoading = false;
+var mosaicLoaded = false;
+function loadMosaic() {
+    if (mosaicLoaded || mosaicLoading || !el.emptyMosaic) { return; }
+    mosaicLoading = true;
+    fetch('/random-covers.json')
+        .then(function(r) { return r.json(); })
+        .then(function(ids) {
+            mosaicLoading = false;
+            mosaicLoaded = true;
+            if (!ids || !ids.length) { return; }
+            // Cycle through the ids until the collage covers the whole card:
+            // tiles are >=110px (+10px gap) squares, so width/120 bounds the
+            // column count and height/120 the rows; one spare row absorbs the
+            // rounding. Small libraries just repeat their covers more often,
+            // and duplicate URLs come out of the browser cache for free.
+            var cols = Math.ceil(el.emptyMosaic.offsetWidth / 120) || 6;
+            var rows = (Math.ceil(el.emptyMosaic.offsetHeight / 120) || 4) + 1;
+            var TILES = Math.max(cols * rows, 24);
+            for (var i = 0; i < TILES; i++) {
+                var img = document.createElement('img');
+                img.src = '/cover/' + encodeURIComponent(ids[i % ids.length]) + '.jpg';
+                img.alt = '';
+                el.emptyMosaic.appendChild(img);
+            }
+            if (el.empty) { el.empty.classList.add('has-mosaic'); }
+        })
+        .catch(function() { mosaicLoading = false; });
+}
+
 function render(data) {
     if (!data || !data.track_id) {
         nowPlaying.classList.add('is-empty');
+        loadMosaic();
         el.player.textContent = '';
         el.cover.removeAttribute('src');
         setLyrionLink(null);

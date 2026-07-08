@@ -579,13 +579,60 @@ hr {
 
 .np-empty {
     display: none;
+    position: relative;
+    overflow: hidden;
     grid-column: 1 / -1;
+    /* Span both template rows of the big-screen layout (auto 1fr) so the
+       mosaic fills the whole card height, not just the first auto row. */
+    grid-row: 1 / -1;
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: center;
+    min-height: 280px;
+    /* The card's 12px outer radius minus its 1px border: the collage below
+       bleeds to the border edge (negative margin), so clip it on the same
+       curve to keep it from poking past the card's rounded corners. */
+    border-radius: 11px;
+    /* Pull the collage out to the card's padding edge so it reads as the
+       card's own background rather than an inset picture. */
+    margin: -20px;
+    color: #828282;
+}
+
+/* Decorative collage of random library covers behind the message. Oversized
+   and slightly rotated so its edges never show inside the card. */
+.np-empty-mosaic {
+    position: absolute;
+    inset: -8%;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+    gap: 10px;
+    align-content: center;
+    transform: rotate(-3deg) scale(1.15);
+    filter: blur(2px) saturate(0.7) brightness(0.4);
+    pointer-events: none;
+}
+
+.np-empty-mosaic img {
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    object-fit: cover;
+    border-radius: 8px;
+}
+
+.np-empty-content {
+    position: relative;
+    display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
     gap: 12px;
-    min-height: 220px;
-    color: #828282;
+    flex: 1;
+    padding: 40px 20px;
+    /* Quiet vignette behind the message so it stays readable over covers. */
+    background: radial-gradient(55% 55% at 50% 50%,
+        rgba(33, 33, 33, 0.55) 0%,
+        rgba(33, 33, 33, 0.1) 100%);
 }
 
 .np-empty-icon {
@@ -593,10 +640,49 @@ hr {
     opacity: 0.6;
 }
 
+.np-empty.has-mosaic .np-empty-icon {
+    color: #c8c8c8;
+    opacity: 0.9;
+}
+
 .np-empty-text {
     margin: 0;
     font-size: 1.1rem;
     letter-spacing: 0.5px;
+}
+
+.np-empty.has-mosaic .np-empty-text {
+    color: #d8d8d8;
+}
+
+.np-empty-open {
+    margin-top: 8px;
+    padding: 8px 16px;
+    border-radius: 5px;
+    background: var(--accent-color);
+    color: #1a1a1a;
+    font-size: 0.9rem;
+    font-weight: bold;
+    text-decoration: none;
+}
+
+.np-empty-open:hover {
+    filter: brightness(1.05);
+}
+
+@media (max-width: 540px) {
+    .np-empty {
+        min-height: 200px;
+    }
+    .np-empty-mosaic {
+        grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+    }
+}
+
+/* The card's default align-items:start would shrink the empty block to its
+   content height; stretch it so the mosaic fills the whole card. */
+.now-playing.is-empty {
+    align-items: stretch;
 }
 
 .now-playing.is-empty .np-cover,
