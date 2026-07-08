@@ -442,7 +442,9 @@ function render(data) {
     el.player.textContent = data.player_name || '';
     el.title.textContent = data.title || '';
     el.artist.textContent = data.artist || '';
-    el.album.textContent = data.album || '';
+    el.album.textContent = data.album
+        ? (data.year ? data.album + ' (' + data.year + ')' : data.album)
+        : '';
 
     // Some streamed sources (e.g. a Deezer "flow"/mix) keep a single playlist
     // entry for the whole session and only push new title/artist/album via

@@ -54,7 +54,7 @@ def get_now_playing(player_id):
 
     Uses the JSON-RPC `status` query for the current playlist position (`-`),
     asking for one item with the tags we display: a=artist, A=role-keyed
-    artist lists, l=album, d=duration, c=coverid, K=artwork_url. With tag A
+    artist lists, l=album, y=year, d=duration, c=coverid, K=artwork_url. With tag A
     the multiple artists come back joined by ", " under a role key
     (`trackartist` for the track's contributors, `artist` for the ARTIST
     role) — we prefer `trackartist` so a "feat." line shows everyone,
@@ -69,7 +69,7 @@ def get_now_playing(player_id):
     payload = {
         "id": 1,
         "method": "slim.request",
-        "params": [player_id, ["status", "-", 1, "tags:aAldcK"]],
+        "params": [player_id, ["status", "-", 1, "tags:aAldcKy"]],
     }
     data = lyrion_request(payload)
     result = data.get("result", {})
@@ -93,6 +93,7 @@ def get_now_playing(player_id):
         "title": track.get("title"),
         "artist": track.get("trackartist") or track.get("artist") or track.get("albumartist"),
         "album": track.get("album"),
+        "year": track.get("year"),
         "coverid": track.get("coverid"),
         "artwork_url": artwork_url,
     }
