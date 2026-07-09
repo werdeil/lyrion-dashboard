@@ -1,4 +1,6 @@
 import sqlite3
+import threading
+import time
 from contextlib import contextmanager
 
 from flask import current_app
@@ -89,7 +91,33 @@ def get_recent_album_covers(limit=24):
     return [row["artwork"] for row in rows]
 
 
+# The stats are four full-library aggregations — expensive on a big library —
+# and the page runs them on every render plus every client's 60s poll, while
+# the numbers only move at the pace of listening. Serve a cached copy for
+# STATS_TTL seconds so the queries run at most once a minute no matter how
+# many clients are open; the front already refreshes only every 60s, so the
+# staleness window is invisible.
+STATS_TTL = 60
+
+_stats_cache = {"value": None, "expires_at": 0}
+_stats_lock = threading.Lock()
+
+
 def get_stats():
+    """Library statistics, cached for STATS_TTL seconds.
+
+    The lock makes the recompute single-flight: simultaneous clients hitting
+    an expired cache wait for one computation instead of each running their
+    own. Returns a copy so callers can't mutate the cached dict.
+    """
+    with _stats_lock:
+        if _stats_cache["value"] is None or _stats_cache["expires_at"] <= time.time():
+            _stats_cache["value"] = _compute_stats()
+            _stats_cache["expires_at"] = time.time() + STATS_TTL
+        return dict(_stats_cache["value"])
+
+
+def _compute_stats():
     with get_db_conn() as conn:
         cur = conn.cursor()
 

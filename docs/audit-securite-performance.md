@@ -18,7 +18,8 @@ réseau local.
 | S3 | **Corrigé** — validation du `coverid` + tests | `4f39be2` |
 | S4 | **Corrigé** — cache LRU borné, purge à l'écriture, champs limités + tests | `7315f56` |
 | S11 | **Corrigé** — pip-audit + bandit en CI, Dependabot | `07bfe81` |
-| P1 | **Corrigé (minimal)** — `--threads 8`, worker unique conservé ; budget/semaphore optionnels | voir section |
+| P1 | **Corrigé (minimal)** — `--threads 8`, worker unique conservé ; budget/semaphore optionnels | `71db928` |
+| P2 | **Corrigé** — cache TTL 60 s single-flight sur `get_stats()` + tests | voir section |
 | Autres | À traiter | — |
 
 ---
@@ -219,6 +220,12 @@ la base ne change qu'au fil des écoutes/scans), même mécanisme que le cache d
 paroles. Gain immédiat : une seule exécution par minute quel que soit le nombre
 de clients.
 
+**Décision (2026-07-09) : corrigé.** `get_stats()` sert une copie cachée
+pendant `STATS_TTL` (60 s), avec un verrou single-flight (deux clients
+simultanés sur un cache expiré ne déclenchent qu'un seul recalcul). Effet le
+plus visible : l'ouverture de la page ne paie plus les 4 agrégations avant le
+premier rendu, sauf au pire une fois par minute.
+
 ### P3 — `/now-playing.json` : 1+N requêtes HTTP séquentielles vers Lyrion par poll (moyenne)
 
 `get_active_now_playing()` (`services/lyrion.py:112-134`) fait `players` puis un
@@ -326,8 +333,7 @@ précédent) suffit.
 (mis à jour au fil des corrections — voir le tableau de suivi en tête)
 
 1. ~~S1 (TLS)~~ risque accepté · ~~S3 (validation `coverid`)~~ ✅ · ~~S4
-   (bornage du cache)~~ ✅ · ~~S11 (CI sécurité)~~ ✅ · ~~P1 (threads)~~ ✅
-2. **P2** (cache stats) : le plus gros gain de latence restant pour quelques
-   lignes.
-3. **S5** (rate limit `/lyrics.json`) : protège vos accès aux API tierces.
-4. Le reste (en-têtes HTTP, P3-P9, durcissements Android) au fil de l'eau.
+   (bornage du cache)~~ ✅ · ~~S11 (CI sécurité)~~ ✅ · ~~P1 (threads)~~ ✅ ·
+   ~~P2 (cache stats)~~ ✅
+2. **S5** (rate limit `/lyrics.json`) : protège vos accès aux API tierces.
+3. Le reste (en-têtes HTTP, P3-P9, durcissements Android) au fil de l'eau.
