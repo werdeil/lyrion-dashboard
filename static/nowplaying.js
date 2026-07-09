@@ -669,9 +669,13 @@ function render(data) {
     if (trackKey !== lastTrackKey) {
         lastTrackKey = trackKey;
         currentTrack = data;
+        // Ask for a bounded thumbnail instead of the original artwork (which
+        // can be a multi-MB scan): the cover displays at ≤300 CSS px, so 512
+        // (the /cover route's cap) keeps retina screens sharp too. Lyrion
+        // resizes covers itself; remote artwork has no resize form.
         el.cover.src = data.artwork_url
             ? '/cover/remote.jpg?t=' + encodeURIComponent(trackKey)
-            : '/cover/' + (data.coverid || 0) + '.jpg';
+            : '/cover/' + (data.coverid || 0) + '.jpg?size=512';
         setLyrics(data.lyrics || I18N.no_lyrics, !data.lyrics);
         setLyricsSource(data.lyrics ? 'library' : null);
         lyricsTried = false;

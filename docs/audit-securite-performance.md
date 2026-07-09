@@ -288,6 +288,11 @@ ailleurs demandée en pleine résolution (`static/nowplaying.js:674` : pas de
 (p. ex. `?size=512`, le canvas d'extraction de couleur n'a pas besoin de plus)
 et ajouter un petit cache serveur (dict LRU borné ou en-tête `ETag` relayé).
 
+**Décision (2026-07-09) : corrigé pour la cover principale** (`?size=512`,
+le plafond de la route, suffisant pour un affichage ≤ 300 px même rétina).
+Le cache serveur des covers reste un durcissement optionnel : le
+`Cache-Control` navigateur couvre déjà le cas courant.
+
 ### P7 — Front : re-scan DOM du karaoké toutes les 250 ms (basse)
 
 `syncLyrics()` refait `querySelectorAll('.lrc-line')` et réécrit les classes de
