@@ -19,6 +19,14 @@
     --accent-color: #4f86c6;
     /* Lyrion Material's default dark-theme background (--std-background-color). */
     --base-bg: #212121;
+    /* Shared type scale: the now-playing card and the stats panel both draw
+       from these five steps, so text with the same role (overline, data row,
+       body…) reads at the same size on both sides of the page. */
+    --fs-xs: 0.8rem;   /* uppercase overlines, captions, sub stat rows */
+    --fs-sm: 0.9rem;   /* data rows, secondary meta (album line) */
+    --fs-md: 1rem;     /* reading text (lyrics), panel heading */
+    --fs-lg: 1.1rem;   /* emphasized secondary (artist, empty-state text) */
+    --fs-xl: 1.4rem;   /* hero title */
     transition: --tint-color 900ms ease, --accent-color 900ms ease;
 }
 
@@ -68,10 +76,10 @@ h1, h2 {
     justify-content: center;
     gap: 0.55rem;
     margin: 0;
-    font-size: 0.8rem;
+    font-size: var(--fs-xs);
     font-weight: bold;
     text-transform: uppercase;
-    letter-spacing: 1.5px;
+    letter-spacing: 1px;
     color: #aaaaaa;
 }
 
@@ -131,7 +139,7 @@ hr {
 
 .stats-panel h2 {
     margin: 0 0 14px 0;
-    font-size: 1rem;
+    font-size: var(--fs-md);
     color: #aaaaaa;
     text-transform: uppercase;
     letter-spacing: 1px;
@@ -142,7 +150,7 @@ hr {
 }
 
 .stat-group-title {
-    font-size: 0.75rem;
+    font-size: var(--fs-xs);
     color: #9e9e9e;
     text-transform: uppercase;
     letter-spacing: 1px;
@@ -165,7 +173,8 @@ hr {
 
 .stat-group-title-label::after {
     content: "▼";
-    font-size: 0.85rem;
+    /* em, not rem: the chevron tracks the title it decorates. */
+    font-size: 0.85em;
     transition: transform 0.2s ease;
     color: #9e9e9e;
 }
@@ -176,7 +185,7 @@ hr {
 
 .stat-group-total {
     color: #bdbdbd;
-    font-size: 0.85rem;
+    font-size: var(--fs-sm);
     white-space: nowrap;
 }
 
@@ -193,14 +202,14 @@ hr {
     justify-content: space-between;
     align-items: center;
     padding: 3px 0;
-    font-size: 0.85rem;
+    font-size: var(--fs-sm);
     color: #e0e0e0;
 }
 
 .stat-row.sub {
     padding-left: 10px;
     color: #aaaaaa;
-    font-size: 0.8rem;
+    font-size: var(--fs-xs);
 }
 
 .stat-row.sub.is-zero {
@@ -224,7 +233,7 @@ hr {
 }
 
 .velocity-value {
-    font-size: 1.4rem;
+    font-size: var(--fs-xl);
     font-weight: bold;
     color: var(--accent-color);
     text-align: center;
@@ -233,7 +242,7 @@ hr {
 
 .velocity-label {
     text-align: center;
-    font-size: 0.75rem;
+    font-size: var(--fs-xs);
     color: #9e9e9e;
 }
 
@@ -282,26 +291,26 @@ hr {
 
 .np-title {
     margin: 0;
-    font-size: 1.4rem;
+    font-size: var(--fs-xl);
     font-weight: bold;
     color: #f5f5f5;
 }
 
 .np-artist {
     margin: 6px 0 0 0;
-    font-size: 1.05rem;
+    font-size: var(--fs-lg);
     color: var(--accent-color);
 }
 
 .np-album {
     margin: 2px 0 0 0;
-    font-size: 0.95rem;
+    font-size: var(--fs-sm);
     color: #aaaaaa;
 }
 
 .np-player {
     margin: 0 0 4px 0;
-    font-size: 0.75rem;
+    font-size: var(--fs-xs);
     text-transform: uppercase;
     letter-spacing: 1px;
     color: #9e9e9e;
@@ -375,7 +384,7 @@ hr {
     /* Drives line spacing in both plain and synced modes — keep them in sync. */
     line-height: 2.0;
     color: #e0e0e0;
-    font-size: 0.95rem;
+    font-size: var(--fs-md);
     /* Centre plain lyrics too, so they match the synced (karaoke) layout. */
     text-align: center;
 }
@@ -427,7 +436,7 @@ hr {
     /* Sits on the control's row, pushed to the right, instead of taking its own
        line above it. margin-left:auto right-aligns it within the flex row. */
     margin: 0 0 0 auto;
-    font-size: 0.78rem;
+    font-size: var(--fs-xs);
     color: #828282;
     flex-shrink: 0;
 }
@@ -722,7 +731,7 @@ hr {
 
 .np-empty-text {
     margin: 0;
-    font-size: 1.1rem;
+    font-size: var(--fs-lg);
     letter-spacing: 0.5px;
 }
 
@@ -736,7 +745,7 @@ hr {
     border-radius: 5px;
     background: var(--accent-color);
     color: #1a1a1a;
-    font-size: 0.9rem;
+    font-size: var(--fs-sm);
     font-weight: bold;
     text-decoration: none;
 }
@@ -850,7 +859,7 @@ body.in-app .page-header {
 .runner-card p {
     margin: 0;
     color: #aaaaaa;
-    font-size: 0.95rem;
+    font-size: var(--fs-sm);
     line-height: 1.5;
 }
 
