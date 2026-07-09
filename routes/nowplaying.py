@@ -10,6 +10,7 @@ from services.database import (
     get_recent_album_covers,
 )
 from services.lyrics import fetch_lyrics
+from services.ratelimit import RateLimiter, Cooldown
 from i18n import pick_lang, TRANSLATIONS
 
 nowplaying_bp = Blueprint("nowplaying", __name__)
@@ -18,6 +19,15 @@ nowplaying_bp = Blueprint("nowplaying", __name__)
 # the upstream URL (/music/<coverid>/cover.jpg), so anything else — "..",
 # encoded slashes — could steer the proxy to other Lyrion endpoints.
 COVERID_RE = re.compile(r"[0-9a-fA-F]+")
+
+# /lyrics.json triggers outbound requests to third-party lyrics services from
+# our IP; a runaway client (hostile or just buggy) could get that IP banned.
+# Normal use is one search per track change, far below these fuses:
+# - per client, at most 10 searches per minute (429 beyond);
+# - a forced refresh (?refresh=1, bypasses the cache) is honoured per track at
+#   most every 30 s — beyond that it degrades to a normal cached lookup.
+LYRICS_RATE = RateLimiter(limit=10, window=60)
+REFRESH_COOLDOWN = Cooldown(interval=30)
 
 
 @nowplaying_bp.route("/")
@@ -113,14 +123,24 @@ def lyrics_json():
 
     The page calls this only when the local library has no lyrics, passing the
     metadata it already displays so we avoid re-querying Lyrion. Results are
-    cached in-memory by services.lyrics, so repeated clicks are cheap.
+    cached in-memory by services.lyrics, so repeated clicks are cheap. Rate
+    limited (see LYRICS_RATE / REFRESH_COOLDOWN above) because every cache
+    miss fans out to third-party services from our IP.
     """
+    if not LYRICS_RATE.allow(request.remote_addr or "unknown"):
+        abort(429)
+    force = request.args.get("refresh") == "1"
+    if force:
+        track_key = "|".join(
+            request.args.get(f) or "" for f in ("track_id", "artist", "title")
+        )
+        force = REFRESH_COOLDOWN.allow(track_key)
     result = fetch_lyrics(
         track_id=request.args.get("track_id"),
         artist=request.args.get("artist"),
         title=request.args.get("title"),
         album=request.args.get("album"),
         duration=request.args.get("duration"),
-        force=request.args.get("refresh") == "1",
+        force=force,
     )
     return jsonify(result)

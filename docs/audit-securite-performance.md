@@ -19,7 +19,8 @@ réseau local.
 | S4 | **Corrigé** — cache LRU borné, purge à l'écriture, champs limités + tests | `7315f56` |
 | S11 | **Corrigé** — pip-audit + bandit en CI, Dependabot | `07bfe81` |
 | P1 | **Corrigé (minimal)** — `--threads 8`, worker unique conservé ; budget/semaphore optionnels | `71db928` |
-| P2 | **Corrigé** — cache TTL 60 s single-flight sur `get_stats()` + tests | voir section |
+| P2 | **Corrigé** — cache TTL 60 s single-flight sur `get_stats()` + tests | `a0a613f` |
+| S5 | **Corrigé** — rate limit par IP + cooldown sur `refresh=1` + tests | voir section |
 | Autres | À traiter | — |
 
 ---
@@ -104,6 +105,13 @@ votre IP (risque de bannissement, consommation de bande passante).
 **Recommandation :** rate-limiter l'endpoint (p. ex. quelques requêtes/minute
 par IP, et un plafond global), et n'accepter `refresh=1` qu'avec parcimonie
 (cooldown par piste).
+
+**Décision (2026-07-09) : corrigé.** Deux fusibles maison
+(`services/ratelimit.py`, sans dépendance externe, état borné par balayage) :
+10 recherches/minute par IP (429 au-delà), et `refresh=1` honoré au plus une
+fois par piste toutes les 30 s — au-delà il dégrade en lecture du cache au
+lieu d'une erreur, donc le bouton retry du front reste fonctionnel. L'usage
+normal (une recherche par changement de piste) est très loin de ces seuils.
 
 ### S6 — `/files/` sert tout type de fichier same-origin (basse)
 
@@ -333,7 +341,7 @@ précédent) suffit.
 (mis à jour au fil des corrections — voir le tableau de suivi en tête)
 
 1. ~~S1 (TLS)~~ risque accepté · ~~S3 (validation `coverid`)~~ ✅ · ~~S4
-   (bornage du cache)~~ ✅ · ~~S11 (CI sécurité)~~ ✅ · ~~P1 (threads)~~ ✅ ·
-   ~~P2 (cache stats)~~ ✅
-2. **S5** (rate limit `/lyrics.json`) : protège vos accès aux API tierces.
-3. Le reste (en-têtes HTTP, P3-P9, durcissements Android) au fil de l'eau.
+   (bornage du cache)~~ ✅ · ~~S5 (rate limit)~~ ✅ · ~~S11 (CI sécurité)~~ ✅ ·
+   ~~P1 (threads)~~ ✅ · ~~P2 (cache stats)~~ ✅
+2. Le reste (S2 à décider, en-têtes HTTP, P3-P9, durcissements Android) au fil
+   de l'eau.
