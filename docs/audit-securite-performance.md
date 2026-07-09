@@ -31,6 +31,7 @@ réseau local.
 | P4 | **Corrigé** — `?known=`, lookup paroles au changement de piste seulement + tests | voir section |
 | P5 | **Sans objet** après P2 et P4 — voir la note dans la section | — |
 | P7 | **Corrigé** — karaoké sans re-scan DOM, repaint des seules lignes concernées | voir section |
+| S6 | **Corrigé** — `/files/` servi sous `CSP: sandbox` + tests | voir section |
 | Autres | À traiter | — |
 
 ---
@@ -143,6 +144,14 @@ accès aux endpoints du dashboard).
 **Recommandation :** ajouter sur ces réponses `X-Content-Type-Options: nosniff`
 et `Content-Disposition: attachment` (ou au minimum `Content-Security-Policy:
 sandbox`), ou restreindre les extensions servies à une liste blanche.
+
+**Décision (2026-07-09) : corrigé via `CSP: sandbox`.** L'usage réel de
+`/files/` est le partage de JSON vers un widget Homepage : le sandbox est
+invisible pour ce cas (les données se consomment pareil) mais un HTML déposé
+dans le dossier rendrait désormais dans une origine opaque, sans pouvoir
+scripter le dashboard. Le `nosniff` global de S8 s'applique déjà à ces
+réponses ; `Content-Disposition: attachment` a été écarté comme inutilement
+brutal.
 
 ### S7 — `SECRET_KEY` par défaut (basse)
 
@@ -412,7 +421,7 @@ sautés tant que la requête précédente n'est pas revenue.
 
 (mis à jour au fil des corrections — voir le tableau de suivi en tête)
 
-1. ~~S1~~ ~~S2~~ risques acceptés · ~~S3~~ ~~S4~~ ~~S5~~ ~~S7~~ ~~S8~~ ~~S9~~
-   ~~S11~~ ✅ · ~~P1~~ ~~P2~~ ~~P3~~ ~~P4~~ ~~P6~~ ~~P7~~ ~~P9~~ ✅ ·
+1. ~~S1~~ ~~S2~~ risques acceptés · ~~S3~~ ~~S4~~ ~~S5~~ ~~S6~~ ~~S7~~ ~~S8~~
+   ~~S9~~ ~~S11~~ ✅ · ~~P1~~ ~~P2~~ ~~P3~~ ~~P4~~ ~~P6~~ ~~P7~~ ~~P9~~ ✅ ·
    ~~P5~~ sans objet
-2. Le reste (S6, S10 Android, P8) au fil de l'eau.
+2. Le reste (S10 Android, P8) au fil de l'eau.
