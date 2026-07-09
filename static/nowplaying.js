@@ -12,12 +12,14 @@ document.querySelectorAll('.stat-group-title').forEach(function(title) {
 var LYRION_HOST = document.body.dataset.lyrionHost || '';
 
 // Inside the Android app a native bridge (window.LyrionApp) is injected;
-// reveal the header's menu button and wire it to the native app menu
-// (falling back to the settings screen with app versions that predate it).
+// reveal the header bar (hidden on the web, where the branding lives in the
+// tab title) with its menu button wired to the native app menu (falling back
+// to the settings screen with app versions that predate it).
 (function () {
     var appMenu = document.getElementById('app-menu');
     var bridge = window.LyrionApp;
     if (appMenu && bridge && (bridge.openMenu || bridge.openSettings)) {
+        document.body.classList.add('in-app');
         appMenu.hidden = false;
         appMenu.addEventListener('click', function (e) {
             e.preventDefault();
@@ -33,6 +35,8 @@ var LYRION_HOST = document.body.dataset.lyrionHost || '';
 var nowPlaying = document.getElementById('now-playing');
 var el = {
     player: document.getElementById('np-player'),
+    playerRow: document.getElementById('np-player-row'),
+    playerLink: document.getElementById('np-player-link'),
     title:  document.getElementById('np-title'),
     artist: document.getElementById('np-artist'),
     album:  document.getElementById('np-album'),
@@ -110,6 +114,8 @@ function setMaterialLink(anchor, playerId) {
 
 function setLyrionLink(playerId) {
     setMaterialLink(el.lyrionLink, playerId);
+    // The player-name link opens Lyrion focused on the very player shown.
+    setMaterialLink(el.playerLink, playerId);
     // The empty-state "open Lyrion" button always targets the plain Material
     // page: with nothing playing there is no player to focus.
     setMaterialLink(el.emptyOpen, null);
@@ -648,6 +654,7 @@ function render(data) {
     paintProgress();
     setLyrionLink(data.player_id);
     el.player.textContent = data.player_name || '';
+    el.playerRow.hidden = !data.player_name;
     el.title.textContent = data.title || '';
     el.artist.textContent = data.artist || '';
     el.album.textContent = data.album

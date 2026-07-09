@@ -7,18 +7,20 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body data-lyrion-host="{{ lyrion_host or '' }}">
+    <h1 class="visually-hidden">Lyrion Dashboard</h1>
+    {# App-only header: on the web the branding lives in the tab title and the
+       Lyrion link on the player name, so nowplaying.js reveals this bar (via
+       body.in-app) only when the Android bridge is present. #}
     <div class="page-header">
-        {# Only shown inside the Android app (which injects window.LyrionApp);
-           sits left of the title, mirroring the Lyrion link on the right. #}
         <a class="lyrion-link" id="app-menu" href="#" hidden title="{{ t.app_menu }}">
             <svg viewBox="0 0 24 24" fill="#e8e8e8" aria-hidden="true">
                 <path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/>
             </svg>
         </a>
-        <h1>
-            <img class="page-logo" src="{{ url_for('static', filename='favicon.svg') }}" alt="Lyrion logo">
+        <p class="page-title" aria-hidden="true">
+            <img class="page-logo" src="{{ url_for('static', filename='favicon.svg') }}" alt="">
             Lyrion Dashboard
-        </h1>
+        </p>
         <a class="lyrion-link" id="lyrion-link"
            href="{{ (lyrion_host ~ '/material/') if lyrion_host else '#' }}"
            target="_blank" rel="noopener noreferrer" title="{{ t.open_lyrion }}">
@@ -35,7 +37,18 @@
                          onerror="this.src='{{ url_for('static', filename='no-cover.svg') }}'">
                 </div>
                 <div class="np-meta">
-                    <p class="np-player" id="np-player"></p>
+                    {# The player name doubles as the "open Lyrion" link on
+                       that player; hidden until a player is known. #}
+                    <p class="np-player" id="np-player-row" hidden>
+                        <a class="np-player-link" id="np-player-link"
+                           href="{{ (lyrion_host ~ '/material/') if lyrion_host else '#' }}"
+                           target="_blank" rel="noopener noreferrer" title="{{ t.open_lyrion }}">
+                            <span id="np-player"></span>
+                            <svg class="np-player-arrow" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                <path d="M19 19H5V5h7V3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2v-7h-2v7zM14 3v2h3.59l-9.83 9.83 1.41 1.41L19 6.41V10h2V3h-7z"/>
+                            </svg>
+                        </a>
+                    </p>
                     <p class="np-title" id="np-title">—</p>
                     <p class="np-artist" id="np-artist"></p>
                     <p class="np-album" id="np-album"></p>
