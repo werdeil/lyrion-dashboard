@@ -891,7 +891,14 @@ if (el.scrollReset) {
 
 el.cover.addEventListener('load', sampleCoverTint);
 
+// A poll can outlive its 5s slot when the server is busy; piling a new
+// request onto a stuck one only feeds the very congestion that delayed it,
+// so ticks are skipped while one is still in flight.
+var pollInFlight = false;
+
 function poll() {
+    if (pollInFlight) { return; }
+    pollInFlight = true;
     // Time the round trip so render() can back-date the position. data.time is
     // measured server-side (when it queries Lyrion), but we only learn it after
     // the whole network round trip, by which point playback has moved on. The
@@ -901,10 +908,11 @@ function poll() {
     fetch('/now-playing.json')
         .then(function(r) { return r.json(); })
         .then(function(data) {
+            pollInFlight = false;
             pollRtt = Date.now() - sentAt;
             render(data);
         })
-        .catch(function() {});
+        .catch(function() { pollInFlight = false; });
 }
 
 function renderStats(stats) {

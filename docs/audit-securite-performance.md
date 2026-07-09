@@ -322,6 +322,9 @@ requêtes s'empilent et aggravent la congestion.
 **Recommandation :** un booléen `inFlight` (ou `AbortController` sur le poll
 précédent) suffit.
 
+**Décision (2026-07-09) : corrigé** — booléen `pollInFlight`, les ticks sont
+sautés tant que la requête précédente n'est pas revenue.
+
 ---
 
 ## 3. Points positifs relevés
