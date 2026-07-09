@@ -18,6 +18,7 @@ réseau local.
 | S3 | **Corrigé** — validation du `coverid` + tests | `4f39be2` |
 | S4 | **Corrigé** — cache LRU borné, purge à l'écriture, champs limités + tests | `7315f56` |
 | S11 | **Corrigé** — pip-audit + bandit en CI, Dependabot | `07bfe81` |
+| P1 | **Corrigé (minimal)** — `--threads 8`, worker unique conservé ; budget/semaphore optionnels | voir section |
 | Autres | À traiter | — |
 
 ---
@@ -194,6 +195,16 @@ clients échouent).
 - limiter le nombre de recherches web concurrentes (semaphore) pour préserver
   des threads pour les polls.
 
+**Décision (2026-07-09) : corrigé en version minimale** — `--threads 4` →
+`--threads 8`, en gardant un seul worker. Le worker unique est volontaire :
+les caches in-process (paroles, futur cache stats) restent partagés entre
+toutes les requêtes, hypothèse sur laquelle `services/lyrics.py` est
+explicitement construit ; le travail étant presque entièrement I/O-bound, les
+threads suffisent à doubler la capacité. Le scénario de saturation demande
+plusieurs requêtes lentes simultanées — rare avec 1-3 clients ; le budget de
+temps global et le semaphore sont rétrogradés en durcissements optionnels, à
+reconsidérer seulement si un gel se produit en pratique.
+
 ### P2 — `get_stats()` : 4 agrégations lourdes, aucune mise en cache (élevée)
 
 `services/database.py:92-256` scanne `tracks` × `alternativeplaycount` ×
@@ -315,8 +326,8 @@ précédent) suffit.
 (mis à jour au fil des corrections — voir le tableau de suivi en tête)
 
 1. ~~S1 (TLS)~~ risque accepté · ~~S3 (validation `coverid`)~~ ✅ · ~~S4
-   (bornage du cache)~~ ✅ · ~~S11 (CI sécurité)~~ ✅
-2. **P1** (workers/threads + budget de temps paroles) et **P2** (cache stats) :
-   le plus gros gain de robustesse/latence pour quelques lignes.
+   (bornage du cache)~~ ✅ · ~~S11 (CI sécurité)~~ ✅ · ~~P1 (threads)~~ ✅
+2. **P2** (cache stats) : le plus gros gain de latence restant pour quelques
+   lignes.
 3. **S5** (rate limit `/lyrics.json`) : protège vos accès aux API tierces.
 4. Le reste (en-têtes HTTP, P3-P9, durcissements Android) au fil de l'eau.
