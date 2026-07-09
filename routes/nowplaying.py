@@ -1,3 +1,5 @@
+import re
+
 from flask import Blueprint, render_template, current_app, jsonify, request, Response, abort
 
 from services.lyrion import get_active_now_playing, fetch_cover, fetch_remote_cover
@@ -11,6 +13,11 @@ from services.lyrics import fetch_lyrics
 from i18n import pick_lang, TRANSLATIONS
 
 nowplaying_bp = Blueprint("nowplaying", __name__)
+
+# Lyrion coverids are numeric track ids or hex hashes. The id is spliced into
+# the upstream URL (/music/<coverid>/cover.jpg), so anything else — "..",
+# encoded slashes — could steer the proxy to other Lyrion endpoints.
+COVERID_RE = re.compile(r"[0-9a-fA-F]+")
 
 
 @nowplaying_bp.route("/")
@@ -41,6 +48,8 @@ def cover(coverid):
 
     ?size=N asks Lyrion for an NxN thumbnail instead of the full artwork; the
     mosaic uses it to load its many blurred covers cheaply."""
+    if not COVERID_RE.fullmatch(coverid):
+        abort(404)
     size = request.args.get("size", type=int)
     if size is not None:
         size = min(max(size, 16), 512)
