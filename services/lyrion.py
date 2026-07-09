@@ -7,10 +7,12 @@ urllib3.disable_warnings()
 
 def lyrion_request(payload):
     host = current_app.config["LYRION_HOST"]
+    # TLS verification is off for the self-signed local Lyrion; audit S1
+    # (docs/audit-securite-performance.md) tracks making this configurable.
     r = requests.post(
         f"{host}/jsonrpc.js",
         json=payload,
-        verify=False,
+        verify=False,  # nosec B501
         timeout=5,
     )
     return r.json()
@@ -32,9 +34,10 @@ def fetch_cover(coverid, size=None):
     """
     host = current_app.config["LYRION_HOST"]
     name = f"cover_{size}x{size}_o.jpg" if size else "cover.jpg"
-    r = requests.get(f"{host}/music/{coverid}/{name}", verify=False, timeout=5)
+    # verify=False for the self-signed local Lyrion — see audit S1.
+    r = requests.get(f"{host}/music/{coverid}/{name}", verify=False, timeout=5)  # nosec B501
     if size and r.status_code == 404:
-        r = requests.get(f"{host}/music/{coverid}/cover.jpg", verify=False, timeout=5)
+        r = requests.get(f"{host}/music/{coverid}/cover.jpg", verify=False, timeout=5)  # nosec B501
     r.raise_for_status()
     return r.content, r.headers.get("Content-Type", "image/jpeg")
 
