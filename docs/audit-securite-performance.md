@@ -14,7 +14,8 @@ réseau local.
 
 | Point | Statut | Référence |
 |---|---|---|
-| S1 | **Risque accepté** (2026-07-09) — voir la note dans la section | `# nosec` documentés |
+| S1 | **Risque accepté** (2026-07-09) — voir la note dans la section | commentaires code |
+| S2 | **Risque accepté** (2026-07-09) — accès distant via VPN, règle documentée dans les README | voir section |
 | S3 | **Corrigé** — validation du `coverid` + tests | `4f39be2` |
 | S4 | **Corrigé** — cache LRU borné, purge à l'écriture, champs limités + tests | `7315f56` |
 | S11 | **Corrigé** — pip-audit + bandit en CI, Dependabot | `07bfe81` |
@@ -73,6 +74,15 @@ cover via le proxy.
 telle quelle (reverse proxy avec auth si accès distant), et/ou proposer un
 token/basic-auth optionnel. À minima, permettre de binder sur une interface
 précise via `HOST`.
+
+**Décision (2026-07-09) : risque accepté, modèle documenté.** L'absence
+d'authentification est un choix assumé (affichage kiosque sur LAN de
+confiance), et le déploiement réel suit déjà le bon modèle : l'accès distant
+passe par un VPN, le dashboard n'est jamais exposé directement. La règle est
+désormais écrite dans les README (section Sécurité, EN/FR) : jamais de
+port-forwarding, l'accès distant rejoint le LAN (WireGuard/Tailscale). Une
+auth intégrée casserait l'usage tablette murale et reste non souhaitée. À
+réévaluer seulement si le mode de déploiement change.
 
 ### S3 — `coverid` non validé : le proxy cover peut atteindre d'autres URL du serveur Lyrion (moyenne)
 
@@ -402,7 +412,7 @@ sautés tant que la requête précédente n'est pas revenue.
 
 (mis à jour au fil des corrections — voir le tableau de suivi en tête)
 
-1. ~~S1 (TLS)~~ risque accepté · ~~S3~~ ~~S4~~ ~~S5~~ ~~S7~~ ~~S8~~ ~~S9~~
+1. ~~S1~~ ~~S2~~ risques acceptés · ~~S3~~ ~~S4~~ ~~S5~~ ~~S7~~ ~~S8~~ ~~S9~~
    ~~S11~~ ✅ · ~~P1~~ ~~P2~~ ~~P3~~ ~~P4~~ ~~P6~~ ~~P7~~ ~~P9~~ ✅ ·
    ~~P5~~ sans objet
-2. Le reste (S2 à décider, S6, S10 Android, P8) au fil de l'eau.
+2. Le reste (S6, S10 Android, P8) au fil de l'eau.

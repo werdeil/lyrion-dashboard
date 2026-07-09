@@ -100,7 +100,6 @@ The app is available at `http://localhost:1111`.
 | `LYRION_HOST` | Lyrion server URL (e.g. `https://lyrion.local:9000`) | -- |
 | `DB_DIR` | Directory containing Lyrion's `library.db` | -- |
 | `DB_PERSIST_DIR` | Directory containing Lyrion's `persist.db` | -- |
-| `SECRET_KEY` | Flask secret key | `supersecretkey` |
 | `CUSTOM_DATA_DIR` | Generated files directory | `/opt/scripts/custom_data` |
 | `HOST` | Listen address | `0.0.0.0` |
 | `PORT` | Listen port | `1111` |
@@ -108,6 +107,22 @@ The app is available at `http://localhost:1111`.
 | `MUSIXMATCH_TOKEN` | Fixed Musixmatch token (otherwise fetched automatically) | -- |
 | `LRCLIB_TIMEOUT` | LRCLIB request timeout, in seconds | `15` |
 | `LYRICS_VERIFY_DURATION_TOLERANCE` | Max drift (seconds) tolerated by `--verify` in `embed_lyrics.py` | `3` |
+
+## Security
+
+The dashboard has **no authentication, by design**: it is a glanceable,
+always-on display meant for a **trusted home LAN**. Anyone who can reach the
+port can see what is playing in real time (presence information), read the
+library statistics and download everything under `CUSTOM_DATA_DIR`
+(`/files/`).
+
+- Never expose the port directly to the Internet (no port forwarding, no
+  public reverse proxy).
+- For remote access, join the LAN instead of opening the dashboard up: a VPN
+  such as WireGuard or Tailscale keeps it LAN-only while your devices connect
+  from anywhere.
+- The full security & performance review lives in
+  [`docs/audit-securite-performance.md`](docs/audit-securite-performance.md).
 
 ## Endpoints
 
