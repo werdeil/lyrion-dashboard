@@ -16,6 +16,7 @@ import re
 import time
 import threading
 import unicodedata
+from collections import OrderedDict
 
 import requests
 
@@ -49,23 +50,42 @@ LRCLIB_TIMEOUT = int(os.getenv("LRCLIB_TIMEOUT", "15"))
 # for libraries whose durations are noisy.
 VERIFY_DURATION_TOLERANCE = int(os.getenv("LYRICS_VERIFY_DURATION_TOLERANCE", "3"))
 
-_cache = {}
+# The cache key includes client-supplied artist/title (see fetch_lyrics), so
+# left unbounded a client could grow the process's memory without limit just by
+# varying the query. Cap the entry count, evicting least-recently-used first.
+CACHE_MAX_ENTRIES = 1000
+
+# Metadata fields longer than this are garbage (no real track has them), so
+# they are refused outright rather than cached or forwarded to providers.
+MAX_FIELD_LEN = 512
+
+_cache = OrderedDict()
 _cache_lock = threading.Lock()
 
 
-def _cache_get(track_id):
+def _cache_get(key):
     with _cache_lock:
-        entry = _cache.get(track_id)
+        entry = _cache.get(key)
         if entry and entry["expires_at"] > time.time():
+            _cache.move_to_end(key)
             return entry["value"]
         if entry:
-            _cache.pop(track_id, None)
+            _cache.pop(key, None)
     return None
 
 
-def _cache_set(track_id, value, ttl):
+def _cache_set(key, value, ttl):
     with _cache_lock:
-        _cache[track_id] = {"value": value, "expires_at": time.time() + ttl}
+        now = time.time()
+        # Expired entries are otherwise only dropped when their own key is
+        # looked up again; sweep them here so keys never asked for twice don't
+        # linger forever.
+        for expired in [k for k, e in _cache.items() if e["expires_at"] <= now]:
+            del _cache[expired]
+        _cache.pop(key, None)
+        while len(_cache) >= CACHE_MAX_ENTRIES:
+            _cache.popitem(last=False)
+        _cache[key] = {"value": value, "expires_at": now + ttl}
 
 
 def _int_duration(duration):
@@ -398,6 +418,8 @@ def fetch_lyrics(track_id, artist, title, album=None, duration=None, force=False
     the wrong song's.
     """
     if not title or not artist:
+        return {"lyrics": None, "synced": None, "source": "none"}
+    if any(f and len(str(f)) > MAX_FIELD_LEN for f in (track_id, artist, title, album)):
         return {"lyrics": None, "synced": None, "source": "none"}
 
     # track_id alone isn't a reliable cache key: streamed "flow"/mix sources
