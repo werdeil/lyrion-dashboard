@@ -135,6 +135,12 @@ jour où une fonctionnalité en dépendra, elle sera forgeable silencieusement.
 démarrage si absente, ou refuser de démarrer hors mode DEV), et retirer le
 fallback du compose.
 
+**Décision (2026-07-09) : corrigé par suppression.** L'application n'utilise
+ni session ni cookie signé : la clé ne fermait aucune porte. Elle est retirée
+de config.py, du compose et de .env.example ; à réintroduire proprement
+(valeur aléatoire obligatoire) le jour où une fonctionnalité aura besoin de
+sessions.
+
 ### S8 — En-têtes de sécurité HTTP absents (basse)
 
 Aucune réponse ne porte `X-Content-Type-Options`, `X-Frame-Options`/

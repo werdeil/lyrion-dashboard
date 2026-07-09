@@ -2,8 +2,6 @@ import os
 
 
 class Config:
-    SECRET_KEY = os.getenv("SECRET_KEY", "supersecretkey")
-
     # Lyrion Music Server
     LYRION_HOST = os.getenv("LYRION_HOST")
 
