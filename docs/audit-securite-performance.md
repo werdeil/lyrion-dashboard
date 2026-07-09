@@ -10,6 +10,16 @@ Contexte pris en compte : l'application est conçue pour un LAN domestique
 dans ce contexte — elles montent d'un cran si l'instance est exposée au-delà du
 réseau local.
 
+## Suivi
+
+| Point | Statut | Référence |
+|---|---|---|
+| S1 | **Risque accepté** (2026-07-09) — voir la note dans la section | `# nosec` documentés |
+| S3 | **Corrigé** — validation du `coverid` + tests | `4f39be2` |
+| S4 | **Corrigé** — cache LRU borné, purge à l'écriture, champs limités + tests | `7315f56` |
+| S11 | **Corrigé** — pip-audit + bandit en CI, Dependabot | `07bfe81` |
+| Autres | À traiter | — |
+
 ---
 
 ## 1. Sécurité
@@ -28,6 +38,15 @@ certificat auto-signé ; idéalement accepter un chemin de CA
 (`REQUESTS_CA_BUNDLE`/paramètre `verify=<ca.pem>`). Supprimer le
 `urllib3.disable_warnings()` global (il masque aussi d'autres avertissements du
 process).
+
+**Décision (2026-07-09) : risque accepté.** Dans le déploiement réel,
+`LYRION_HOST` est en HTTP (la découverte LMS ne propose que du HTTP), donc
+`verify=False` est inerte : il n'y a pas de certificat à vérifier sur ce canal.
+Activer la vérification par défaut ne protégerait rien aujourd'hui et
+casserait les installations HTTPS auto-signées à la mise à jour. Le choix est
+documenté dans le code par les marqueurs `# nosec B501` (services/lyrion.py).
+À réévaluer si `LYRION_HOST` passe un jour en HTTPS : la bonne approche sera
+alors l'option CA (`verify=<ca.pem>`), pas un booléen.
 
 ### S2 — Aucune authentification, écoute sur 0.0.0.0 (élevée si exposé)
 
@@ -293,10 +312,11 @@ précédent) suffit.
 
 ## 4. Priorités suggérées
 
-1. **S1** (TLS) + **S3** (validation `coverid`) : correctifs ponctuels, petits.
+(mis à jour au fil des corrections — voir le tableau de suivi en tête)
+
+1. ~~S1 (TLS)~~ risque accepté · ~~S3 (validation `coverid`)~~ ✅ · ~~S4
+   (bornage du cache)~~ ✅ · ~~S11 (CI sécurité)~~ ✅
 2. **P1** (workers/threads + budget de temps paroles) et **P2** (cache stats) :
    le plus gros gain de robustesse/latence pour quelques lignes.
-3. **S4/S5** (bornage du cache + rate limit `/lyrics.json`) : protège la
-   mémoire et vos accès aux API tierces.
-4. Le reste (en-têtes HTTP, P3-P9, durcissements Android, CI sécurité) au fil
-   de l'eau.
+3. **S5** (rate limit `/lyrics.json`) : protège vos accès aux API tierces.
+4. Le reste (en-têtes HTTP, P3-P9, durcissements Android) au fil de l'eau.
