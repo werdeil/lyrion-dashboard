@@ -154,6 +154,12 @@ issus de la base, donc pas exploitable en l'état, mais c'est un piège pour les
 presque : les scripts sont locaux, les images same-origin). Remplacer le
 `innerHTML` de `renderStats` par des nœuds texte.
 
+**Décision (2026-07-09) : corrigé.** `after_request` global avec
+`Content-Security-Policy: default-src 'self'`, `nosniff` et
+`X-Frame-Options: SAMEORIGIN` ; le `onerror` inline de la cover (incompatible
+CSP) est déplacé dans nowplaying.js, et `renderStats` construit des nœuds
+texte au lieu d'`innerHTML`.
+
 ### S9 — Pas de limite de taille sur les contenus proxifiés (basse)
 
 `fetch_cover`/`fetch_remote_cover` (`services/lyrion.py:35`, `:47`) chargent la

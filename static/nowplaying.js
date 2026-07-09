@@ -891,6 +891,15 @@ if (el.scrollReset) {
 
 el.cover.addEventListener('load', sampleCoverTint);
 
+// Broken-cover fallback, moved out of an inline onerror for the CSP. The
+// guard keeps a broken placeholder from looping the error event forever.
+el.cover.addEventListener('error', function() {
+    var fallback = el.cover.dataset.fallback;
+    if (fallback && el.cover.src.indexOf(fallback) === -1) {
+        el.cover.src = fallback;
+    }
+});
+
 // A poll can outlive its 5s slot when the server is busy; piling a new
 // request onto a stuck one only feeds the very congestion that delayed it,
 // so ticks are skipped while one is still in flight.
@@ -921,7 +930,12 @@ function renderStats(stats) {
         if (value === undefined) { return; }
         var pctKey = el.dataset.statPct;
         if (pctKey) {
-            el.innerHTML = value + ' <small>(' + stats[pctKey] + '%)</small>';
+            // Rebuilt with text nodes (not innerHTML) so a value could never
+            // be interpreted as markup; mirrors the server-rendered structure.
+            el.textContent = value + ' ';
+            var small = document.createElement('small');
+            small.textContent = '(' + stats[pctKey] + '%)';
+            el.appendChild(small);
         } else {
             el.textContent = value;
         }
