@@ -45,9 +45,21 @@ def index():
 
 @nowplaying_bp.route("/now-playing.json")
 def now_playing_json():
-    """Live state of whichever player is currently playing, polled by the page."""
+    """Live state of whichever player is currently playing, polled by the page.
+
+    The page passes ?known=<track key> — the id|title|artist|album key of the
+    track it already displays (the same key render() dedupes on). Lyrics are
+    only looked up and included when the playing track differs from it, so the
+    steady-state poll skips the database entirely; the page only reads lyrics
+    on a track change anyway.
+    """
     now = get_active_now_playing()
-    now["lyrics"] = get_track_lyrics(now.get("track_id"))
+    track_key = "|".join(
+        str(now.get(f)) if now.get(f) is not None else ""
+        for f in ("track_id", "title", "artist", "album")
+    )
+    if request.args.get("known") != track_key:
+        now["lyrics"] = get_track_lyrics(now.get("track_id"))
     return jsonify(now)
 
 

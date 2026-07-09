@@ -914,7 +914,13 @@ function poll() {
     // measurement sits roughly mid-trip, so half the RTT is a fair estimate of
     // how stale the value already is when it reaches us.
     var sentAt = Date.now();
-    fetch('/now-playing.json')
+    // Tell the server which track is already on screen: it skips the lyrics
+    // lookup (and the response omits them) while the track hasn't changed —
+    // render() only reads data.lyrics on a track change anyway.
+    var url = lastTrackKey === null
+        ? '/now-playing.json'
+        : '/now-playing.json?known=' + encodeURIComponent(lastTrackKey);
+    fetch(url)
         .then(function(r) { return r.json(); })
         .then(function(data) {
             pollInFlight = false;

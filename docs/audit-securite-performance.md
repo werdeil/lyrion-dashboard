@@ -295,6 +295,12 @@ piste (`static/nowplaying.js:669-696`).
 lecture des paroles locales dans un endpoint séparé appelé au changement de
 piste seulement.
 
+**Décision (2026-07-09) : corrigé** — le poll envoie `?known=<clé de piste>`
+et le serveur ne fait le lookup (connexion SQLite comprise) que si la piste a
+changé. Dans le déploiement réel la bibliothèque ne stocke aucune parole, le
+gain est donc surtout la suppression du cycle connexion/ATTACH/PRAGMA devenu
+inutile à chaque poll.
+
 ### P5 — Connexion SQLite recréée à chaque requête (basse)
 
 `services/database.py:7-23` ouvre `library.db`, fait un `ATTACH` de
@@ -306,6 +312,12 @@ Le coût unitaire est modeste mais purement du gaspillage répété.
 (`threading.local()`), en gardant le mode read-only actuel ; ou au minimum ne
 pas rouvrir la base pour `get_track_lyrics` quand `track_id` n'a pas changé
 (couplé à P4).
+
+**Décision (2026-07-09) : sans objet après P2 et P4.** Les stats ne touchent
+plus la base qu'une fois par minute (P2) et le poll ne l'ouvre plus qu'au
+changement de piste (P4) ; les ouvertures restantes (mosaïque au chargement,
+paroles au changement de piste) sont trop rares pour justifier une gestion de
+connexions persistantes.
 
 ### P6 — Proxy covers : pas de cache serveur, cover principale en pleine résolution (basse)
 
