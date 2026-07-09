@@ -1,8 +1,36 @@
 import requests
 import urllib3
-from flask import current_app
+from flask import abort, current_app
 
 urllib3.disable_warnings()
+
+# A cover is buffered fully in memory before being re-served, so cap what we
+# accept. And only actual images are relayed: artwork_url for remote streams
+# points at third-party servers, and blindly proxying e.g. text/html onto our
+# origin would hand such a server a scripting foothold on the dashboard.
+COVER_MAX_BYTES = 10 * 1024 * 1024
+
+
+def _read_image(r):
+    """Buffer a streamed cover response, returning (content, content_type).
+
+    Aborts with 502 on oversized or non-image payloads; the page's broken
+    cover fallback takes over from there."""
+    r.raise_for_status()
+    content_type = (r.headers.get("Content-Type") or "image/jpeg").lower()
+    if content_type.startswith("application/octet-stream"):
+        # Some radio/plugin servers are sloppy about image types; the payload
+        # only ever lands in an <img>, so relay it as a generic image.
+        content_type = "image/jpeg"
+    if not content_type.startswith("image/"):
+        abort(502)
+    chunks, total = [], 0
+    for chunk in r.iter_content(64 * 1024):
+        chunks.append(chunk)
+        total += len(chunk)
+        if total > COVER_MAX_BYTES:
+            abort(502)
+    return b"".join(chunks), content_type
 
 
 def lyrion_request(payload):
@@ -35,11 +63,11 @@ def fetch_cover(coverid, size=None):
     host = current_app.config["LYRION_HOST"]
     name = f"cover_{size}x{size}_o.jpg" if size else "cover.jpg"
     # verify=False for the self-signed local Lyrion — see audit S1.
-    r = requests.get(f"{host}/music/{coverid}/{name}", verify=False, timeout=5)  # nosec B501
+    r = requests.get(f"{host}/music/{coverid}/{name}", verify=False, timeout=5, stream=True)  # nosec B501
     if size and r.status_code == 404:
-        r = requests.get(f"{host}/music/{coverid}/cover.jpg", verify=False, timeout=5)  # nosec B501
-    r.raise_for_status()
-    return r.content, r.headers.get("Content-Type", "image/jpeg")
+        r.close()
+        r = requests.get(f"{host}/music/{coverid}/cover.jpg", verify=False, timeout=5, stream=True)  # nosec B501
+    return _read_image(r)
 
 
 def fetch_remote_cover(url):
@@ -47,9 +75,8 @@ def fetch_remote_cover(url):
     icons, etc.) so the page can serve it same-origin, same reasoning as
     fetch_cover. These are public CDN URLs, not the local Lyrion host, so
     certificate verification stays on."""
-    r = requests.get(url, timeout=5)
-    r.raise_for_status()
-    return r.content, r.headers.get("Content-Type", "image/jpeg")
+    r = requests.get(url, timeout=5, stream=True)
+    return _read_image(r)
 
 
 def get_players():

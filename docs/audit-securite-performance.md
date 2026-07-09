@@ -20,7 +20,12 @@ réseau local.
 | S11 | **Corrigé** — pip-audit + bandit en CI, Dependabot | `07bfe81` |
 | P1 | **Corrigé (minimal)** — `--threads 8`, worker unique conservé ; budget/semaphore optionnels | `71db928` |
 | P2 | **Corrigé** — cache TTL 60 s single-flight sur `get_stats()` + tests | `a0a613f` |
-| S5 | **Corrigé** — rate limit par IP + cooldown sur `refresh=1` + tests | voir section |
+| S5 | **Corrigé** — rate limit par IP + cooldown sur `refresh=1` + tests | `936b376` |
+| S7 | **Corrigé** — SECRET_KEY inutilisée supprimée | voir section |
+| S8 | **Corrigé** — CSP + nosniff + X-Frame-Options, innerHTML remplacé + test | voir section |
+| S9 | **Corrigé** — covers plafonnées à 10 Mo, types non-image refusés + tests | voir section |
+| P6 | **Corrigé** — cover principale en vignette 512 px | voir section |
+| P9 | **Corrigé** — garde anti-chevauchement sur le poll | voir section |
 | Autres | À traiter | — |
 
 ---
@@ -168,6 +173,12 @@ serveur amont malveillant/compromis) peut consommer beaucoup de RAM par requête
 
 **Recommandation :** `stream=True` + lecture plafonnée (p. ex. 10 Mo), et
 vérifier que le `Content-Type` amont est bien `image/*` avant de le relayer.
+
+**Décision (2026-07-09) : corrigé.** Lecture en flux plafonnée à 10 Mo et
+refus (502) des types non-image — `application/octet-stream` est toléré et
+relayé en `image/jpeg` (certains serveurs de radios étiquettent mal leurs
+logos), mais `text/html` & co ne peuvent plus atterrir same-origin. Le
+fallback pochette cassée du front prend le relais sur un 502.
 
 ### S10 — App Android : durcissements possibles (basse)
 
@@ -360,8 +371,6 @@ sautés tant que la requête précédente n'est pas revenue.
 
 (mis à jour au fil des corrections — voir le tableau de suivi en tête)
 
-1. ~~S1 (TLS)~~ risque accepté · ~~S3 (validation `coverid`)~~ ✅ · ~~S4
-   (bornage du cache)~~ ✅ · ~~S5 (rate limit)~~ ✅ · ~~S11 (CI sécurité)~~ ✅ ·
-   ~~P1 (threads)~~ ✅ · ~~P2 (cache stats)~~ ✅
-2. Le reste (S2 à décider, en-têtes HTTP, P3-P9, durcissements Android) au fil
-   de l'eau.
+1. ~~S1 (TLS)~~ risque accepté · ~~S3~~ ~~S4~~ ~~S5~~ ~~S7~~ ~~S8~~ ~~S9~~
+   ~~S11~~ ✅ · ~~P1~~ ~~P2~~ ~~P6~~ ~~P9~~ ✅
+2. Le reste (S2 à décider, S6, S10 Android, P3-P5, P7, P8) au fil de l'eau.
