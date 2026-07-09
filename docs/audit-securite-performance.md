@@ -273,6 +273,15 @@ connexion TCP/TLS complète car aucun `requests.Session` n'est réutilisé.
 - optionnel : interroger d'abord le dernier player vu en train de jouer (dans
   la majorité des polls c'est encore lui), avant de re-énumérer.
 
+**Décision (2026-07-09) : corrigé, les trois volets.** Session partagée,
+cache 2 s single-flight, et raccourci "dernier player d'abord" (avec 6
+players permanents, le régime de croisière passe de 7 requêtes amont par poll
+et par client à ~1 requête toutes les 2 s tous clients confondus). La
+position de lecture cachée est vieillie du temps écoulé avant d'être servie,
+pour que la barre de progression et le karaoké restent exacts. Effet de
+bord : bandit ne reconnaît pas les appels via Session, les `nosec B501`
+devenus orphelins sont retirés (le risque S1 reste documenté en commentaire).
+
 ### P4 — Les paroles complètes repartent à chaque poll de 5 s (moyenne)
 
 `routes/nowplaying.py:29-34` joint `get_track_lyrics()` (requête SQLite +
