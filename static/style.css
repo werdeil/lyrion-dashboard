@@ -27,6 +27,15 @@
     --fs-md: 1rem;     /* reading text (lyrics), panel heading */
     --fs-lg: 1.1rem;   /* emphasized secondary (artist, empty-state text) */
     --fs-xl: 1.4rem;   /* hero title */
+    /* Grey ramp, same idea as the type scale: one grey per text role instead
+       of near-duplicates (#e8e8e8/#e0e0e0, #aaaaaa/#9e9e9e…) scattered around. */
+    --text-bright: #f5f5f5;    /* headings: track title */
+    --text: #e0e0e0;           /* reading text: lyrics, stat rows */
+    --text-muted: #aaaaaa;     /* secondary: overlines, album line, sub rows */
+    --text-faint: #828282;     /* tertiary: placeholders, source line */
+    --text-on-accent: #1a1a1a; /* dark glyphs/labels on accent-filled controls */
+    --border-color: #3a3a3a;   /* hairlines: rules, cover edge */
+    --surface: #303030;        /* raised neutral fills: progress track, cards */
     transition: --tint-color 900ms ease, --accent-color 900ms ease;
 }
 
@@ -35,7 +44,7 @@ body {
     min-height: 100vh;
     padding: 16px;
     font-family: Arial, sans-serif;
-    color: #e8e8e8;
+    color: var(--text);
     background:
         radial-gradient(120% 75% at 50% -25%,
             color-mix(in srgb, var(--tint-color) 26%, transparent) 0%,
@@ -80,12 +89,12 @@ h1, h2 {
     font-weight: bold;
     text-transform: uppercase;
     letter-spacing: 1px;
-    color: #aaaaaa;
+    color: var(--text-muted);
 }
 
 h2 {
     font-size: 1.25rem;
-    color: #f5f5f5;
+    color: var(--text-bright);
 }
 
 button,
@@ -100,7 +109,7 @@ button {
     padding: 8px 12px;
     background: var(--accent-color);
     border: none;
-    color: #1a1a1a;
+    color: var(--text-on-accent);
     cursor: pointer;
     border-radius: 5px;
 }
@@ -110,7 +119,7 @@ button:hover {
 }
 
 hr {
-    border-color: #3a3a3a;
+    border-color: var(--border-color);
     margin: 16px 0;
 }
 
@@ -140,7 +149,7 @@ hr {
 .stats-panel h2 {
     margin: 0 0 14px 0;
     font-size: var(--fs-md);
-    color: #aaaaaa;
+    color: var(--text-muted);
     text-transform: uppercase;
     letter-spacing: 1px;
 }
@@ -151,11 +160,11 @@ hr {
 
 .stat-group-title {
     font-size: var(--fs-xs);
-    color: #9e9e9e;
+    color: var(--text-muted);
     text-transform: uppercase;
     letter-spacing: 1px;
     margin-bottom: 6px;
-    border-bottom: 1px solid #3a3a3a;
+    border-bottom: 1px solid var(--border-color);
     padding-bottom: 4px;
     cursor: pointer;
     user-select: none;
@@ -173,10 +182,10 @@ hr {
 
 .stat-group-title-label::after {
     content: "▼";
-    /* em, not rem: the chevron tracks the title it decorates. */
+    /* em, not rem: the chevron tracks the title it decorates, and it
+       inherits the title's grey. */
     font-size: 0.85em;
     transition: transform 0.2s ease;
-    color: #9e9e9e;
 }
 
 .stat-group.collapsed .stat-group-title-label::after {
@@ -184,7 +193,7 @@ hr {
 }
 
 .stat-group-total {
-    color: #bdbdbd;
+    color: var(--text-muted);
     font-size: var(--fs-sm);
     white-space: nowrap;
 }
@@ -203,12 +212,12 @@ hr {
     align-items: center;
     padding: 3px 0;
     font-size: var(--fs-sm);
-    color: #e0e0e0;
+    color: var(--text);
 }
 
 .stat-row.sub {
     padding-left: 10px;
-    color: #aaaaaa;
+    color: var(--text-muted);
     font-size: var(--fs-xs);
 }
 
@@ -218,7 +227,7 @@ hr {
 
 .stat-row.sub .stat-label::before {
     content: "\2192\00a0";
-    color: #828282;
+    color: var(--text-faint);
 }
 
 .stat-value {
@@ -229,7 +238,7 @@ hr {
 }
 
 .stat-row.sub .stat-value {
-    color: #aaaaaa;
+    color: var(--text-muted);
 }
 
 .velocity-value {
@@ -243,7 +252,7 @@ hr {
 .velocity-label {
     text-align: center;
     font-size: var(--fs-xs);
-    color: #9e9e9e;
+    color: var(--text-muted);
 }
 
 .now-playing {
@@ -273,7 +282,7 @@ hr {
     object-fit: cover;
     border-radius: 10px;
     display: block;
-    border: 1px solid #3a3a3a;
+    border: 1px solid var(--border-color);
 }
 
 .np-meta {
@@ -293,7 +302,7 @@ hr {
     margin: 0;
     font-size: var(--fs-xl);
     font-weight: bold;
-    color: #f5f5f5;
+    color: var(--text-bright);
 }
 
 .np-artist {
@@ -305,7 +314,7 @@ hr {
 .np-album {
     margin: 2px 0 0 0;
     font-size: var(--fs-sm);
-    color: #aaaaaa;
+    color: var(--text-muted);
 }
 
 .np-player {
@@ -313,7 +322,7 @@ hr {
     font-size: var(--fs-xs);
     text-transform: uppercase;
     letter-spacing: 1px;
-    color: #9e9e9e;
+    color: var(--text-muted);
 }
 
 /* The player name links to Lyrion's Material UI focused on that player.
@@ -347,7 +356,7 @@ hr {
     margin-top: 16px;
     height: 3px;
     border-radius: 2px;
-    background: #303030;
+    background: var(--surface);
     overflow: hidden;
     flex-shrink: 0;
 }
@@ -383,7 +392,7 @@ hr {
     white-space: pre-wrap;
     /* Drives line spacing in both plain and synced modes — keep them in sync. */
     line-height: 2.0;
-    color: #e0e0e0;
+    color: var(--text);
     font-size: var(--fs-md);
     /* Centre plain lyrics too, so they match the synced (karaoke) layout. */
     text-align: center;
@@ -414,8 +423,8 @@ hr {
 
 .lrc-line.near {
     /* Halfway step of the progression gradient: the lines around the active
-       one warm up towards the accent. #e0e0e0 is .np-lyrics's text colour. */
-    color: color-mix(in srgb, var(--accent-color) 30%, #e0e0e0);
+       one warm up towards the accent, from .np-lyrics's text colour. */
+    color: color-mix(in srgb, var(--accent-color) 30%, var(--text));
 }
 
 .lrc-line.active {
@@ -428,7 +437,7 @@ hr {
 }
 
 .np-lyrics.empty {
-    color: #828282;
+    color: var(--text-faint);
     font-style: italic;
 }
 
@@ -437,7 +446,7 @@ hr {
        line above it. margin-left:auto right-aligns it within the flex row. */
     margin: 0 0 0 auto;
     font-size: var(--fs-xs);
-    color: #828282;
+    color: var(--text-faint);
     flex-shrink: 0;
 }
 
@@ -477,7 +486,7 @@ hr {
     border: none;
     border-radius: 50%;
     background: transparent;
-    color: #9e9e9e;
+    color: var(--text-muted);
     cursor: pointer;
 }
 
@@ -539,7 +548,7 @@ hr {
     /* Solid accent + dark glyph, same scheme as the app's standard buttons;
        the global button:hover brightness applies to it unchanged. */
     background: var(--accent-color);
-    color: #1a1a1a;
+    color: var(--text-on-accent);
     cursor: pointer;
     box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
 }
@@ -580,7 +589,7 @@ hr {
     border: none;
     border-radius: 0;
     cursor: pointer;
-    color: #9e9e9e;
+    color: var(--text-muted);
     transition: color 150ms ease;
 }
 
@@ -590,7 +599,7 @@ hr {
 
 .np-switch:hover {
     filter: none;
-    color: #e0e0e0;
+    color: var(--text);
 }
 
 .np-switch.is-on {
@@ -619,7 +628,7 @@ hr {
     width: 14px;
     height: 14px;
     border-radius: 50%;
-    background: #e0e0e0;
+    background: var(--text);
     transition: transform 150ms ease, background 150ms ease;
 }
 
@@ -630,7 +639,7 @@ hr {
 
 .np-switch.is-on .np-switch-thumb {
     transform: translateX(16px);
-    background: #1a1a1a;
+    background: var(--text-on-accent);
 }
 
 .np-empty {
@@ -652,7 +661,7 @@ hr {
     /* Pull the collage out to the card's padding edge so it reads as the
        card's own background rather than an inset picture. */
     margin: -20px;
-    color: #828282;
+    color: var(--text-faint);
 }
 
 /* Decorative collage of random library covers behind the message. Oversized
@@ -725,7 +734,7 @@ hr {
 }
 
 .np-empty.has-mosaic .np-empty-icon {
-    color: #c8c8c8;
+    color: var(--text);
     opacity: 0.9;
 }
 
@@ -736,7 +745,7 @@ hr {
 }
 
 .np-empty.has-mosaic .np-empty-text {
-    color: #d8d8d8;
+    color: var(--text);
 }
 
 .np-empty-open {
@@ -744,7 +753,7 @@ hr {
     padding: 8px 16px;
     border-radius: 5px;
     background: var(--accent-color);
-    color: #1a1a1a;
+    color: var(--text-on-accent);
     font-size: var(--fs-sm);
     font-weight: bold;
     text-decoration: none;
@@ -811,6 +820,12 @@ hr {
     height: 1rem;
 }
 
+/* The app-menu glyph is an inline svg; give it the standard text grey here
+   rather than a hardcoded fill in the markup. */
+.lyrion-link svg {
+    fill: var(--text);
+}
+
 /* display:inline-flex would override the hidden attribute (used by the
    app-menu button, revealed only inside the Android app). */
 .lyrion-link[hidden] {
@@ -848,7 +863,7 @@ body.in-app .page-header {
 
 .runner-card {
     width: min(420px, 100%);
-    background: #303030;
+    background: var(--surface);
     border: 1px solid #111111;
     border-radius: 16px;
     box-shadow: 0 20px 50px rgba(0, 0, 0, 0.35);
@@ -858,7 +873,7 @@ body.in-app .page-header {
 
 .runner-card p {
     margin: 0;
-    color: #aaaaaa;
+    color: var(--text-muted);
     font-size: var(--fs-sm);
     line-height: 1.5;
 }
@@ -871,7 +886,7 @@ body.in-app .page-header {
     margin-top: 16px;
     border-radius: 14px;
     background: rgba(0, 189, 164, 0.08);
-    color: #e8e8e8;
+    color: var(--text);
     padding: 16px;
     font-weight: 600;
     letter-spacing: 0.02em;
