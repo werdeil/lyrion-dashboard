@@ -128,6 +128,12 @@ var lyricsTried = false;
 var webResult = null;
 
 var lrcLines = null;
+// The .lrc-line elements paralleling lrcLines, cached at build time so the
+// karaoke tick (4×/s) never re-queries the DOM; and the index of the line
+// currently highlighted, so ticks where it hasn't moved skip the DOM
+// entirely — the active line only changes every few seconds.
+var lrcNodes = null;
+var lrcActiveIdx = -1;
 
 // Whether the lyrics box auto-scrolls to keep the karaoke-highlighted line in
 // view. A manual scroll (wheel/touch) pauses it so the user can read ahead or
@@ -339,6 +345,8 @@ function setLyrics(text, isEmpty, keepScroll) {
     el.lyrics.classList.remove('empty', 'lrc-mode');
     el.lyrics.textContent = '';
     lrcLines = null;
+    lrcNodes = null;
+    lrcActiveIdx = -1;
 
     if (!text || isEmpty) {
         el.lyrics.textContent = text || I18N.no_lyrics;
@@ -351,6 +359,7 @@ function setLyrics(text, isEmpty, keepScroll) {
     var parsed = parseLRC(text);
     if (parsed) {
         lrcLines = parsed;
+        lrcNodes = [];
         el.lyrics.classList.add('lrc-mode');
         for (var i = 0; i < parsed.length; i++) {
             var div = document.createElement('div');
@@ -358,6 +367,7 @@ function setLyrics(text, isEmpty, keepScroll) {
             div.dataset.time = parsed[i].time;
             div.textContent = parsed[i].text || '\u00a0';
             el.lyrics.appendChild(div);
+            lrcNodes.push(div);
         }
         // Set the scroll only once the lines exist: setting it before the
         // rebuild let scroll-behavior:smooth cancel the reset mid-animation, so
@@ -379,8 +389,19 @@ function currentTime() {
     return t;
 }
 
-function syncLyrics() {
-    if (!lrcLines || !lrcLines.length) { return; }
+// Repaint one line's classes from its distance to the current active index.
+// Only the handful of lines around the old and new active positions ever
+// change state, so repainting is per-line rather than a full sweep.
+function paintLine(idx) {
+    if (!lrcNodes || idx < 0 || idx >= lrcNodes.length) { return; }
+    lrcNodes[idx].classList.toggle('active', idx === lrcActiveIdx);
+    lrcNodes[idx].classList.toggle('near', Math.abs(idx - lrcActiveIdx) === 1);
+}
+
+// forceScroll re-anchors the view even when the active line hasn't moved —
+// used to snap back after a small manual scroll and by the resume button.
+function syncLyrics(forceScroll) {
+    if (!lrcLines || !lrcNodes || !lrcNodes.length) { return; }
     var t = currentTime();
     var activeIdx = -1;
     for (var i = 0; i < lrcLines.length; i++) {
@@ -391,18 +412,24 @@ function syncLyrics() {
         } else { break; }
     }
 
-    var children = el.lyrics.querySelectorAll('.lrc-line');
-    for (var j = 0; j < children.length; j++) {
-        children[j].classList.remove('active', 'near');
-        if (j === activeIdx) {
-            children[j].classList.add('active');
-        } else if (Math.abs(j - activeIdx) === 1) {
-            children[j].classList.add('near');
-        }
+    if (activeIdx !== lrcActiveIdx) {
+        // The active line only moves every few seconds while this runs four
+        // times a second; when it does move, touch just the lines whose state
+        // changes (old and new active lines and their neighbours) instead of
+        // rewriting every line of the song.
+        var prev = lrcActiveIdx;
+        lrcActiveIdx = activeIdx;
+        paintLine(prev - 1);
+        paintLine(prev);
+        paintLine(prev + 1);
+        paintLine(activeIdx - 1);
+        paintLine(activeIdx);
+        paintLine(activeIdx + 1);
+        forceScroll = true;
     }
 
-    if (activeIdx >= 0 && activeIdx < children.length && autoFollowScroll) {
-        var active = children[activeIdx];
+    if (forceScroll && autoFollowScroll && activeIdx >= 0) {
+        var active = lrcNodes[activeIdx];
         // Anchor the active line around the upper third of the box rather than
         // dead centre, so fewer past lines linger and more upcoming lines show.
         var target = active.offsetTop - el.lyrics.clientHeight / 3 + active.clientHeight / 2;
@@ -635,6 +662,8 @@ function render(data) {
         lastTrackKey = null;
         currentTrack = null;
         lrcLines = null;
+        lrcNodes = null;
+        lrcActiveIdx = -1;
         setAutoFollow(true);
         progress = { time: 0, duration: 0, playing: false, syncedAt: 0 };
         el.progressBar.style.width = '0';
@@ -865,7 +894,7 @@ el.lyrics.addEventListener('wheel', function(e) {
     if (wheelAccum > SCROLL_PAUSE_THRESHOLD) {
         setAutoFollow(false);
     } else {
-        syncLyrics();
+        syncLyrics(true);
     }
 }, { passive: true });
 
@@ -878,14 +907,14 @@ el.lyrics.addEventListener('touchmove', function(e) {
     if (Math.abs(e.touches[0].clientY - touchStartY) > SCROLL_PAUSE_THRESHOLD) {
         setAutoFollow(false);
     } else {
-        syncLyrics();
+        syncLyrics(true);
     }
 }, { passive: true });
 
 if (el.scrollReset) {
     el.scrollReset.addEventListener('click', function() {
         setAutoFollow(true);
-        syncLyrics();
+        syncLyrics(true);
     });
 }
 

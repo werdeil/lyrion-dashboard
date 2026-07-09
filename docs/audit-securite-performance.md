@@ -26,6 +26,10 @@ réseau local.
 | S9 | **Corrigé** — covers plafonnées à 10 Mo, types non-image refusés + tests | voir section |
 | P6 | **Corrigé** — cover principale en vignette 512 px | voir section |
 | P9 | **Corrigé** — garde anti-chevauchement sur le poll | voir section |
+| P3 | **Corrigé** — Session partagée + cache 2 s + dernier-player-d'abord + tests | voir section |
+| P4 | **Corrigé** — `?known=`, lookup paroles au changement de piste seulement + tests | voir section |
+| P5 | **Sans objet** après P2 et P4 — voir la note dans la section | — |
+| P7 | **Corrigé** — karaoké sans re-scan DOM, repaint des seules lignes concernées | voir section |
 | Autres | À traiter | — |
 
 ---
@@ -347,6 +351,12 @@ lignes) cela se sent sur mobile.
 **Recommandation :** mémoriser la NodeList à la construction (`setLyrics`) et
 l'index actif précédent, et ne toucher que les 2-4 lignes dont l'état change.
 
+**Décision (2026-07-09) : corrigé.** Les nœuds sont mémorisés à la
+construction, un tick dont la ligne active n'a pas bougé ne touche plus au DOM
+du tout (comparaison d'entiers), et un changement de ligne ne repeint que les
+lignes concernées. Le re-ancrage du scroll après un petit geste manuel passe
+par un paramètre `forceScroll` explicite pour préserver le comportement.
+
 ### P8 — `pip install` à chaque démarrage du conteneur (basse)
 
 `docker-compose.yml:7-8` installe les dépendances au lancement : démarrage lent,
@@ -393,5 +403,6 @@ sautés tant que la requête précédente n'est pas revenue.
 (mis à jour au fil des corrections — voir le tableau de suivi en tête)
 
 1. ~~S1 (TLS)~~ risque accepté · ~~S3~~ ~~S4~~ ~~S5~~ ~~S7~~ ~~S8~~ ~~S9~~
-   ~~S11~~ ✅ · ~~P1~~ ~~P2~~ ~~P6~~ ~~P9~~ ✅
-2. Le reste (S2 à décider, S6, S10 Android, P3-P5, P7, P8) au fil de l'eau.
+   ~~S11~~ ✅ · ~~P1~~ ~~P2~~ ~~P3~~ ~~P4~~ ~~P6~~ ~~P7~~ ~~P9~~ ✅ ·
+   ~~P5~~ sans objet
+2. Le reste (S2 à décider, S6, S10 Android, P8) au fil de l'eau.
