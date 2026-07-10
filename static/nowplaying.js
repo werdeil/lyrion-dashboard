@@ -53,6 +53,8 @@ var el = {
     empty: document.getElementById('np-empty'),
     emptyMosaic: document.getElementById('np-empty-mosaic'),
     emptyOpen: document.getElementById('np-empty-open'),
+    recent: document.getElementById('np-recent'),
+    recentStack: document.getElementById('np-recent-stack'),
 };
 
 // Web lyrics auto-search is a single on/off switch:
@@ -655,10 +657,143 @@ window.addEventListener('resize', function() {
     mosaicResizeTimer = setTimeout(function() { layoutMosaic(mosaicIds); }, 300);
 });
 
+// Recent plays under the cover (desktop only): the previous albums as a
+// stack of record sleeves the playing cover sits on. Each sleeve shows a
+// slice of its artwork, dimmer the older the listen; hover/focus pulls the
+// full cover out of the pile (pure CSS, see .np-recent-*).
+//
+// Target slice height (px) — how many sleeves fit is measured against it —
+// and the thumbnail size shared by the slice and its 240 CSS px peek.
+var RECENT_SLICE = 44;
+var RECENT_COVER_SIZE = 300;
+var RECENT_MAX = 12;
+// Fewer sleeves than this doesn't read as a pile; hide the block instead.
+var RECENT_MIN = 3;
+
+var recentAlbums = null;   // last /recent-albums.json payload
+var recentKey = null;      // track key the payload was fetched for
+var recentLoading = false;
+
+// Lay the cached albums out as sleeves sized to the space under the cover.
+// Never repeats a cover (unlike the empty-state mosaic, which loops its list
+// to fill the belt): with fewer albums than slots the pile is just shorter,
+// and below RECENT_MIN it hides entirely.
+function renderRecent() {
+    if (!el.recent || !el.recentStack) { return; }
+    var current = currentTrack || {};
+    var seen = {};
+    var albums = [];
+    for (var i = 0; i < (recentAlbums || []).length; i++) {
+        var album = recentAlbums[i];
+        if (!album || !album.artwork || seen[album.artwork]) { continue; }
+        // The album on the big cover heads the play history by definition;
+        // keeping it would duplicate the artwork right above the pile.
+        if (current.coverid && String(album.artwork) === String(current.coverid)) { continue; }
+        if (current.album && album.album === current.album) { continue; }
+        seen[album.artwork] = true;
+        albums.push(album);
+    }
+    // Un-hide before measuring: the stack has no height while display:none.
+    // On layouts without the stack (narrow/short screens, where the CSS keeps
+    // .np-recent display:none) the height reads 0 and we bail back out.
+    el.recent.hidden = !albums.length;
+    el.recentStack.textContent = '';
+    if (!albums.length) { return; }
+    var count = Math.min(
+        Math.floor(el.recentStack.clientHeight / RECENT_SLICE),
+        RECENT_MAX,
+        albums.length
+    );
+    if (count < RECENT_MIN) {
+        el.recent.hidden = true;
+        return;
+    }
+    for (i = 0; i < count; i++) {
+        var band = document.createElement('div');
+        band.className = 'np-recent-band';
+        // Focusable: keyboard (and touch, where a tap focuses) gets the same
+        // pull-out-of-the-pile reveal as the mouse hover.
+        band.tabIndex = 0;
+        band.setAttribute('aria-label', albums[i].album
+            ? albums[i].album + (albums[i].artist ? ' — ' + albums[i].artist : '')
+            : '');
+        var url = '/cover/' + encodeURIComponent(albums[i].artwork) +
+            '.jpg?size=' + RECENT_COVER_SIZE;
+
+        var slice = document.createElement('img');
+        slice.className = 'np-recent-slice';
+        slice.src = url;
+        slice.alt = '';
+        slice.decoding = 'async';
+        // Older sleeves sink into the shadow: full light for the freshest
+        // listen fading towards ~half brightness for the oldest visible one.
+        var age = count > 1 ? i / (count - 1) : 0;
+        slice.style.setProperty('--np-recent-age', (0.95 - 0.5 * age).toFixed(3));
+        slice.style.setProperty('--np-recent-sat', (1 - 0.25 * age).toFixed(3));
+        band.appendChild(slice);
+
+        var peek = document.createElement('div');
+        peek.className = 'np-recent-peek';
+        var full = document.createElement('img');
+        full.src = url;
+        full.alt = '';
+        full.decoding = 'async';
+        peek.appendChild(full);
+        // Text nodes only (never innerHTML), so album metadata can't be
+        // interpreted as markup; same rule as renderStats().
+        var cap = document.createElement('span');
+        cap.className = 'np-recent-cap';
+        var capAlbum = document.createElement('b');
+        capAlbum.textContent = albums[i].album || '';
+        cap.appendChild(capAlbum);
+        var capArtist = document.createElement('span');
+        capArtist.textContent = albums[i].artist || '';
+        cap.appendChild(capArtist);
+        peek.appendChild(cap);
+        band.appendChild(peek);
+
+        el.recentStack.appendChild(band);
+    }
+}
+
+// Fetch the play history for the pile — once per track, since only a track
+// change can reorder it (the album that just finished surfaces on top). On
+// failure recentKey keeps its old value, so the next track change retries.
+function loadRecent() {
+    if (!el.recent || recentLoading || recentKey === lastTrackKey) { return; }
+    recentLoading = true;
+    var key = lastTrackKey;
+    // A few more than the pile can show: the currently playing album is
+    // dropped client-side.
+    fetch('/recent-albums.json?limit=' + (RECENT_MAX + 4))
+        .then(function(r) { return r.json(); })
+        .then(function(albums) {
+            recentLoading = false;
+            recentKey = key;
+            recentAlbums = albums || [];
+            renderRecent();
+        })
+        .catch(function() { recentLoading = false; });
+}
+
+// Re-size the pile to the new space on resize (debounced); reuses the albums
+// already fetched, so no extra network.
+var recentResizeTimer = null;
+window.addEventListener('resize', function() {
+    if (!recentAlbums) { return; }
+    if (recentResizeTimer) { clearTimeout(recentResizeTimer); }
+    recentResizeTimer = setTimeout(renderRecent, 300);
+});
+
 function render(data) {
     if (!data || !data.track_id) {
         nowPlaying.classList.add('is-empty');
         loadMosaic();
+        // Drop the pile's cache: the listens that just ended will reorder it,
+        // so the next playback refetches instead of showing a stale pile.
+        recentAlbums = null;
+        recentKey = null;
+        if (el.recent) { el.recent.hidden = true; }
         el.player.textContent = '';
         el.cover.removeAttribute('src');
         setLyrionLink(null);
@@ -710,6 +845,10 @@ function render(data) {
         el.cover.src = data.artwork_url
             ? '/cover/remote.jpg?t=' + encodeURIComponent(trackKey)
             : '/cover/' + (data.coverid || 0) + '.jpg?size=512';
+        // Refresh the pile of past listens: the album that just finished
+        // belongs on top of it now — and the new track's own album, if it was
+        // in the pile, must come out (renderRecent drops it).
+        loadRecent();
         setLyrics(data.lyrics || I18N.no_lyrics, !data.lyrics);
         setLyricsSource(data.lyrics ? 'library' : null);
         lyricsTried = false;

@@ -262,6 +262,9 @@ np_routes.get_active_now_playing = lambda: dict(SCENARIO["now"])
 np_routes.get_track_lyrics = lambda track_id: SCENARIO["lyrics"]
 np_routes.get_stats = lambda: FAKE_STATS
 np_routes.fetch_cover = lambda coverid, size=None: (COVER_PNGS[coverid], "image/png")
+# No play history in the fake data layer: the recent-plays pile under the
+# cover simply stays hidden in the screenshots (its endpoint must not 500).
+np_routes.get_recent_albums = lambda limit=16: []
 
 
 def _fake_web_lyrics(**_kw):

@@ -1,5 +1,6 @@
-"""Tests for get_recent_album_covers: recently played album covers, deduped,
-ranked by real plays (Alternative Play Count) and ignoring skips."""
+"""Tests for get_recent_albums: recently played albums with their artwork id,
+title and artist for the recent-plays stack — deduped, ranked by real plays
+(Alternative Play Count) and ignoring skips."""
 # The temp-db + Flask-app scaffolding is intentionally the same as in the
 # other database tests; that repetition is what keeps each file standalone.
 # pylint: disable=duplicate-code
@@ -17,18 +18,16 @@ os.environ.setdefault("DB_PERSIST_DIR", tempfile.mkdtemp())
 # pylint: disable=wrong-import-position
 from flask import Flask
 
-from services.database import get_recent_album_covers
+from services.database import get_recent_albums
 
 
-class GetRecentAlbumCoversTest(unittest.TestCase):
+class GetRecentAlbumsTest(unittest.TestCase):
     def setUp(self):
         # Only borrows a unique path from NamedTemporaryFile: the handle is
         # closed right away and the file removed in tearDown (delete=False).
         self.tmp = tempfile.NamedTemporaryFile(suffix=".db", delete=False)  # pylint: disable=consider-using-with
         self.tmp.close()
         conn = sqlite3.connect(self.tmp.name)
-        # Mixed-case APC columns like the real plugin, to confirm the query's
-        # lowercase references still match (SQLite is case-insensitive).
         conn.executescript("""
             CREATE TABLE tracks (id INTEGER, urlmd5 TEXT, audio INTEGER, album INTEGER);
             CREATE TABLE albums (
@@ -38,17 +37,20 @@ class GetRecentAlbumCoversTest(unittest.TestCase):
                 urlmd5 TEXT, playCount INTEGER, lastPlayed INTEGER,
                 skipCount INTEGER, lastSkipped INTEGER);
         """)
+        # Album 3 has no contributor row: the artist must come back as None
+        # (LEFT JOIN) rather than dropping the album from the pile.
         conn.executemany("INSERT INTO albums VALUES (?, ?, ?, ?)", [
-            (1, "ca", "Album A", 100),
-            (2, "cb", "Album B", 100),
-            (3, "cc", "Album C", None),
-            (4, "cd", "Album D", 100),
-            (5, None, "Album E", 100),
+            (1, "ca", "Marées", 100),
+            (2, "cb", "Signaux", 200),
+            (3, "cc", "Solstice", None),
+            (4, "cd", "Skipped Only", 100),
+            (5, None, "No Artwork", 200),
         ])
-        conn.execute("INSERT INTO contributors VALUES (100, 'Artist X')")
+        conn.executemany("INSERT INTO contributors VALUES (?, ?)",
+                         [(100, "Nova Ondine"), (200, "Les Halogènes")])
         # Album 1: two played tracks (latest play 500). Album 2 played (400),
-        # album 3 played (300). Album 4: only skipped (playcount 0) but skipped
-        # very recently — must be excluded. Album 5: played but no artwork.
+        # album 3 played (300). Album 4: only skipped (playcount 0). Album 5:
+        # played but no artwork.
         conn.executemany("INSERT INTO tracks VALUES (?, ?, 1, ?)", [
             (10, "m1a", 1),
             (11, "m1b", 1),
@@ -76,19 +78,21 @@ class GetRecentAlbumCoversTest(unittest.TestCase):
     def tearDown(self):
         os.unlink(self.tmp.name)
 
-    def test_ranks_by_real_play_dedupes_and_ignores_skips(self):
+    def test_metadata_order_and_dedupe(self):
         with self.app.app_context():
-            covers = get_recent_album_covers()
-        # Album 1 (last real play 500) > album 2 (400) > album 3 (300); album 1
-        # appears once despite two tracks, and its later skip at 700 does not
-        # promote it further. Album 4 (skip-only) and album 5 (no artwork) are
-        # both excluded.
-        self.assertEqual(covers, ["ca", "cb", "cc"])
+            albums = get_recent_albums()
+        # Newest real play first; album 1 appears once despite two played
+        # tracks; skip-only album 4 and artwork-less album 5 are excluded.
+        self.assertEqual(albums, [
+            {"artwork": "ca", "album": "Marées", "artist": "Nova Ondine"},
+            {"artwork": "cb", "album": "Signaux", "artist": "Les Halogènes"},
+            {"artwork": "cc", "album": "Solstice", "artist": None},
+        ])
 
     def test_limit(self):
         with self.app.app_context():
-            covers = get_recent_album_covers(limit=2)
-        self.assertEqual(covers, ["ca", "cb"])
+            albums = get_recent_albums(limit=1)
+        self.assertEqual([a["artwork"] for a in albums], ["ca"])
 
     def test_no_plays(self):
         conn = sqlite3.connect(self.tmp.name)
@@ -96,7 +100,7 @@ class GetRecentAlbumCoversTest(unittest.TestCase):
         conn.commit()
         conn.close()
         with self.app.app_context():
-            self.assertEqual(get_recent_album_covers(), [])
+            self.assertEqual(get_recent_albums(), [])
 
 
 if __name__ == "__main__":

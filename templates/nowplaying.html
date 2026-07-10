@@ -32,9 +32,19 @@
 
         <div class="left-panel">
             <div class="now-playing is-empty" id="now-playing">
-                <div class="np-cover">
-                    <img id="np-cover-img" alt="{{ t.cover_alt }}"
-                         data-fallback="{{ url_for('static', filename='no-cover.svg') }}">
+                <div class="np-side">
+                    <div class="np-cover">
+                        <img id="np-cover-img" alt="{{ t.cover_alt }}"
+                             data-fallback="{{ url_for('static', filename='no-cover.svg') }}">
+                    </div>
+                    {# Recent plays as a stack of record sleeves the cover sits
+                       on (desktop only, see CSS): each slice is a previously
+                       played album, hover/focus pulls it out of the pile.
+                       Filled by JS from /recent-albums.json. #}
+                    <div class="np-recent" id="np-recent" hidden>
+                        <div class="np-recent-stack" id="np-recent-stack"></div>
+                        <p class="np-recent-label">{{ t.recent_plays }}</p>
+                    </div>
                 </div>
                 <div class="np-meta">
                     {# The player name doubles as the "open Lyrion" link on
