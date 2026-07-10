@@ -75,7 +75,7 @@ jobs:
         run: pip-audit
 
       # Known, accepted findings carry an inline `# nosec` with justification
-      # (see docs/audit-securite-performance.md); anything new fails the job.
+      # (see the security audit in PR #15); anything new fails the job.
       - name: Scan code for dangerous patterns (bandit)
         run: bandit -r . -x ./tests
 

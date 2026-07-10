@@ -6,7 +6,7 @@ beautifulsoup4==4.15.0
 
 # Transitive dependencies, pinned so a container recreation installs the exact
 # same tree as the last known-good one (the compose file installs at container
-# start — an assumed choice, see audit P8). Kept current by Dependabot.
+# start — an assumed choice, see audit P8 in PR #15). Kept current by Dependabot.
 blinker==1.9.0
 certifi==2026.6.17
 charset-normalizer==3.4.9

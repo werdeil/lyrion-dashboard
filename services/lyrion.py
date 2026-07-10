@@ -44,7 +44,7 @@ def _read_image(r):
 def lyrion_request(payload):
     host = current_app.config["LYRION_HOST"]
     # TLS verification is off for the self-signed local Lyrion; audit S1
-    # (docs/audit-securite-performance.md) documents this accepted risk.
+    # (security audit in PR #15) documents this accepted risk.
     r = _session.post(
         f"{host}/jsonrpc.js",
         json=payload,

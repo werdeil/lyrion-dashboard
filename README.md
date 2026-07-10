@@ -122,7 +122,7 @@ library statistics and download everything under `CUSTOM_DATA_DIR`
   such as WireGuard or Tailscale keeps it LAN-only while your devices connect
   from anywhere.
 - The full security & performance review lives in
-  [`docs/audit-securite-performance.md`](docs/audit-securite-performance.md).
+  [PR #15](https://github.com/werdeil/lyrion-dashboard/pull/15).
 
 ## Endpoints
 

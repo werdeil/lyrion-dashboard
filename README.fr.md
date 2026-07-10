@@ -122,8 +122,8 @@ bibliothèque et télécharger tout le contenu de `CUSTOM_DATA_DIR`
 - Pour l'accès distant, rejoignez le LAN plutôt que d'ouvrir le dashboard :
   un VPN type WireGuard ou Tailscale le garde "LAN only" pendant que vos
   appareils s'y connectent d'où vous voulez.
-- La revue complète sécurité & performance est dans
-  [`docs/audit-securite-performance.md`](docs/audit-securite-performance.md).
+- La revue complète sécurité & performance est dans la
+  [PR #15](https://github.com/werdeil/lyrion-dashboard/pull/15).
 
 ## Endpoints
 
