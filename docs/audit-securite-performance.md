@@ -32,6 +32,7 @@ réseau local.
 | P5 | **Sans objet** après P2 et P4 — voir la note dans la section | — |
 | P7 | **Corrigé** — karaoké sans re-scan DOM, repaint des seules lignes concernées | voir section |
 | S6 | **Corrigé** — `/files/` servi sous `CSP: sandbox` + tests | voir section |
+| S10 | **Corrigé (parseUri)** — component/selector annulés ; cleartext et allowBackup acceptés | voir section |
 | Autres | À traiter | — |
 
 ---
@@ -216,6 +217,15 @@ fallback pochette cassée du front prend le relais sur un 502.
   `intent.selector = null` avant `startActivity`.
 - `android:allowBackup="true"` : l'URL du serveur part dans les sauvegardes ;
   acceptable, mais à désactiver si l'on veut être strict.
+
+**Décision (2026-07-09) : durcissement `Intent.parseUri` corrigé, le reste
+accepté.** `component` et `selector` sont annulés avant `startActivity`, si
+bien qu'un `intent://` forgé ne peut plus cibler un composant explicite — la
+résolution repasse par le circuit implicite + BROWSABLE (les liens `package=`
+du deep link Material fonctionnent à l'identique). Le trafic en clair est le
+mode de fonctionnement assumé de l'app (dashboard HTTP sur LAN, cohérent avec
+S1/S2) et `allowBackup` ne protège qu'une URL LAN au prix de la restauration
+des réglages : tous deux risques acceptés.
 
 ### S11 — Chaîne d'approvisionnement / CI (basse)
 
@@ -422,6 +432,6 @@ sautés tant que la requête précédente n'est pas revenue.
 (mis à jour au fil des corrections — voir le tableau de suivi en tête)
 
 1. ~~S1~~ ~~S2~~ risques acceptés · ~~S3~~ ~~S4~~ ~~S5~~ ~~S6~~ ~~S7~~ ~~S8~~
-   ~~S9~~ ~~S11~~ ✅ · ~~P1~~ ~~P2~~ ~~P3~~ ~~P4~~ ~~P6~~ ~~P7~~ ~~P9~~ ✅ ·
-   ~~P5~~ sans objet
-2. Le reste (S10 Android, P8) au fil de l'eau.
+   ~~S9~~ ~~S10~~ ~~S11~~ ✅ · ~~P1~~ ~~P2~~ ~~P3~~ ~~P4~~ ~~P6~~ ~~P7~~
+   ~~P9~~ ✅ · ~~P5~~ sans objet
+2. Reste P8 (Dockerfile) au fil de l'eau.
