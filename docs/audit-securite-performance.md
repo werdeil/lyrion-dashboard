@@ -33,7 +33,11 @@ réseau local.
 | P7 | **Corrigé** — karaoké sans re-scan DOM, repaint des seules lignes concernées | voir section |
 | S6 | **Corrigé** — `/files/` servi sous `CSP: sandbox` + tests | voir section |
 | S10 | **Corrigé (parseUri)** — component/selector annulés ; cleartext et allowBackup acceptés | voir section |
-| Autres | À traiter | — |
+| P8 | **Choix assumé** (WUD supervise l'image de base) — arbre de dépendances épinglé en mitigation | voir section |
+
+Les 20 points de l'audit sont traités : 14 corrigés, 4 risques acceptés
+documentés (S1, S2, P8, et les volets cleartext/backup de S10), 1 sans objet
+(P5).
 
 ---
 
@@ -396,6 +400,20 @@ boucler hors-ligne), et surface supply-chain au runtime (cf. S11).
 dépendances) et pointer le compose dessus ; le mode dev peut garder le montage
 du code.
 
+**Décision (2026-07-09) : choix assumé de ne pas construire d'image,
+documenté et mitigé.** Raisons : (a) pas de maintenance de release/hub à long
+terme ; (b) le parc Docker est supervisé par WUD, qui surveille l'image de
+base `python:3.12-slim` sur son registre comme le reste de la flotte — une
+image construite localement n'aurait aucun registre à surveiller et
+deviendrait un cas particulier ; (c) le rituel de mise à jour reste
+`git pull` + restart, sans étape de build. Le risque de panne au redémarrage
+était par ailleurs surestimé : `restart` relance le même conteneur, dont les
+paquets déjà installés persistent — `pip install` conclut hors-ligne
+("already satisfied") ; seule une *recréation* du conteneur retélécharge.
+L'exposition restante (dérive des versions transitives au jour de
+recréation) est fermée en épinglant l'arbre complet dans requirements.txt,
+maintenu par Dependabot.
+
 ### P9 — Polls front sans garde de chevauchement (info)
 
 `poll()` est déclenché toutes les 5 s sans vérifier qu'un appel est déjà en vol
@@ -429,9 +447,6 @@ sautés tant que la requête précédente n'est pas revenue.
 
 ## 4. Priorités suggérées
 
-(mis à jour au fil des corrections — voir le tableau de suivi en tête)
-
-1. ~~S1~~ ~~S2~~ risques acceptés · ~~S3~~ ~~S4~~ ~~S5~~ ~~S6~~ ~~S7~~ ~~S8~~
-   ~~S9~~ ~~S10~~ ~~S11~~ ✅ · ~~P1~~ ~~P2~~ ~~P3~~ ~~P4~~ ~~P6~~ ~~P7~~
-   ~~P9~~ ✅ · ~~P5~~ sans objet
-2. Reste P8 (Dockerfile) au fil de l'eau.
+Plus aucune : les 20 points sont traités (voir le tableau de suivi en tête).
+Chaque section porte sa décision datée — corrigé, risque accepté ou sans
+objet — avec sa justification.
