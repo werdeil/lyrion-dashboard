@@ -629,8 +629,6 @@ function loadMosaic() {
             mosaicLoading = false;
             mosaicLoaded = true;
             if (!ids || !ids.length) { return; }
-            // Same covers as already on screen (nothing new was played since
-            // the last fetch): keep the belt rolling instead of rebuilding it.
             if (!mosaicIds || mosaicIds.join('|') !== ids.join('|')) {
                 mosaicIds = ids;
                 layoutMosaic(ids);
@@ -677,9 +675,6 @@ function render(data) {
     }
 
     nowPlaying.classList.remove('is-empty');
-    // Playback is (re)writing the play history the mosaic is built from, so
-    // drop the loaded flag: when the playlist ends and the empty state comes
-    // back, the covers are re-fetched to include what was just played.
     mosaicLoaded = false;
 
     progress = {
