@@ -35,9 +35,9 @@ réseau local.
 | S10 | **Corrigé (parseUri)** — component/selector annulés ; cleartext et allowBackup acceptés | voir section |
 | P8 | **Choix assumé** (WUD supervise l'image de base) — arbre de dépendances épinglé en mitigation | voir section |
 
-Les 20 points de l'audit sont traités : 14 corrigés, 4 risques acceptés
-documentés (S1, S2, P8, et les volets cleartext/backup de S10), 1 sans objet
-(P5).
+Les 20 points de l'audit sont traités : 16 corrigés (dont S10, partiellement),
+3 risques acceptés documentés (S1, S2, P8 — plus les volets cleartext/backup
+de S10), 1 sans objet (P5).
 
 ---
 
