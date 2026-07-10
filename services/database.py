@@ -1,6 +1,6 @@
+import time
 import sqlite3
 import threading
-import time
 from contextlib import contextmanager
 
 from flask import current_app

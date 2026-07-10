@@ -50,13 +50,9 @@ LRCLIB_TIMEOUT = int(os.getenv("LRCLIB_TIMEOUT", "15"))
 # for libraries whose durations are noisy.
 VERIFY_DURATION_TOLERANCE = int(os.getenv("LYRICS_VERIFY_DURATION_TOLERANCE", "3"))
 
-# The cache key includes client-supplied artist/title (see fetch_lyrics), so
-# left unbounded a client could grow the process's memory without limit just by
-# varying the query. Cap the entry count, evicting least-recently-used first.
+# The cache key includes client-supplied fields, so the cache must stay bounded.
 CACHE_MAX_ENTRIES = 1000
-
-# Metadata fields longer than this are garbage (no real track has them), so
-# they are refused outright rather than cached or forwarded to providers.
+# Metadata fields longer than this are refused.
 MAX_FIELD_LEN = 512
 
 _cache = OrderedDict()
@@ -77,9 +73,6 @@ def _cache_get(key):
 def _cache_set(key, value, ttl):
     with _cache_lock:
         now = time.time()
-        # Expired entries are otherwise only dropped when their own key is
-        # looked up again; sweep them here so keys never asked for twice don't
-        # linger forever.
         for expired in [k for k, e in _cache.items() if e["expires_at"] <= now]:
             del _cache[expired]
         _cache.pop(key, None)

@@ -195,12 +195,6 @@ class MainActivity : AppCompatActivity() {
             if (url.startsWith("intent:")) {
                 val intent = Intent.parseUri(url, Intent.URI_INTENT_SCHEME)
                 intent.addCategory(Intent.CATEGORY_BROWSABLE)
-                // BROWSABLE alone is not enough: an intent: URI can embed an
-                // explicit component=, and explicit intents skip category
-                // matching entirely. Strip component and selector so the
-                // intent must resolve implicitly, through browsable targets
-                // only (package= hints, as used by the Material deep link,
-                // still apply).
                 intent.component = null
                 intent.selector = null
                 try {

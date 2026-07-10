@@ -7,15 +7,10 @@ from flask import abort, current_app
 
 urllib3.disable_warnings()
 
-# One shared Session so upstream requests reuse their TCP connections instead
-# of re-opening one per call — the now-playing poll alone makes 1+N requests
-# per enumeration, and the mosaic fetches dozens of covers in a burst.
+# Shared Session so upstream requests reuse their TCP connections.
 _session = requests.Session()
 
-# A cover is buffered fully in memory before being re-served, so cap what we
-# accept. And only actual images are relayed: artwork_url for remote streams
-# points at third-party servers, and blindly proxying e.g. text/html onto our
-# origin would hand such a server a scripting foothold on the dashboard.
+# Covers are buffered whole in memory before being re-served; cap what we accept.
 COVER_MAX_BYTES = 10 * 1024 * 1024
 
 
@@ -147,11 +142,8 @@ def get_now_playing(player_id):
     }
 
 
-# Resolving the active player costs 1+N upstream requests with N players, and
-# every client polls every 5s — so the result is cached briefly and shared
-# across clients (single flight, like get_stats). The remembered last playing
-# player lets the steady state skip the enumeration entirely: it is almost
-# always still the one playing, so most refreshes are a single status query.
+# Now-playing snapshot shared across clients, so Lyrion sees one enumeration
+# per TTL instead of 1+N requests per poll per client.
 NOW_PLAYING_TTL = 2
 
 _now_cache = {"value": None, "fetched_at": 0, "expires_at": 0}

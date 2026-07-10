@@ -15,17 +15,10 @@ from i18n import pick_lang, TRANSLATIONS
 
 nowplaying_bp = Blueprint("nowplaying", __name__)
 
-# Lyrion coverids are numeric track ids or hex hashes. The id is spliced into
-# the upstream URL (/music/<coverid>/cover.jpg), so anything else — "..",
-# encoded slashes — could steer the proxy to other Lyrion endpoints.
+# Coverids are numeric ids or hex hashes; anything else must not reach the upstream URL.
 COVERID_RE = re.compile(r"[0-9a-fA-F]+")
 
-# /lyrics.json triggers outbound requests to third-party lyrics services from
-# our IP; a runaway client (hostile or just buggy) could get that IP banned.
-# Normal use is one search per track change, far below these fuses:
-# - per client, at most 10 searches per minute (429 beyond);
-# - a forced refresh (?refresh=1, bypasses the cache) is honoured per track at
-#   most every 30 s — beyond that it degrades to a normal cached lookup.
+# Fuses for the outbound lyrics searches: per-IP rate limit, per-track cooldown on refresh=1.
 LYRICS_RATE = RateLimiter(limit=10, window=60)
 REFRESH_COOLDOWN = Cooldown(interval=30)
 

@@ -33,8 +33,6 @@
         <div class="left-panel">
             <div class="now-playing is-empty" id="now-playing">
                 <div class="np-cover">
-                    {# The broken-cover fallback is wired in nowplaying.js
-                       (an inline onerror would violate the CSP). #}
                     <img id="np-cover-img" alt="{{ t.cover_alt }}"
                          data-fallback="{{ url_for('static', filename='no-cover.svg') }}">
                 </div>
