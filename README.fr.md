@@ -100,7 +100,6 @@ L'application est accessible sur `http://localhost:1111`.
 | `LYRION_HOST` | URL du serveur Lyrion (ex: `https://lyrion.local:9000`) | -- |
 | `DB_DIR` | Répertoire contenant `library.db` de Lyrion | -- |
 | `DB_PERSIST_DIR` | Répertoire contenant `persist.db` de Lyrion | -- |
-| `SECRET_KEY` | Clé secrète Flask | `supersecretkey` |
 | `CUSTOM_DATA_DIR` | Répertoire des fichiers générés | `/opt/scripts/custom_data` |
 | `HOST` | Adresse d'écoute | `0.0.0.0` |
 | `PORT` | Port d'écoute | `1111` |
@@ -108,6 +107,23 @@ L'application est accessible sur `http://localhost:1111`.
 | `MUSIXMATCH_TOKEN` | Jeton Musixmatch fixe (sinon récupéré automatiquement) | -- |
 | `LRCLIB_TIMEOUT` | Délai d'expiration des requêtes LRCLIB, en secondes | `15` |
 | `LYRICS_VERIFY_DURATION_TOLERANCE` | Écart max (secondes) toléré par `--verify` dans `embed_lyrics.py` | `3` |
+
+## Sécurité
+
+Le dashboard n'a **pas d'authentification, par conception** : c'est un
+affichage permanent consultable d'un coup d'œil, pensé pour un **LAN
+domestique de confiance**. Quiconque peut joindre le port peut voir ce qui
+joue en temps réel (information de présence), lire les statistiques de la
+bibliothèque et télécharger tout le contenu de `CUSTOM_DATA_DIR`
+(`/files/`).
+
+- Ne jamais exposer le port directement sur Internet (pas de redirection de
+  port, pas de reverse proxy public).
+- Pour l'accès distant, rejoignez le LAN plutôt que d'ouvrir le dashboard :
+  un VPN type WireGuard ou Tailscale le garde "LAN only" pendant que vos
+  appareils s'y connectent d'où vous voulez.
+- La revue complète sécurité & performance est dans la
+  [PR #15](https://github.com/werdeil/lyrion-dashboard/pull/15).
 
 ## Endpoints
 

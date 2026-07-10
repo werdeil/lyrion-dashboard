@@ -1,0 +1,19 @@
+# Opens PRs automatically when dependency updates (security fixes included)
+# are available. Complements the pip-audit CI job, which flags known CVEs in
+# the pinned versions on every push.
+version: 2
+updates:
+  - package-ecosystem: "pip"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+
+  - package-ecosystem: "gradle"
+    directory: "/android"
+    schedule:
+      interval: "weekly"

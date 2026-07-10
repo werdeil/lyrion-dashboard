@@ -5,14 +5,13 @@ services:
     restart: unless-stopped
     working_dir: /app
     command: >
-      sh -c "pip install --no-cache-dir -r requirements.txt && gunicorn -w 1 --threads 4 -b 0.0.0.0:1111 app:app --access-logfile - --error-logfile - --log-level info"
+      sh -c "pip install --no-cache-dir -r requirements.txt && gunicorn -w 1 --threads 8 -b 0.0.0.0:1111 app:app --access-logfile - --error-logfile - --log-level info"
     ports:
       - "1111:1111"
     environment:
       - LYRION_HOST=${LYRION_HOST}
       - DB_DIR=${DB_DIR}
       - DB_PERSIST_DIR=${DB_PERSIST_DIR}
-      - SECRET_KEY=${SECRET_KEY:-supersecretkey}
       - CUSTOM_DATA_DIR=${CUSTOM_DATA_DIR:-/opt/scripts/custom_data}
       - LYRICS_PROVIDERS=${LYRICS_PROVIDERS:-lrclib,musixmatch,genius}
       - MUSIXMATCH_TOKEN=${MUSIXMATCH_TOKEN:-}

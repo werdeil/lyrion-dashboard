@@ -13,6 +13,17 @@ def create_app():
     def healthcheck():
         return {"status": "ok"}, 200
 
+    @flask_app.after_request
+    def set_security_headers(response):
+        # Everything the page needs is same-origin, so a tight CSP costs
+        # nothing; nosniff stops the browser from second-guessing content
+        # types (which matters for whatever lands in /files/), and the frame
+        # header keeps the dashboard out of third-party iframes.
+        response.headers.setdefault("Content-Security-Policy", "default-src 'self'")
+        response.headers.setdefault("X-Content-Type-Options", "nosniff")
+        response.headers.setdefault("X-Frame-Options", "SAMEORIGIN")
+        return response
+
     flask_app.register_blueprint(nowplaying_bp)
     flask_app.register_blueprint(custom_bp)
 

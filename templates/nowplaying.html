@@ -34,7 +34,7 @@
             <div class="now-playing is-empty" id="now-playing">
                 <div class="np-cover">
                     <img id="np-cover-img" alt="{{ t.cover_alt }}"
-                         onerror="this.src='{{ url_for('static', filename='no-cover.svg') }}'">
+                         data-fallback="{{ url_for('static', filename='no-cover.svg') }}">
                 </div>
                 <div class="np-meta">
                     {# The player name doubles as the "open Lyrion" link on

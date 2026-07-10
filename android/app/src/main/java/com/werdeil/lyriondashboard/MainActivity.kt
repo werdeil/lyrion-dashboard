@@ -195,6 +195,8 @@ class MainActivity : AppCompatActivity() {
             if (url.startsWith("intent:")) {
                 val intent = Intent.parseUri(url, Intent.URI_INTENT_SCHEME)
                 intent.addCategory(Intent.CATEGORY_BROWSABLE)
+                intent.component = null
+                intent.selector = null
                 try {
                     startActivity(intent)
                 } catch (e: ActivityNotFoundException) {

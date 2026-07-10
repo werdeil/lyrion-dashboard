@@ -1,3 +1,5 @@
+import re
+
 from flask import Blueprint, render_template, current_app, jsonify, request, Response, abort
 
 from services.lyrion import get_active_now_playing, fetch_cover, fetch_remote_cover
@@ -8,9 +10,17 @@ from services.database import (
     get_recent_album_covers,
 )
 from services.lyrics import fetch_lyrics
+from services.ratelimit import RateLimiter, Cooldown
 from i18n import pick_lang, TRANSLATIONS
 
 nowplaying_bp = Blueprint("nowplaying", __name__)
+
+# Coverids are numeric ids or hex hashes; anything else must not reach the upstream URL.
+COVERID_RE = re.compile(r"[0-9a-fA-F]+")
+
+# Fuses for the outbound lyrics searches: per-IP rate limit, per-track cooldown on refresh=1.
+LYRICS_RATE = RateLimiter(limit=10, window=60)
+REFRESH_COOLDOWN = Cooldown(interval=30)
 
 
 @nowplaying_bp.route("/")
@@ -28,9 +38,21 @@ def index():
 
 @nowplaying_bp.route("/now-playing.json")
 def now_playing_json():
-    """Live state of whichever player is currently playing, polled by the page."""
+    """Live state of whichever player is currently playing, polled by the page.
+
+    The page passes ?known=<track key> — the id|title|artist|album key of the
+    track it already displays (the same key render() dedupes on). Lyrics are
+    only looked up and included when the playing track differs from it, so the
+    steady-state poll skips the database entirely; the page only reads lyrics
+    on a track change anyway.
+    """
     now = get_active_now_playing()
-    now["lyrics"] = get_track_lyrics(now.get("track_id"))
+    track_key = "|".join(
+        str(now.get(f)) if now.get(f) is not None else ""
+        for f in ("track_id", "title", "artist", "album")
+    )
+    if request.args.get("known") != track_key:
+        now["lyrics"] = get_track_lyrics(now.get("track_id"))
     return jsonify(now)
 
 
@@ -41,6 +63,8 @@ def cover(coverid):
 
     ?size=N asks Lyrion for an NxN thumbnail instead of the full artwork; the
     mosaic uses it to load its many blurred covers cheaply."""
+    if not COVERID_RE.fullmatch(coverid):
+        abort(404)
     size = request.args.get("size", type=int)
     if size is not None:
         size = min(max(size, 16), 512)
@@ -104,14 +128,24 @@ def lyrics_json():
 
     The page calls this only when the local library has no lyrics, passing the
     metadata it already displays so we avoid re-querying Lyrion. Results are
-    cached in-memory by services.lyrics, so repeated clicks are cheap.
+    cached in-memory by services.lyrics, so repeated clicks are cheap. Rate
+    limited (see LYRICS_RATE / REFRESH_COOLDOWN above) because every cache
+    miss fans out to third-party services from our IP.
     """
+    if not LYRICS_RATE.allow(request.remote_addr or "unknown"):
+        abort(429)
+    force = request.args.get("refresh") == "1"
+    if force:
+        track_key = "|".join(
+            request.args.get(f) or "" for f in ("track_id", "artist", "title")
+        )
+        force = REFRESH_COOLDOWN.allow(track_key)
     result = fetch_lyrics(
         track_id=request.args.get("track_id"),
         artist=request.args.get("artist"),
         title=request.args.get("title"),
         album=request.args.get("album"),
         duration=request.args.get("duration"),
-        force=request.args.get("refresh") == "1",
+        force=force,
     )
     return jsonify(result)

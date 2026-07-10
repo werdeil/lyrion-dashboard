@@ -1,13 +1,46 @@
+import threading
+import time
+
 import requests
 import urllib3
-from flask import current_app
+from flask import abort, current_app
 
 urllib3.disable_warnings()
+
+# Shared Session so upstream requests reuse their TCP connections.
+_session = requests.Session()
+
+# Covers are buffered whole in memory before being re-served; cap what we accept.
+COVER_MAX_BYTES = 10 * 1024 * 1024
+
+
+def _read_image(r):
+    """Buffer a streamed cover response, returning (content, content_type).
+
+    Aborts with 502 on oversized or non-image payloads; the page's broken
+    cover fallback takes over from there."""
+    r.raise_for_status()
+    content_type = (r.headers.get("Content-Type") or "image/jpeg").lower()
+    if content_type.startswith("application/octet-stream"):
+        # Some radio/plugin servers are sloppy about image types; the payload
+        # only ever lands in an <img>, so relay it as a generic image.
+        content_type = "image/jpeg"
+    if not content_type.startswith("image/"):
+        abort(502)
+    chunks, total = [], 0
+    for chunk in r.iter_content(64 * 1024):
+        chunks.append(chunk)
+        total += len(chunk)
+        if total > COVER_MAX_BYTES:
+            abort(502)
+    return b"".join(chunks), content_type
 
 
 def lyrion_request(payload):
     host = current_app.config["LYRION_HOST"]
-    r = requests.post(
+    # TLS verification is off for the self-signed local Lyrion; audit S1
+    # (security audit in PR #15) documents this accepted risk.
+    r = _session.post(
         f"{host}/jsonrpc.js",
         json=payload,
         verify=False,
@@ -32,11 +65,12 @@ def fetch_cover(coverid, size=None):
     """
     host = current_app.config["LYRION_HOST"]
     name = f"cover_{size}x{size}_o.jpg" if size else "cover.jpg"
-    r = requests.get(f"{host}/music/{coverid}/{name}", verify=False, timeout=5)
+    # verify=False for the self-signed local Lyrion — see audit S1.
+    r = _session.get(f"{host}/music/{coverid}/{name}", verify=False, timeout=5, stream=True)
     if size and r.status_code == 404:
-        r = requests.get(f"{host}/music/{coverid}/cover.jpg", verify=False, timeout=5)
-    r.raise_for_status()
-    return r.content, r.headers.get("Content-Type", "image/jpeg")
+        r.close()
+        r = _session.get(f"{host}/music/{coverid}/cover.jpg", verify=False, timeout=5, stream=True)
+    return _read_image(r)
 
 
 def fetch_remote_cover(url):
@@ -44,9 +78,8 @@ def fetch_remote_cover(url):
     icons, etc.) so the page can serve it same-origin, same reasoning as
     fetch_cover. These are public CDN URLs, not the local Lyrion host, so
     certificate verification stays on."""
-    r = requests.get(url, timeout=5)
-    r.raise_for_status()
-    return r.content, r.headers.get("Content-Type", "image/jpeg")
+    r = _session.get(url, timeout=5, stream=True)
+    return _read_image(r)
 
 
 def get_players():
@@ -109,26 +142,71 @@ def get_now_playing(player_id):
     }
 
 
+# Now-playing snapshot shared across clients, so Lyrion sees one enumeration
+# per TTL instead of 1+N requests per poll per client.
+NOW_PLAYING_TTL = 2
+
+_now_cache = {"value": None, "fetched_at": 0, "expires_at": 0}
+_now_lock = threading.Lock()
+_last_player = {"id": None, "name": None}
+
+
 def get_active_now_playing():
-    """Now-playing state of the player that is currently playing.
+    """Now-playing state of the player that is currently playing, cached for
+    NOW_PLAYING_TTL seconds (see above).
+
+    The cached playback position is aged by the wall time elapsed since the
+    value was fetched, so the progress bar and karaoke highlight stay accurate
+    even when several clients share one cached snapshot.
+    """
+    with _now_lock:
+        now_ts = time.time()
+        if _now_cache["value"] is None or _now_cache["expires_at"] <= now_ts:
+            _now_cache["value"] = _query_active_now_playing()
+            _now_cache["fetched_at"] = time.time()
+            _now_cache["expires_at"] = _now_cache["fetched_at"] + NOW_PLAYING_TTL
+        result = dict(_now_cache["value"])
+        age = time.time() - _now_cache["fetched_at"]
+    if result.get("playing") and result.get("time") is not None:
+        result["time"] += age
+    return result
+
+
+def _query_active_now_playing():
+    """Ask Lyrion which player is playing, and what.
 
     Lyrion has no single call returning the transport state of every player,
     so we enumerate players and query `status` on each, returning the first one
-    whose mode is 'play'. If none is actually playing, we return a not-playing
-    payload so the page shows its empty state — a paused/stopped player with a
-    track still loaded is deliberately not surfaced.
+    whose mode is 'play' — except that the player found playing last time is
+    tried first, skipping the enumeration while it keeps playing. If none is
+    actually playing, we return a not-playing payload so the page shows its
+    empty state — a paused/stopped player with a track still loaded is
+    deliberately not surfaced.
     """
+    if _last_player["id"]:
+        now = get_now_playing(_last_player["id"])
+        if now.get("playing") and now.get("track_id"):
+            now["player_name"] = _last_player["name"]
+            now["player_id"] = _last_player["id"]
+            return now
+
     for player in get_players():
         player_id = player.get("playerid")
-        if not player_id:
+        if not player_id or player_id == _last_player["id"]:
             continue
 
         now = get_now_playing(player_id)
         if now.get("playing") and now.get("track_id"):
+            _last_player["id"] = player_id
+            _last_player["name"] = player.get("name")
             now["player_name"] = player.get("name")
             # Exposed so the page can deep-link the "open Lyrion" button to the
             # Material skin focused on this very player (?player=<id>).
             now["player_id"] = player_id
             return now
 
+    # Nothing playing: drop the shortcut so the next refresh goes straight to
+    # the enumeration instead of probing a player known to be idle.
+    _last_player["id"] = None
+    _last_player["name"] = None
     return {"playing": False, "mode": "stop", "player_name": None}

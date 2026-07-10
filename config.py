@@ -2,8 +2,6 @@ import os
 
 
 class Config:
-    SECRET_KEY = os.getenv("SECRET_KEY", "supersecretkey")
-
     # Lyrion Music Server
     LYRION_HOST = os.getenv("LYRION_HOST")
 
@@ -15,7 +13,8 @@ class Config:
     CUSTOM_DATA_DIR = os.getenv("CUSTOM_DATA_DIR", "/opt/scripts/custom_data")
 
     # Server
-    HOST = os.getenv("HOST", "0.0.0.0")
+    # Binds all interfaces on purpose (Docker); set HOST to bind narrower.
+    HOST = os.getenv("HOST", "0.0.0.0")  # nosec
     PORT = int(os.getenv("PORT", "1111"))
 
     # Development helpers: when DEV=1, Jinja re-reads templates from disk on
