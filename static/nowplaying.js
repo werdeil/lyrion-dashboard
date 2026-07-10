@@ -605,8 +605,10 @@ function layoutMosaic(ids) {
     }
 }
 
-// Fill the empty-state background with random covers from the library, once
-// per page load (the selection is random anyway, no point refreshing it).
+// Fill the empty-state background with the most recently played covers.
+// Fetched when the empty state shows and invalidated while something plays
+// (see render()): playback changes what "recently played" means, so a mosaic
+// kept from page load would miss the very listens that just ended.
 // On failure the guard resets so the next poll retries; without covers the
 // empty state simply stays as plain text, same as before.
 var mosaicLoading = false;
@@ -627,8 +629,12 @@ function loadMosaic() {
             mosaicLoading = false;
             mosaicLoaded = true;
             if (!ids || !ids.length) { return; }
-            mosaicIds = ids;
-            layoutMosaic(ids);
+            // Same covers as already on screen (nothing new was played since
+            // the last fetch): keep the belt rolling instead of rebuilding it.
+            if (!mosaicIds || mosaicIds.join('|') !== ids.join('|')) {
+                mosaicIds = ids;
+                layoutMosaic(ids);
+            }
             if (el.empty) { el.empty.classList.add('has-mosaic'); }
             // Honour reduced-motion: lay the belt out but leave it still.
             var reduce = window.matchMedia &&
@@ -671,6 +677,10 @@ function render(data) {
     }
 
     nowPlaying.classList.remove('is-empty');
+    // Playback is (re)writing the play history the mosaic is built from, so
+    // drop the loaded flag: when the playlist ends and the empty state comes
+    // back, the covers are re-fetched to include what was just played.
+    mosaicLoaded = false;
 
     progress = {
         time: data.time || 0,
