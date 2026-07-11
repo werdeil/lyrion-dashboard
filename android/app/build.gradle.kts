@@ -2,12 +2,17 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
     id("com.android.application")
-    id("org.jetbrains.kotlin.android")
 }
 
 android {
     namespace = "com.werdeil.lyriondashboard"
     compileSdk = 35
+
+    // AGP 9 disables resValues by default; the debug build type sets a
+    // custom app_name via resValue, so the feature must be enabled.
+    buildFeatures {
+        resValues = true
+    }
 
     defaultConfig {
         applicationId = "com.werdeil.lyriondashboard"
