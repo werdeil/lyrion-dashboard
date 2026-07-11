@@ -309,6 +309,10 @@ hr {
 .np-recent {
     display: none;
     position: relative;
+    /* Own stacking context, so the sleeves' z-indexes stay contained here and
+       the whole pile sits below the cover (z-index:1) — the freshest sleeve
+       must tuck UNDER the cover, not paint over it. */
+    z-index: 0;
     flex: 1 1 auto;
     flex-direction: column;
     min-height: 0;
@@ -377,51 +381,8 @@ hr {
     object-fit: cover;
 }
 
-/* Shared caption for the hovered/focused sleeve's album and artist, always at
-   a readable size (JS fills it — see setRecentCaption). Overlaid at the bottom
-   of the block (position:absolute, not a reserved flex row) so the pile keeps
-   that height instead of leaving a blank gap. Sits above resting sleeves but
-   below a lifted one (z 50), so hovering the bottom sleeve lifts it clear of
-   the caption. The scrim keeps the text legible over any artwork underneath. */
-.np-recent-caption {
-    position: absolute;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    z-index: 10;
-    padding: 24px 2px 0;
-    background: linear-gradient(180deg, transparent, var(--base-bg) 70%);
-    font-size: var(--fs-sm);
-    line-height: 1.3;
-    opacity: 0;
-    transition: opacity 160ms ease;
-    pointer-events: none;
-}
-
-.np-recent-caption.is-shown {
-    opacity: 1;
-}
-
-.np-recent-caption-album {
-    display: block;
-    color: var(--text-bright);
-    font-weight: bold;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-.np-recent-caption-artist {
-    display: block;
-    color: var(--text-muted);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
 @media (prefers-reduced-motion: reduce) {
-    .np-recent-sleeve,
-    .np-recent-caption {
+    .np-recent-sleeve {
         transition: none;
     }
 }
