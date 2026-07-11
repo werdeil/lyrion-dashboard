@@ -282,6 +282,10 @@ hr {
 .np-cover {
     width: 100%;
     aspect-ratio: 1 / 1;
+    /* Above the pile below it, so the freshest sleeve (pulled up by
+       .np-recent's negative margin) tucks under the cover's bottom edge. */
+    position: relative;
+    z-index: 1;
 }
 
 .np-cover img {
@@ -304,10 +308,13 @@ hr {
    so it stays display:none until the media query at the bottom turns it on. */
 .np-recent {
     display: none;
+    position: relative;
     flex: 1 1 auto;
     flex-direction: column;
     min-height: 0;
-    margin-top: 16px;
+    /* Negative, so the pile starts higher and the freshest sleeve slips under
+       the cover's bottom edge (which sits above it, see .np-cover). */
+    margin-top: -22px;
 }
 
 /* JS hides the block when there is nothing to show (no play history yet, or
@@ -370,17 +377,25 @@ hr {
     object-fit: cover;
 }
 
-/* Shared caption below the pile: the hovered/focused sleeve's album and
-   artist, always at a readable size (JS fills it — see setRecentCaption). The
-   min-height reserves its two lines so revealing it never nudges the pile. */
+/* Shared caption for the hovered/focused sleeve's album and artist, always at
+   a readable size (JS fills it — see setRecentCaption). Overlaid at the bottom
+   of the block (position:absolute, not a reserved flex row) so the pile keeps
+   that height instead of leaving a blank gap. Sits above resting sleeves but
+   below a lifted one (z 50), so hovering the bottom sleeve lifts it clear of
+   the caption. The scrim keeps the text legible over any artwork underneath. */
 .np-recent-caption {
-    margin: 10px 0 0;
-    flex-shrink: 0;
-    min-height: 2.6em;
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 10;
+    padding: 24px 2px 0;
+    background: linear-gradient(180deg, transparent, var(--base-bg) 70%);
     font-size: var(--fs-sm);
     line-height: 1.3;
     opacity: 0;
     transition: opacity 160ms ease;
+    pointer-events: none;
 }
 
 .np-recent-caption.is-shown {
