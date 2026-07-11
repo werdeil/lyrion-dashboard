@@ -664,12 +664,18 @@ window.addEventListener('resize', function() {
 // dated. Hover/focus lifts a sleeve to the front (pure CSS, see .np-recent-*).
 //
 // Thumbnail size for the sleeve art, and the pile's shape as fractions of the
-// column: sleeve side and the vertical step between sleeves (how much of the
-// one behind peeks out).
+// column width. Age now drives size as well as brightness: the freshest
+// listen is RECENT_TOP_RATIO of the column, each older one RECENT_SHRINK
+// narrower (60% → 50% → 40% …), down to RECENT_MIN_RATIO. RECENT_STEP_RATIO
+// is the vertical cascade step between successive sleeves.
 var RECENT_COVER_SIZE = 300;
-var RECENT_SIZE_RATIO = 0.48;
-var RECENT_STEP_RATIO = 0.45;   // of the sleeve side
-var RECENT_MAX = 6;             // more than this and the pile gets muddy/dark
+var RECENT_TOP_RATIO = 0.60;
+var RECENT_SHRINK = 0.10;
+var RECENT_MIN_RATIO = 0.20;
+var RECENT_STEP_RATIO = 0.20;
+// The shrink ramp bottoms out at RECENT_MIN_RATIO, so at most this many
+// sleeves ((0.60 - 0.20) / 0.10 + 1); also the visual cap.
+var RECENT_MAX = 5;
 // Fewer sleeves than this doesn't read as a pile; hide the block instead.
 var RECENT_MIN = 3;
 // Small tilts cycled by depth so the pile looks tossed rather than ruled.
@@ -707,45 +713,58 @@ function renderRecent() {
 
     var w = el.recentPile.clientWidth;
     var h = el.recentPile.clientHeight;
-    var size = Math.round(w * RECENT_SIZE_RATIO);
-    var step = Math.round(size * RECENT_STEP_RATIO);
-    // How many sleeves stack in the height available: the top one takes `size`,
-    // each further one adds `step`.
-    var fit = step > 0 ? Math.floor((h - size) / step) + 1 : 0;
-    var count = Math.min(fit, RECENT_MAX, albums.length);
-    if (count < RECENT_MIN || w <= 0 || h <= 0) {
+    if (w <= 0 || h <= 0) { el.recent.hidden = true; return; }
+    var step = Math.round(w * RECENT_STEP_RATIO);
+    var laneA = Math.round(w * 0.03);
+
+    // Plan the sleeves top-first: each is narrower than the one before by
+    // RECENT_SHRINK of the column and sits `step` lower. Stop at the min size
+    // ratio, the count cap, the album count, or when the next sleeve wouldn't
+    // fit the height — whichever comes first.
+    var plan = [];
+    for (i = 0; i < albums.length && i < RECENT_MAX; i++) {
+        var ratio = RECENT_TOP_RATIO - RECENT_SHRINK * i;
+        if (ratio < RECENT_MIN_RATIO - 0.001) { break; }
+        var sz = Math.round(w * ratio);
+        var top = i * step;
+        if (top + sz > h) { break; }
+        plan.push({ album: albums[i], size: sz, top: top });
+    }
+    if (plan.length < RECENT_MIN) {
         el.recent.hidden = true;
         return;
     }
-    // Two lanes so successive sleeves also step sideways, not just down.
-    var laneA = Math.round(w * 0.03);
-    var laneB = w - size - laneA;
+    var count = plan.length;
 
     for (i = 0; i < count; i++) {
+        var size = plan[i].size;
         var sleeve = document.createElement('div');
         sleeve.className = 'np-recent-sleeve';
         // Focusable: keyboard (and touch, where a tap focuses) gets the same
         // lift-to-front reveal as the mouse hover.
         sleeve.tabIndex = 0;
-        sleeve.setAttribute('aria-label', albums[i].album
-            ? albums[i].album + (albums[i].artist ? ' — ' + albums[i].artist : '')
+        sleeve.setAttribute('aria-label', plan[i].album.album
+            ? plan[i].album.album + (plan[i].album.artist ? ' — ' + plan[i].album.artist : '')
             : '');
         sleeve.style.width = size + 'px';
         sleeve.style.height = size + 'px';
-        sleeve.style.top = (i * step) + 'px';
-        sleeve.style.left = ((i % 2 === 0) ? laneA : laneB) + 'px';
+        sleeve.style.top = plan[i].top + 'px';
+        // Alternate lanes (left, right, left…): each sleeve steps sideways as
+        // well as down, so an older one peeks past the wider fresher sleeve on
+        // top instead of being buried behind it — and stays hoverable.
+        sleeve.style.left = ((i % 2 === 0) ? laneA : (w - size - laneA)) + 'px';
         sleeve.style.setProperty('--np-recent-rot', RECENT_TILTS[i % RECENT_TILTS.length] + 'deg');
         // Freshest listen frontmost; z decreases with depth so each older
         // sleeve sits behind the one above it.
         sleeve.style.zIndex = String(count - i);
-        // Older sleeves sink into the shadow: full light for the freshest
+        // Older sleeves sink into the shadow too: full light for the freshest
         // fading towards ~half brightness for the oldest visible one.
         var age = count > 1 ? i / (count - 1) : 0;
         sleeve.style.setProperty('--np-recent-age', (0.95 - 0.5 * age).toFixed(3));
         sleeve.style.setProperty('--np-recent-sat', (1 - 0.25 * age).toFixed(3));
 
         var img = document.createElement('img');
-        img.src = '/cover/' + encodeURIComponent(albums[i].artwork) +
+        img.src = '/cover/' + encodeURIComponent(plan[i].album.artwork) +
             '.jpg?size=' + RECENT_COVER_SIZE;
         img.alt = '';
         img.decoding = 'async';
@@ -756,10 +775,10 @@ function renderRecent() {
         var cap = document.createElement('div');
         cap.className = 'np-recent-cap';
         var capAlbum = document.createElement('b');
-        capAlbum.textContent = albums[i].album || '';
+        capAlbum.textContent = plan[i].album.album || '';
         cap.appendChild(capAlbum);
         var capArtist = document.createElement('span');
-        capArtist.textContent = albums[i].artist || '';
+        capArtist.textContent = plan[i].album.artist || '';
         cap.appendChild(capArtist);
         sleeve.appendChild(cap);
 
