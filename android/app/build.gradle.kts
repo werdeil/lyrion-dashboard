@@ -6,7 +6,7 @@ plugins {
 
 android {
     namespace = "com.werdeil.lyriondashboard"
-    compileSdk = 35
+    compileSdk = 37
 
     // AGP 9 disables resValues by default; the debug build type sets a
     // custom app_name via resValue, so the feature must be enabled.
