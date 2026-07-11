@@ -679,6 +679,9 @@ var RECENT_STEP_RATIO = 0.26;
 // Minimum px of an older sleeve that must stay uncovered below the fresher
 // one on top of it, so it can still be hovered.
 var RECENT_MIN_PEEK = 22;
+// Slight horizontal nudge off centre, alternating left/right by depth, as a
+// fraction of the column — the "tossed pile" lean of option H.
+var RECENT_LANE_SHIFT = 0.08;
 // The shrink ramp (0.60, 0.50, … 0.20 of the column) bottoms out at five
 // sleeves; also the visual cap.
 var RECENT_MAX = 5;
@@ -791,8 +794,12 @@ function renderRecent() {
         sleeve.style.width = size + 'px';
         sleeve.style.height = size + 'px';
         sleeve.style.top = plan[i].top + 'px';
-        // Centred: the shrink reads as a clean receding stack down the middle.
-        sleeve.style.left = Math.round((w - size) / 2) + 'px';
+        // Centred, then nudged a little off-centre, alternating left/right by
+        // depth (freshest left, next right, …): the shrinking stack keeps a
+        // tossed feel and each sleeve peeks out to the side of the wider one on
+        // top of it, so it stays hoverable.
+        var shift = (i % 2 === 0 ? -1 : 1) * Math.round(w * RECENT_LANE_SHIFT);
+        sleeve.style.left = Math.round((w - size) / 2 + shift) + 'px';
         sleeve.style.setProperty('--np-recent-rot', RECENT_TILTS[i % RECENT_TILTS.length] + 'deg');
         // Freshest listen frontmost; z decreases with depth so each older
         // sleeve sits behind the one above it.
