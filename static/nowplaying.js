@@ -55,6 +55,7 @@ var el = {
     emptyOpen: document.getElementById('np-empty-open'),
     recent: document.getElementById('np-recent'),
     recentPile: document.getElementById('np-recent-pile'),
+    recentCaption: document.getElementById('np-recent-caption'),
 };
 
 // Web lyrics auto-search is a single on/off switch:
@@ -747,6 +748,9 @@ function renderRecent() {
     }
     recentRetries = 0;
     el.recentPile.textContent = '';
+    // Drop any caption left over from a sleeve in the previous pile.
+    recentCaptionAlbum = null;
+    setRecentCaption(null);
 
     // Fit the pile to the column height: try the most sleeves (capped by the
     // shrink ramp and the album count), shrinking the cascade step down to a
@@ -817,20 +821,40 @@ function renderRecent() {
         img.decoding = 'async';
         sleeve.appendChild(img);
 
-        // Text nodes only (never innerHTML), so album metadata can't be
-        // interpreted as markup; same rule as renderStats().
-        var cap = document.createElement('div');
-        cap.className = 'np-recent-cap';
-        var capAlbum = document.createElement('b');
-        capAlbum.textContent = plan[i].album.album || '';
-        cap.appendChild(capAlbum);
-        var capArtist = document.createElement('span');
-        capArtist.textContent = plan[i].album.artist || '';
-        cap.appendChild(capArtist);
-        sleeve.appendChild(cap);
+        // Naming the sleeve happens in the shared caption below the pile, not
+        // on the sleeve itself: a 60px-wide sleeve can't hold legible text.
+        bindRecentCaption(sleeve, plan[i].album);
 
         el.recentPile.appendChild(sleeve);
     }
+}
+
+// Show the given album's name/artist in the shared caption while its sleeve is
+// hovered or focused, and clear it on the way out. leave/blur only clear when
+// this album is still the one shown, so moving between sleeves (leave-then-enter
+// on the same frame) doesn't wipe the newly entered one.
+function setRecentCaption(album) {
+    if (!el.recentCaption) { return; }
+    el.recentCaption.querySelector('.np-recent-caption-album').textContent =
+        (album && album.album) || '';
+    el.recentCaption.querySelector('.np-recent-caption-artist').textContent =
+        (album && album.artist) || '';
+    el.recentCaption.classList.toggle('is-shown', !!album);
+}
+
+var recentCaptionAlbum = null;
+function bindRecentCaption(sleeve, album) {
+    function show() { recentCaptionAlbum = album; setRecentCaption(album); }
+    function hide() {
+        if (recentCaptionAlbum === album) {
+            recentCaptionAlbum = null;
+            setRecentCaption(null);
+        }
+    }
+    sleeve.addEventListener('mouseenter', show);
+    sleeve.addEventListener('focus', show);
+    sleeve.addEventListener('mouseleave', hide);
+    sleeve.addEventListener('blur', hide);
 }
 
 // Fetch the play history for the pile — once per track, since only a track

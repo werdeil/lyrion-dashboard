@@ -24,7 +24,6 @@ TRANSLATIONS = {
         "open_lyrion": "Ouvrir dans Lyrion",
         "app_menu": "Menu de l'application",
         "cover_alt": "Pochette",
-        "recent_plays": "Dernières écoutes",
         "source_prefix": "Source :",
         "source_library": "Bibliothèque",
         # Stats
@@ -62,7 +61,6 @@ TRANSLATIONS = {
         "open_lyrion": "Open in Lyrion",
         "app_menu": "App menu",
         "cover_alt": "Cover",
-        "recent_plays": "Recent plays",
         "source_prefix": "Source:",
         "source_library": "Library",
         # Stats

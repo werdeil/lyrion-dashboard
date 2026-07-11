@@ -298,9 +298,10 @@ hr {
    older one cascading down behind it, tilted and dimmer, only its lower edge
    peeking out. Occlusion carries the order — nothing is dated. Hovering or
    focusing a sleeve lifts it to the front, straightens and brightens it, and
-   slides up an album/artist caption. Only lives in the large fixed-height
-   layout — narrower screens have no free column under the cover — so it stays
-   display:none until the media query at the bottom turns it on. */
+   names it in the caption line below the pile (kept at a readable size rather
+   than squeezed onto a possibly tiny sleeve). Only lives in the large
+   fixed-height layout — narrower screens have no free column under the cover —
+   so it stays display:none until the media query at the bottom turns it on. */
 .np-recent {
     display: none;
     flex: 1 1 auto;
@@ -314,15 +315,6 @@ hr {
    display:flex from the media query below. */
 .np-recent[hidden] {
     display: none;
-}
-
-.np-recent-label {
-    margin: 0 0 10px;
-    flex-shrink: 0;
-    font-size: var(--fs-xs);
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    color: var(--text-muted);
 }
 
 /* Containing block of the absolutely-placed sleeves. overflow:visible so a
@@ -378,37 +370,33 @@ hr {
     object-fit: cover;
 }
 
-/* Album/artist caption along the sleeve's bottom edge, hidden below it until
-   the sleeve is lifted, then sliding up into view (clipped by the sleeve's
-   overflow:hidden meanwhile). */
-.np-recent-cap {
-    position: absolute;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    padding: 26px 10px 8px;
-    /* Fixed dark scrim (not a theme colour): it sits on top of artwork. */
-    background: linear-gradient(180deg, transparent, rgba(10, 10, 10, 0.85));
-    font-size: var(--fs-xs);
+/* Shared caption below the pile: the hovered/focused sleeve's album and
+   artist, always at a readable size (JS fills it — see setRecentCaption). The
+   min-height reserves its two lines so revealing it never nudges the pile. */
+.np-recent-caption {
+    margin: 10px 0 0;
+    flex-shrink: 0;
+    min-height: 2.6em;
+    font-size: var(--fs-sm);
     line-height: 1.3;
-    transform: translateY(100%);
-    transition: transform 200ms ease;
+    opacity: 0;
+    transition: opacity 160ms ease;
 }
 
-.np-recent-sleeve:hover .np-recent-cap,
-.np-recent-sleeve:focus .np-recent-cap {
-    transform: translateY(0);
+.np-recent-caption.is-shown {
+    opacity: 1;
 }
 
-.np-recent-cap b {
+.np-recent-caption-album {
     display: block;
     color: var(--text-bright);
+    font-weight: bold;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
 }
 
-.np-recent-cap span {
+.np-recent-caption-artist {
     display: block;
     color: var(--text-muted);
     white-space: nowrap;
@@ -418,7 +406,7 @@ hr {
 
 @media (prefers-reduced-motion: reduce) {
     .np-recent-sleeve,
-    .np-recent-cap {
+    .np-recent-caption {
         transition: none;
     }
 }
