@@ -54,7 +54,7 @@ var el = {
     emptyMosaic: document.getElementById('np-empty-mosaic'),
     emptyOpen: document.getElementById('np-empty-open'),
     recent: document.getElementById('np-recent'),
-    recentStack: document.getElementById('np-recent-stack'),
+    recentPile: document.getElementById('np-recent-pile'),
 };
 
 // Web lyrics auto-search is a single on/off switch:
@@ -657,29 +657,34 @@ window.addEventListener('resize', function() {
     mosaicResizeTimer = setTimeout(function() { layoutMosaic(mosaicIds); }, 300);
 });
 
-// Recent plays under the cover (desktop only): the previous albums as a
-// stack of record sleeves the playing cover sits on. Each sleeve shows a
-// slice of its artwork, dimmer the older the listen; hover/focus pulls the
-// full cover out of the pile (pure CSS, see .np-recent-*).
+// Recent plays under the cover (desktop only): the previous albums as a pile
+// of record sleeves the playing cover sits on. The freshest listen is on top
+// at full light; each older one cascades down behind it, tilted and dimmer,
+// only its lower edge showing. Occlusion carries the order — nothing is
+// dated. Hover/focus lifts a sleeve to the front (pure CSS, see .np-recent-*).
 //
-// Target slice height (px) — how many sleeves fit is measured against it —
-// and the thumbnail size shared by the slice and its 240 CSS px peek.
-var RECENT_SLICE = 44;
+// Thumbnail size for the sleeve art, and the pile's shape as fractions of the
+// column: sleeve side and the vertical step between sleeves (how much of the
+// one behind peeks out).
 var RECENT_COVER_SIZE = 300;
-var RECENT_MAX = 12;
+var RECENT_SIZE_RATIO = 0.48;
+var RECENT_STEP_RATIO = 0.45;   // of the sleeve side
+var RECENT_MAX = 6;             // more than this and the pile gets muddy/dark
 // Fewer sleeves than this doesn't read as a pile; hide the block instead.
 var RECENT_MIN = 3;
+// Small tilts cycled by depth so the pile looks tossed rather than ruled.
+var RECENT_TILTS = [-2.5, 1.8, -1.4, 2.2, -1.8, 1.2];
 
 var recentAlbums = null;   // last /recent-albums.json payload
 var recentKey = null;      // track key the payload was fetched for
 var recentLoading = false;
 
-// Lay the cached albums out as sleeves sized to the space under the cover.
+// Lay the cached albums out as a pile sized to the space under the cover.
 // Never repeats a cover (unlike the empty-state mosaic, which loops its list
-// to fill the belt): with fewer albums than slots the pile is just shorter,
-// and below RECENT_MIN it hides entirely.
+// to fill the belt): with fewer albums than fit the pile is just shorter, and
+// below RECENT_MIN it hides entirely.
 function renderRecent() {
-    if (!el.recent || !el.recentStack) { return; }
+    if (!el.recent || !el.recentPile) { return; }
     var current = currentTrack || {};
     var seen = {};
     var albums = [];
@@ -693,55 +698,62 @@ function renderRecent() {
         seen[album.artwork] = true;
         albums.push(album);
     }
-    // Un-hide before measuring: the stack has no height while display:none.
-    // On layouts without the stack (narrow/short screens, where the CSS keeps
-    // .np-recent display:none) the height reads 0 and we bail back out.
+    // Un-hide before measuring: the pile has no size while display:none. On
+    // layouts without it (narrow/short screens, where the CSS keeps .np-recent
+    // display:none) width/height read 0 and we bail back out.
     el.recent.hidden = !albums.length;
-    el.recentStack.textContent = '';
+    el.recentPile.textContent = '';
     if (!albums.length) { return; }
-    var count = Math.min(
-        Math.floor(el.recentStack.clientHeight / RECENT_SLICE),
-        RECENT_MAX,
-        albums.length
-    );
-    if (count < RECENT_MIN) {
+
+    var w = el.recentPile.clientWidth;
+    var h = el.recentPile.clientHeight;
+    var size = Math.round(w * RECENT_SIZE_RATIO);
+    var step = Math.round(size * RECENT_STEP_RATIO);
+    // How many sleeves stack in the height available: the top one takes `size`,
+    // each further one adds `step`.
+    var fit = step > 0 ? Math.floor((h - size) / step) + 1 : 0;
+    var count = Math.min(fit, RECENT_MAX, albums.length);
+    if (count < RECENT_MIN || w <= 0 || h <= 0) {
         el.recent.hidden = true;
         return;
     }
+    // Two lanes so successive sleeves also step sideways, not just down.
+    var laneA = Math.round(w * 0.03);
+    var laneB = w - size - laneA;
+
     for (i = 0; i < count; i++) {
-        var band = document.createElement('div');
-        band.className = 'np-recent-band';
+        var sleeve = document.createElement('div');
+        sleeve.className = 'np-recent-sleeve';
         // Focusable: keyboard (and touch, where a tap focuses) gets the same
-        // pull-out-of-the-pile reveal as the mouse hover.
-        band.tabIndex = 0;
-        band.setAttribute('aria-label', albums[i].album
+        // lift-to-front reveal as the mouse hover.
+        sleeve.tabIndex = 0;
+        sleeve.setAttribute('aria-label', albums[i].album
             ? albums[i].album + (albums[i].artist ? ' — ' + albums[i].artist : '')
             : '');
-        var url = '/cover/' + encodeURIComponent(albums[i].artwork) +
-            '.jpg?size=' + RECENT_COVER_SIZE;
-
-        var slice = document.createElement('img');
-        slice.className = 'np-recent-slice';
-        slice.src = url;
-        slice.alt = '';
-        slice.decoding = 'async';
+        sleeve.style.width = size + 'px';
+        sleeve.style.height = size + 'px';
+        sleeve.style.top = (i * step) + 'px';
+        sleeve.style.left = ((i % 2 === 0) ? laneA : laneB) + 'px';
+        sleeve.style.setProperty('--np-recent-rot', RECENT_TILTS[i % RECENT_TILTS.length] + 'deg');
+        // Freshest listen frontmost; z decreases with depth so each older
+        // sleeve sits behind the one above it.
+        sleeve.style.zIndex = String(count - i);
         // Older sleeves sink into the shadow: full light for the freshest
-        // listen fading towards ~half brightness for the oldest visible one.
+        // fading towards ~half brightness for the oldest visible one.
         var age = count > 1 ? i / (count - 1) : 0;
-        slice.style.setProperty('--np-recent-age', (0.95 - 0.5 * age).toFixed(3));
-        slice.style.setProperty('--np-recent-sat', (1 - 0.25 * age).toFixed(3));
-        band.appendChild(slice);
+        sleeve.style.setProperty('--np-recent-age', (0.95 - 0.5 * age).toFixed(3));
+        sleeve.style.setProperty('--np-recent-sat', (1 - 0.25 * age).toFixed(3));
 
-        var peek = document.createElement('div');
-        peek.className = 'np-recent-peek';
-        var full = document.createElement('img');
-        full.src = url;
-        full.alt = '';
-        full.decoding = 'async';
-        peek.appendChild(full);
+        var img = document.createElement('img');
+        img.src = '/cover/' + encodeURIComponent(albums[i].artwork) +
+            '.jpg?size=' + RECENT_COVER_SIZE;
+        img.alt = '';
+        img.decoding = 'async';
+        sleeve.appendChild(img);
+
         // Text nodes only (never innerHTML), so album metadata can't be
         // interpreted as markup; same rule as renderStats().
-        var cap = document.createElement('span');
+        var cap = document.createElement('div');
         cap.className = 'np-recent-cap';
         var capAlbum = document.createElement('b');
         capAlbum.textContent = albums[i].album || '';
@@ -749,10 +761,9 @@ function renderRecent() {
         var capArtist = document.createElement('span');
         capArtist.textContent = albums[i].artist || '';
         cap.appendChild(capArtist);
-        peek.appendChild(cap);
-        band.appendChild(peek);
+        sleeve.appendChild(cap);
 
-        el.recentStack.appendChild(band);
+        el.recentPile.appendChild(sleeve);
     }
 }
 

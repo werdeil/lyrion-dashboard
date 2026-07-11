@@ -293,13 +293,14 @@ hr {
     border: 1px solid var(--border-color);
 }
 
-/* Recent plays under the cover, styled as the stack of record sleeves the
-   playing album sits on: each previous album is a horizontal slice (the top
-   of its cover peeking out of the pile), dimmer the further down (older) it
-   is. Hovering or focusing a slice pulls the full cover out of the pile (see
-   .np-recent-peek). Only lives in the large fixed-height layout — narrower
-   screens have no free column under the cover — so it stays display:none
-   until the media query at the bottom turns it on. */
+/* Recent plays under the cover, as a pile of record sleeves: the freshest
+   listen sits on top (right under the playing cover) at full light, each
+   older one cascading down behind it, tilted and dimmer, only its lower edge
+   peeking out. Occlusion carries the order — nothing is dated. Hovering or
+   focusing a sleeve lifts it to the front, straightens and brightens it, and
+   slides up an album/artist caption. Only lives in the large fixed-height
+   layout — narrower screens have no free column under the cover — so it stays
+   display:none until the media query at the bottom turns it on. */
 .np-recent {
     display: none;
     flex: 1 1 auto;
@@ -309,126 +310,14 @@ hr {
 }
 
 /* JS hides the block when there is nothing to show (no play history yet, or
-   fewer sleeves than make a pile); keep the attribute effective despite the
+   too few covers to make a pile); keep the attribute effective despite the
    display:flex from the media query below. */
 .np-recent[hidden] {
     display: none;
 }
 
-.np-recent-stack {
-    /* Containing block of the absolutely-positioned peeks, so a pulled-out
-       cover centres on the whole pile rather than on its 40px slice. */
-    position: relative;
-    flex: 1 1 auto;
-    min-height: 0;
-    display: flex;
-    flex-direction: column;
-}
-
-/* One sleeve. No filter and no z-index here: a filter would turn the band
-   into the containing block of its .np-peek child (breaking the centring
-   above), and z-index would trap the peek inside the band's stacking
-   context, under the neighbouring slices. The age dimming therefore lives on
-   the child image, and the pile relief comes from upward shadows painted in
-   DOM order (each slice shades the one above = behind it). */
-.np-recent-band {
-    flex: 1 1 0;
-    min-height: 0;
-    width: calc(100% - 6px);
-    border-radius: 6px;
-    box-shadow: 0 -7px 14px rgba(0, 0, 0, 0.45);
-    transition: flex-grow 240ms ease;
-}
-
-/* The hovered slice opens a little — enough to read as "this one is being
-   pulled" while the peek shows the actual cover. :focus keeps the keyboard
-   (and touch, where a tap focuses) on par with the mouse. */
-.np-recent-band:hover,
-.np-recent-band:focus {
-    flex-grow: 1.8;
-}
-
-.np-recent-band:focus-visible {
-    outline: 2px solid var(--accent-color);
-    outline-offset: 1px;
-}
-
-/* --np-recent-age is set per-slice by JS: 1 for the freshest listen down to
-   ~0.45 for the oldest visible one, so time literally fades down the pile. */
-.np-recent-slice {
-    display: block;
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    object-position: center top;
-    border-radius: 6px;
-    border: 1px solid var(--border-color);
-    filter: brightness(var(--np-recent-age, 1)) saturate(var(--np-recent-sat, 1));
-    transition: filter 240ms ease;
-}
-
-.np-recent-band:hover .np-recent-slice,
-.np-recent-band:focus .np-recent-slice {
-    filter: none;
-}
-
-/* The cover pulled out of the pile: a full square floating over the stack,
-   centred on it, with the album/artist caption along its bottom edge.
-   pointer-events:none so the hover stays on the slice underneath it. */
-.np-recent-peek {
-    position: absolute;
-    left: 50%;
-    top: 50%;
-    width: 240px;
-    max-width: 92%;
-    aspect-ratio: 1 / 1;
-    transform: translate(-50%, -50%) scale(0.8);
-    opacity: 0;
-    pointer-events: none;
-    z-index: 5;
-    overflow: hidden;
-    border-radius: 10px;
-    border: 1px solid var(--border-color);
-    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.7);
-    transition: opacity 160ms ease, transform 220ms ease;
-}
-
-.np-recent-band:hover .np-recent-peek,
-.np-recent-band:focus .np-recent-peek {
-    opacity: 1;
-    transform: translate(-50%, -50%) scale(1);
-}
-
-.np-recent-peek img {
-    display: block;
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-}
-
-.np-recent-cap {
-    position: absolute;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    padding: 30px 12px 10px;
-    /* Fixed dark scrim (not a theme colour): it sits on top of artwork. */
-    background: linear-gradient(180deg, transparent, rgba(10, 10, 10, 0.85));
-    font-size: var(--fs-xs);
-    line-height: 1.35;
-}
-
-.np-recent-cap b {
-    display: block;
-    color: var(--text-bright);
-}
-
-.np-recent-cap span {
-    color: var(--text-muted);
-}
-
 .np-recent-label {
-    margin: 10px 0 0;
+    margin: 0 0 10px;
     flex-shrink: 0;
     font-size: var(--fs-xs);
     text-transform: uppercase;
@@ -436,10 +325,100 @@ hr {
     color: var(--text-muted);
 }
 
+/* Containing block of the absolutely-placed sleeves. overflow:visible so a
+   lifted sleeve can grow past the pile into the card's own padding. */
+.np-recent-pile {
+    position: relative;
+    flex: 1 1 auto;
+    min-height: 0;
+}
+
+/* One sleeve. JS sets its size (--np-recent-size), position (top/left),
+   tilt (--np-recent-rot), stacking (z-index) and age dimming
+   (--np-recent-age / --np-recent-sat) inline; the shared look and the
+   hover/focus lift live here. */
+.np-recent-sleeve {
+    position: absolute;
+    width: var(--np-recent-size, 150px);
+    height: var(--np-recent-size, 150px);
+    border-radius: 8px;
+    overflow: hidden;
+    border: 1px solid var(--border-color);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.5);
+    transform: rotate(var(--np-recent-rot, 0deg));
+    filter: brightness(var(--np-recent-age, 1)) saturate(var(--np-recent-sat, 1));
+    cursor: pointer;
+    transition: transform 200ms ease, filter 200ms ease, box-shadow 200ms ease;
+}
+
+/* Lift: to the front, straightened, a touch larger, full light. !important
+   beats the inline per-sleeve transform/filter set by JS. :focus keeps the
+   keyboard (and touch, where a tap focuses) on par with the mouse. */
+.np-recent-sleeve:hover,
+.np-recent-sleeve:focus {
+    transform: rotate(0deg) scale(1.05) !important;
+    filter: none !important;
+    /* !important: each sleeve carries an inline z-index for its depth in the
+       pile, and inline styles otherwise beat this rule — so without it a
+       lifted lower sleeve would stay behind the fresher ones stacked on top. */
+    z-index: 50 !important;
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.7);
+    outline: none;
+}
+
+.np-recent-sleeve:focus-visible {
+    outline: 2px solid var(--accent-color);
+    outline-offset: 2px;
+}
+
+.np-recent-sleeve img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+/* Album/artist caption along the sleeve's bottom edge, hidden below it until
+   the sleeve is lifted, then sliding up into view (clipped by the sleeve's
+   overflow:hidden meanwhile). */
+.np-recent-cap {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    padding: 26px 10px 8px;
+    /* Fixed dark scrim (not a theme colour): it sits on top of artwork. */
+    background: linear-gradient(180deg, transparent, rgba(10, 10, 10, 0.85));
+    font-size: var(--fs-xs);
+    line-height: 1.3;
+    transform: translateY(100%);
+    transition: transform 200ms ease;
+}
+
+.np-recent-sleeve:hover .np-recent-cap,
+.np-recent-sleeve:focus .np-recent-cap {
+    transform: translateY(0);
+}
+
+.np-recent-cap b {
+    display: block;
+    color: var(--text-bright);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.np-recent-cap span {
+    display: block;
+    color: var(--text-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
 @media (prefers-reduced-motion: reduce) {
-    .np-recent-band,
-    .np-recent-slice,
-    .np-recent-peek {
+    .np-recent-sleeve,
+    .np-recent-cap {
         transition: none;
     }
 }
