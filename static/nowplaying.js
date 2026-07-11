@@ -672,7 +672,11 @@ var RECENT_COVER_SIZE = 300;
 var RECENT_TOP_RATIO = 0.60;
 var RECENT_SHRINK = 0.10;
 var RECENT_MIN_RATIO = 0.20;
-var RECENT_STEP_RATIO = 0.20;
+// Vertical cascade step. Sleeves are centred, so the freshest (widest) one
+// would otherwise cover the whole centre of each older sleeve; this step is
+// wide enough (> the per-step shrink) that each older sleeve still peeks out
+// a hoverable band below the one in front of it.
+var RECENT_STEP_RATIO = 0.26;
 // The shrink ramp bottoms out at RECENT_MIN_RATIO, so at most this many
 // sleeves ((0.60 - 0.20) / 0.10 + 1); also the visual cap.
 var RECENT_MAX = 5;
@@ -715,7 +719,6 @@ function renderRecent() {
     var h = el.recentPile.clientHeight;
     if (w <= 0 || h <= 0) { el.recent.hidden = true; return; }
     var step = Math.round(w * RECENT_STEP_RATIO);
-    var laneA = Math.round(w * 0.03);
 
     // Plan the sleeves top-first: each is narrower than the one before by
     // RECENT_SHRINK of the column and sits `step` lower. Stop at the min size
@@ -749,10 +752,8 @@ function renderRecent() {
         sleeve.style.width = size + 'px';
         sleeve.style.height = size + 'px';
         sleeve.style.top = plan[i].top + 'px';
-        // Alternate lanes (left, right, left…): each sleeve steps sideways as
-        // well as down, so an older one peeks past the wider fresher sleeve on
-        // top instead of being buried behind it — and stays hoverable.
-        sleeve.style.left = ((i % 2 === 0) ? laneA : (w - size - laneA)) + 'px';
+        // Centred: the shrink reads as a clean receding stack down the middle.
+        sleeve.style.left = Math.round((w - size) / 2) + 'px';
         sleeve.style.setProperty('--np-recent-rot', RECENT_TILTS[i % RECENT_TILTS.length] + 'deg');
         // Freshest listen frontmost; z decreases with depth so each older
         // sleeve sits behind the one above it.
