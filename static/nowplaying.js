@@ -671,19 +671,31 @@ window.addEventListener('resize', function() {
 var RECENT_COVER_SIZE = 300;
 var RECENT_TOP_RATIO = 0.60;
 var RECENT_SHRINK = 0.10;
-var RECENT_MIN_RATIO = 0.20;
-// Vertical cascade step. Sleeves are centred, so the freshest (widest) one
-// would otherwise cover the whole centre of each older sleeve; this step is
-// wide enough (> the per-step shrink) that each older sleeve still peeks out
-// a hoverable band below the one in front of it.
+// Preferred (and maximum) vertical cascade step, as a fraction of the column;
+// the actual step shrinks to fit a short column (see renderRecent). Sleeves
+// are centred, so the freshest (widest) one covers the centre of each older
+// one — this keeps a band of each peeking out below the one in front.
 var RECENT_STEP_RATIO = 0.26;
-// The shrink ramp bottoms out at RECENT_MIN_RATIO, so at most this many
-// sleeves ((0.60 - 0.20) / 0.10 + 1); also the visual cap.
+// Minimum px of an older sleeve that must stay uncovered below the fresher
+// one on top of it, so it can still be hovered.
+var RECENT_MIN_PEEK = 22;
+// The shrink ramp (0.60, 0.50, … 0.20 of the column) bottoms out at five
+// sleeves; also the visual cap.
 var RECENT_MAX = 5;
 // Fewer sleeves than this doesn't read as a pile; hide the block instead.
 var RECENT_MIN = 3;
 // Small tilts cycled by depth so the pile looks tossed rather than ruled.
 var RECENT_TILTS = [-2.5, 1.8, -1.4, 2.2, -1.8, 1.2];
+// The layout that leaves a free column under the cover — must match the CSS
+// media query that sets .np-recent to display:flex.
+var RECENT_MQ = '(min-width: 1081px) and (min-height: 600px)';
+// A first-paint measurement can read 0 before the flex layout settles; retry
+// that many frames before giving up rather than hiding the pile for good.
+var recentRetries = 0;
+
+function recentLayoutActive() {
+    return !!(window.matchMedia && window.matchMedia(RECENT_MQ).matches);
+}
 
 var recentAlbums = null;   // last /recent-albums.json payload
 var recentKey = null;      // track key the payload was fetched for
@@ -708,36 +720,63 @@ function renderRecent() {
         seen[album.artwork] = true;
         albums.push(album);
     }
-    // Un-hide before measuring: the pile has no size while display:none. On
-    // layouts without it (narrow/short screens, where the CSS keeps .np-recent
-    // display:none) width/height read 0 and we bail back out.
-    el.recent.hidden = !albums.length;
-    el.recentPile.textContent = '';
-    if (!albums.length) { return; }
-
+    // Hidden whenever there's nothing to show or the layout has no free column
+    // under the cover (narrow/short screens — the CSS keeps .np-recent
+    // display:none there anyway, but gating here avoids a pointless retry loop).
+    if (!albums.length || !recentLayoutActive()) {
+        el.recent.hidden = true;
+        recentRetries = 0;
+        return;
+    }
+    // Un-hide so the media query lays it out, then measure the free column.
+    el.recent.hidden = false;
     var w = el.recentPile.clientWidth;
     var h = el.recentPile.clientHeight;
-    if (w <= 0 || h <= 0) { el.recent.hidden = true; return; }
-    var step = Math.round(w * RECENT_STEP_RATIO);
-
-    // Plan the sleeves top-first: each is narrower than the one before by
-    // RECENT_SHRINK of the column and sits `step` lower. Stop at the min size
-    // ratio, the count cap, the album count, or when the next sleeve wouldn't
-    // fit the height — whichever comes first.
-    var plan = [];
-    for (i = 0; i < albums.length && i < RECENT_MAX; i++) {
-        var ratio = RECENT_TOP_RATIO - RECENT_SHRINK * i;
-        if (ratio < RECENT_MIN_RATIO - 0.001) { break; }
-        var sz = Math.round(w * ratio);
-        var top = i * step;
-        if (top + sz > h) { break; }
-        plan.push({ album: albums[i], size: sz, top: top });
+    if (w <= 0 || h <= 0) {
+        // The layout is active but the flex chain hasn't resolved a size yet
+        // (first-paint race): retry next frame instead of hiding for good.
+        if (recentRetries++ < 30) {
+            requestAnimationFrame(renderRecent);
+        } else {
+            el.recent.hidden = true;
+        }
+        return;
     }
-    if (plan.length < RECENT_MIN) {
+    recentRetries = 0;
+    el.recentPile.textContent = '';
+
+    // Fit the pile to the column height: try the most sleeves (capped by the
+    // shrink ramp and the album count), shrinking the cascade step down to a
+    // still-hoverable minimum; drop the oldest and retry until it fits, or hide
+    // if not even RECENT_MIN sleeves fit. This keeps the pile visible on short
+    // screens (packed tighter) instead of vanishing.
+    var sizeFirst = Math.round(w * RECENT_TOP_RATIO);
+    var minStep = w * RECENT_SHRINK + RECENT_MIN_PEEK;
+    var prefStep = w * RECENT_STEP_RATIO;
+    var count = 0;
+    var step = 0;
+    for (var c = Math.min(albums.length, RECENT_MAX); c >= RECENT_MIN; c--) {
+        if (sizeFirst > h) { break; }   // even the freshest sleeve overflows
+        var sizeLast = Math.round(w * (RECENT_TOP_RATIO - RECENT_SHRINK * (c - 1)));
+        var fitStep = (h - sizeLast) / (c - 1);   // c >= RECENT_MIN (3) so c-1 >= 2
+        if (fitStep >= minStep) {
+            step = Math.round(Math.min(prefStep, fitStep));
+            count = c;
+            break;
+        }
+    }
+    if (!count) {
         el.recent.hidden = true;
         return;
     }
-    var count = plan.length;
+    var plan = [];
+    for (i = 0; i < count; i++) {
+        plan.push({
+            album: albums[i],
+            size: Math.round(w * (RECENT_TOP_RATIO - RECENT_SHRINK * i)),
+            top: i * step,
+        });
+    }
 
     for (i = 0; i < count; i++) {
         var size = plan[i].size;
