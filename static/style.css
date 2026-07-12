@@ -903,11 +903,11 @@ body.in-app .page-header {
    otherwise clip the content with no way to scroll. They fall back to the
    default scrollable layout instead. */
 @media (min-width: 861px) and (min-height: 600px) {
-    /* The scroll lock has to live on <html>, not just <body>: on iOS/iPadOS
-       Safari overflow:hidden on the body alone does NOT stop the document from
-       scrolling, so the page could still be dragged taller than the screen even
-       with the body sized to one viewport. Locking the root is what actually
-       pins the fixed layout to a single screen. */
+    /* dvh (visible viewport) instead of 100vh, which is the *large* viewport on
+       iOS/iPadOS Safari and overflows past the screen when the toolbars show.
+       The lock must sit on <html> too: overflow:hidden on <body> alone doesn't
+       stop the document scrolling on Safari. vh kept as a fallback; min-height
+       overridden so the base body rule's min-height:100vh doesn't win. */
     html {
         height: 100vh;
         height: 100dvh;
@@ -916,15 +916,6 @@ body.in-app .page-header {
     body {
         display: flex;
         flex-direction: column;
-        /* vh first as a fallback; dvh (dynamic viewport height) is what actually
-           fits the screen on mobile browsers. On iPad/Safari 100vh is the *large*
-           viewport (as if the toolbars were hidden), so with the tab + address
-           bars showing the body ends up taller than the visible area and the page
-           overflows past the bottom of the screen. dvh tracks the visible viewport
-           and keeps the fixed layout exactly one screen tall.
-           min-height must be overridden too: the base body rule sets
-           min-height:100vh, which would otherwise win over the dvh height and
-           keep forcing the body to the large-viewport height. */
         height: 100vh;
         height: 100dvh;
         min-height: 100vh;
