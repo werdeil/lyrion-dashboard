@@ -903,6 +903,16 @@ body.in-app .page-header {
    otherwise clip the content with no way to scroll. They fall back to the
    default scrollable layout instead. */
 @media (min-width: 861px) and (min-height: 600px) {
+    /* The scroll lock has to live on <html>, not just <body>: on iOS/iPadOS
+       Safari overflow:hidden on the body alone does NOT stop the document from
+       scrolling, so the page could still be dragged taller than the screen even
+       with the body sized to one viewport. Locking the root is what actually
+       pins the fixed layout to a single screen. */
+    html {
+        height: 100vh;
+        height: 100dvh;
+        overflow: hidden;
+    }
     body {
         display: flex;
         flex-direction: column;
