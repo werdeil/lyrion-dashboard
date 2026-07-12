@@ -53,6 +53,8 @@ var el = {
     empty: document.getElementById('np-empty'),
     emptyMosaic: document.getElementById('np-empty-mosaic'),
     emptyOpen: document.getElementById('np-empty-open'),
+    recent: document.getElementById('np-recent'),
+    recentPile: document.getElementById('np-recent-pile'),
 };
 
 // Web lyrics auto-search is a single on/off switch:
@@ -655,10 +657,203 @@ window.addEventListener('resize', function() {
     mosaicResizeTimer = setTimeout(function() { layoutMosaic(mosaicIds); }, 300);
 });
 
+// Recent plays under the cover (desktop only): the previous albums as a pile
+// of record sleeves the playing cover sits on. The freshest listen is on top
+// at full light; each older one cascades down behind it, tilted and dimmer,
+// only its lower edge showing. Occlusion carries the order — nothing is
+// dated. Hover/focus lifts a sleeve to the front (pure CSS, see .np-recent-*).
+//
+// Thumbnail size for the sleeve art, and the pile's shape as fractions of the
+// column width. Age now drives size as well as brightness: the freshest
+// listen is RECENT_TOP_RATIO of the column, each older one RECENT_SHRINK
+// narrower (60% → 50% → 40% …), down to RECENT_MIN_RATIO. RECENT_STEP_RATIO
+// is the vertical cascade step between successive sleeves.
+var RECENT_COVER_SIZE = 300;
+var RECENT_TOP_RATIO = 0.60;
+var RECENT_SHRINK = 0.10;
+// Preferred (and maximum) vertical cascade step, as a fraction of the column;
+// the actual step shrinks to fit a short column (see renderRecent). Sleeves
+// are centred, so the freshest (widest) one covers the centre of each older
+// one — this keeps a band of each peeking out below the one in front.
+var RECENT_STEP_RATIO = 0.26;
+// Minimum px of an older sleeve that must stay uncovered below the fresher
+// one on top of it, so it can still be hovered.
+var RECENT_MIN_PEEK = 22;
+// Slight horizontal nudge off centre, alternating left/right by depth, as a
+// fraction of the column — the "tossed pile" lean of option H.
+var RECENT_LANE_SHIFT = 0.08;
+// The shrink ramp (0.60, 0.50, … 0.20 of the column) bottoms out at five
+// sleeves; also the visual cap.
+var RECENT_MAX = 5;
+// Fewer sleeves than this doesn't read as a pile; hide the block instead.
+var RECENT_MIN = 3;
+// Small tilts cycled by depth so the pile looks tossed rather than ruled.
+var RECENT_TILTS = [-2.5, 1.8, -1.4, 2.2, -1.8, 1.2];
+// The layout that leaves a free column under the cover — must match the CSS
+// media query that sets .np-recent to display:flex.
+var RECENT_MQ = '(min-width: 1081px) and (min-height: 600px)';
+// A first-paint measurement can read 0 before the flex layout settles; retry
+// that many frames before giving up rather than hiding the pile for good.
+var recentRetries = 0;
+
+function recentLayoutActive() {
+    return !!(window.matchMedia && window.matchMedia(RECENT_MQ).matches);
+}
+
+var recentCovers = null;   // last /recent-covers.json payload (cover ids)
+var recentKey = null;      // track key the payload was fetched for
+var recentLoading = false;
+
+// Lay the cached cover ids out as a pile sized to the space under the cover.
+// Never repeats a cover (unlike the empty-state mosaic, which loops its list
+// to fill the belt): with fewer covers than fit the pile is just shorter, and
+// below RECENT_MIN it hides entirely.
+function renderRecent() {
+    if (!el.recent || !el.recentPile) { return; }
+    var current = currentTrack || {};
+    var seen = {};
+    var covers = [];
+    for (var i = 0; i < (recentCovers || []).length; i++) {
+        var cover = recentCovers[i];
+        if (!cover || seen[cover]) { continue; }
+        // The album on the big cover heads the play history by definition;
+        // keeping it would duplicate the artwork right above the pile.
+        if (current.coverid && String(cover) === String(current.coverid)) { continue; }
+        seen[cover] = true;
+        covers.push(cover);
+    }
+    // Hidden whenever there's nothing to show or the layout has no free column
+    // under the cover (narrow/short screens — the CSS keeps .np-recent
+    // display:none there anyway, but gating here avoids a pointless retry loop).
+    if (!covers.length || !recentLayoutActive()) {
+        el.recent.hidden = true;
+        recentRetries = 0;
+        return;
+    }
+    // Un-hide so the media query lays it out, then measure the free column.
+    el.recent.hidden = false;
+    var w = el.recentPile.clientWidth;
+    var h = el.recentPile.clientHeight;
+    if (w <= 0 || h <= 0) {
+        // The layout is active but the flex chain hasn't resolved a size yet
+        // (first-paint race): retry next frame instead of hiding for good.
+        if (recentRetries++ < 30) {
+            requestAnimationFrame(renderRecent);
+        } else {
+            el.recent.hidden = true;
+        }
+        return;
+    }
+    recentRetries = 0;
+    el.recentPile.textContent = '';
+
+    // Fit the pile to the column height: try the most sleeves (capped by the
+    // shrink ramp and the album count), shrinking the cascade step down to a
+    // still-hoverable minimum; drop the oldest and retry until it fits, or hide
+    // if not even RECENT_MIN sleeves fit. This keeps the pile visible on short
+    // screens (packed tighter) instead of vanishing.
+    var sizeFirst = Math.round(w * RECENT_TOP_RATIO);
+    var minStep = w * RECENT_SHRINK + RECENT_MIN_PEEK;
+    var prefStep = w * RECENT_STEP_RATIO;
+    var count = 0;
+    var step = 0;
+    for (var c = Math.min(covers.length, RECENT_MAX); c >= RECENT_MIN; c--) {
+        if (sizeFirst > h) { break; }   // even the freshest sleeve overflows
+        var sizeLast = Math.round(w * (RECENT_TOP_RATIO - RECENT_SHRINK * (c - 1)));
+        var fitStep = (h - sizeLast) / (c - 1);   // c >= RECENT_MIN (3) so c-1 >= 2
+        if (fitStep >= minStep) {
+            step = Math.round(Math.min(prefStep, fitStep));
+            count = c;
+            break;
+        }
+    }
+    if (!count) {
+        el.recent.hidden = true;
+        return;
+    }
+    var plan = [];
+    for (i = 0; i < count; i++) {
+        plan.push({
+            cover: covers[i],
+            size: Math.round(w * (RECENT_TOP_RATIO - RECENT_SHRINK * i)),
+            top: i * step,
+        });
+    }
+
+    for (i = 0; i < count; i++) {
+        var size = plan[i].size;
+        // Decorative: the pile shows the recent covers, with no name or action,
+        // so it isn't focusable — the lift is a mouse-hover flourish only.
+        var sleeve = document.createElement('div');
+        sleeve.className = 'np-recent-sleeve';
+        sleeve.style.width = size + 'px';
+        sleeve.style.height = size + 'px';
+        sleeve.style.top = plan[i].top + 'px';
+        // Centred, then nudged a little off-centre, alternating left/right by
+        // depth (freshest left, next right, …): the shrinking stack keeps a
+        // tossed feel and each sleeve peeks out to the side of the wider one on
+        // top of it, so it stays hoverable.
+        var shift = (i % 2 === 0 ? -1 : 1) * Math.round(w * RECENT_LANE_SHIFT);
+        sleeve.style.left = Math.round((w - size) / 2 + shift) + 'px';
+        sleeve.style.setProperty('--np-recent-rot', RECENT_TILTS[i % RECENT_TILTS.length] + 'deg');
+        // Freshest listen frontmost; z decreases with depth so each older
+        // sleeve sits behind the one above it.
+        sleeve.style.zIndex = String(count - i);
+        // Older sleeves sink into the shadow too: full light for the freshest
+        // fading towards ~half brightness for the oldest visible one.
+        var age = count > 1 ? i / (count - 1) : 0;
+        sleeve.style.setProperty('--np-recent-age', (0.95 - 0.5 * age).toFixed(3));
+        sleeve.style.setProperty('--np-recent-sat', (1 - 0.25 * age).toFixed(3));
+
+        var img = document.createElement('img');
+        img.src = '/cover/' + encodeURIComponent(plan[i].cover) +
+            '.jpg?size=' + RECENT_COVER_SIZE;
+        img.alt = '';
+        img.decoding = 'async';
+        sleeve.appendChild(img);
+
+        el.recentPile.appendChild(sleeve);
+    }
+}
+
+// Fetch the play history for the pile — once per track, since only a track
+// change can reorder it (the album that just finished surfaces on top). On
+// failure recentKey keeps its old value, so the next track change retries.
+function loadRecent() {
+    if (!el.recent || recentLoading || recentKey === lastTrackKey) { return; }
+    recentLoading = true;
+    var key = lastTrackKey;
+    // A few more than the pile can show: the currently playing album is
+    // dropped client-side.
+    fetch('/recent-covers.json?limit=' + (RECENT_MAX + 4))
+        .then(function(r) { return r.json(); })
+        .then(function(covers) {
+            recentLoading = false;
+            recentKey = key;
+            recentCovers = covers || [];
+            renderRecent();
+        })
+        .catch(function() { recentLoading = false; });
+}
+
+// Re-size the pile to the new space on resize (debounced); reuses the albums
+// already fetched, so no extra network.
+var recentResizeTimer = null;
+window.addEventListener('resize', function() {
+    if (!recentCovers) { return; }
+    if (recentResizeTimer) { clearTimeout(recentResizeTimer); }
+    recentResizeTimer = setTimeout(renderRecent, 300);
+});
+
 function render(data) {
     if (!data || !data.track_id) {
         nowPlaying.classList.add('is-empty');
         loadMosaic();
+        // Drop the pile's cache: the listens that just ended will reorder it,
+        // so the next playback refetches instead of showing a stale pile.
+        recentCovers = null;
+        recentKey = null;
+        if (el.recent) { el.recent.hidden = true; }
         el.player.textContent = '';
         el.cover.removeAttribute('src');
         setLyrionLink(null);
@@ -710,6 +905,10 @@ function render(data) {
         el.cover.src = data.artwork_url
             ? '/cover/remote.jpg?t=' + encodeURIComponent(trackKey)
             : '/cover/' + (data.coverid || 0) + '.jpg?size=512';
+        // Refresh the pile of past listens: the album that just finished
+        // belongs on top of it now — and the new track's own album, if it was
+        // in the pile, must come out (renderRecent drops it).
+        loadRecent();
         setLyrics(data.lyrics || I18N.no_lyrics, !data.lyrics);
         setLyricsSource(data.lyrics ? 'library' : null);
         lyricsTried = false;

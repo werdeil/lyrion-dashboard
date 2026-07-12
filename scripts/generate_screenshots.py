@@ -5,8 +5,8 @@ Runs the real Flask app with the Lyrion/SQLite layers monkeypatched to serve
 a fake now-playing state (synced LRC lyrics, generated cover art, canned
 library stats), then captures it with headless Chromium via Playwright:
 
-- dashboard-en.png   desktop 1440x820, English, rose cover
-- dashboard-fr.png   desktop 1440x820, French, same rose cover
+- dashboard-en.png   desktop 1440x820, English, rose cover, recent-plays pile
+- dashboard-fr.png   desktop 1440x820, French, same rose cover and pile
 - dashboard-mobile.png  phone 390x844, French, teal cover; the library has
                      no lyrics for this track so the (mocked) web search
                      provides them, showing "Source: LRCLIB"
@@ -111,12 +111,16 @@ def _lrc(start, gap, lines, hold_after=None):
     return "\n".join(out)
 
 
+# Cover ids get spliced into the upstream Lyrion URL, so the /cover route only
+# accepts hex (S3, PR #15) — these are arbitrary hex handles, not readable names.
+COVER_ROSE, COVER_TEAL, COVER_EMBER = "a1b2c3", "d4e5f6", "0a1b2c"
+
 TRACKS = {
     "rose": {
         "now": {
             "playing": True, "mode": "play", "time": 46.5, "duration": 214,
             "track_id": 1001, "title": "Horizon bleu", "artist": "Nova Ondine",
-            "album": "Marées", "coverid": "fake-rose", "artwork_url": None,
+            "album": "Marées", "coverid": COVER_ROSE, "artwork_url": None,
             "player_name": "Salon", "player_id": "aa:bb:cc:dd:ee:01",
         },
         "lyrics": _lrc(9, 5.5, [
@@ -143,7 +147,7 @@ TRACKS = {
         "now": {
             "playing": True, "mode": "play", "time": 30.5, "duration": 189,
             "track_id": 1002, "title": "Nuit corail", "artist": "Forêt Numérique",
-            "album": "Signaux", "coverid": "fake-teal", "artwork_url": None,
+            "album": "Signaux", "coverid": COVER_TEAL, "artwork_url": None,
             "player_name": "Chambre", "player_id": "aa:bb:cc:dd:ee:02",
         },
         # No library lyrics: the auto web search (mocked below) finds the
@@ -171,7 +175,7 @@ TRACKS = {
         "now": {
             "playing": True, "mode": "play", "time": 29.5, "duration": 201,
             "track_id": 1003, "title": "Braises", "artist": "Les Lanternes",
-            "album": "Solstice", "coverid": "fake-ember", "artwork_url": None,
+            "album": "Solstice", "coverid": COVER_EMBER, "artwork_url": None,
             "player_name": "Cuisine", "player_id": "aa:bb:cc:dd:ee:03",
         },
         "lyrics": _lrc(8, 5, [
@@ -227,21 +231,21 @@ def _cover_svg(stops, circles, wave_specs):
 
 
 COVER_SVGS = {
-    "fake-rose": _cover_svg(
+    COVER_ROSE: _cover_svg(
         [(0, "#232a5c"), (0.55, "#8a4d8f"), (1, "#e07ba8")],
         [(180, 200, 150, 0.10, "#ffffff"), (120, 130, 90, 0.12, "#ffffff"),
          (300, 300, 190, 0.07, "#ffffff"), (90, 330, 70, 0.10, "#ffffff")],
         [((330, 26, 300, 0.0), 3, 0.55), ((370, 30, 340, 1.8), 3, 0.35),
          ((410, 24, 280, 3.6), 3, 0.25)],
     ),
-    "fake-teal": _cover_svg(
+    COVER_TEAL: _cover_svg(
         [(0, "#0e2f2a"), (0.55, "#1f6e5d"), (1, "#63c9a8")],
         [(170, 190, 140, 0.10, "#ffffff"), (110, 120, 85, 0.12, "#e8c56b"),
          (300, 290, 185, 0.07, "#ffffff"), (420, 140, 60, 0.10, "#e8c56b")],
         [((330, 22, 260, 0.8), 3, 0.50), ((368, 28, 320, 2.4), 3, 0.32),
          ((406, 22, 300, 4.2), 3, 0.22)],
     ),
-    "fake-ember": _cover_svg(
+    COVER_EMBER: _cover_svg(
         [(0, "#33150f"), (0.55, "#a34a22"), (1, "#f0a04b")],
         [(190, 210, 150, 0.10, "#ffffff"), (130, 140, 90, 0.12, "#ffd9a0"),
          (310, 300, 185, 0.07, "#ffffff"), (450, 180, 65, 0.10, "#ffd9a0")],
@@ -249,6 +253,26 @@ COVER_SVGS = {
          ((410, 22, 270, 3.9), 3, 0.24)],
     ),
 }
+
+
+# Recently played album covers for the pile under the cover (shown on
+# desktop). Each is a small generated cover keyed by a hex id like the tracks
+# above. (hex id, gradient stops)
+RECENT_COVERS = [
+    ("dd0a01", [(0, "#1a2b4a"), (0.55, "#3d5a8a"), (1, "#7fa8d8")]),
+    ("dd0a02", [(0, "#12302a"), (0.55, "#2f7a5d"), (1, "#7ecbb0")]),
+    ("dd0a03", [(0, "#3a1414"), (0.55, "#9a3f2c"), (1, "#e0895f")]),
+    ("dd0a04", [(0, "#20301a"), (0.55, "#4f7a2f"), (1, "#9ccb6f")]),
+    ("dd0a05", [(0, "#2a2540"), (0.55, "#5f4f8a"), (1, "#a58fd8")]),
+    ("dd0a06", [(0, "#402a20"), (0.55, "#8a5f3f"), (1, "#d8a87f")]),
+]
+
+for _cid, _stops in RECENT_COVERS:
+    COVER_SVGS[_cid] = _cover_svg(
+        _stops,
+        [(180, 200, 150, 0.10, "#ffffff"), (300, 300, 190, 0.07, "#ffffff")],
+        [((330, 26, 300, 0.0), 3, 0.5), ((380, 24, 320, 2.0), 3, 0.3)],
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -262,6 +286,10 @@ np_routes.get_active_now_playing = lambda: dict(SCENARIO["now"])
 np_routes.get_track_lyrics = lambda track_id: SCENARIO["lyrics"]
 np_routes.get_stats = lambda: FAKE_STATS
 np_routes.fetch_cover = lambda coverid, size=None: (COVER_PNGS[coverid], "image/png")
+# Recently played covers feed the pile under the cover on the desktop shots.
+np_routes.get_recent_album_covers = lambda limit=16: [
+    cid for cid, _stops in RECENT_COVERS
+][:limit]
 
 
 def _fake_web_lyrics(**_kw):
@@ -316,6 +344,12 @@ def capture(browser, base_url, track, *, locale, viewport, dpr, android=False):
     page = ctx.new_page()
     page.goto(base_url)
     page.wait_for_function(READY_JS)
+    # The recent-plays pile only renders in the wide desktop layout (its CSS
+    # media query is min-width 1081px and min-height 600px); wait for it there
+    # so the capture includes it.
+    if viewport["width"] >= 1081 and viewport["height"] >= 600:
+        page.wait_for_function(
+            "() => document.querySelectorAll('.np-recent-sleeve').length > 0")
     page.wait_for_timeout(400)  # let the smooth lyrics scroll settle
     shot = page.screenshot()
     ctx.close()

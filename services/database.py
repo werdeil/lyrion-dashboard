@@ -61,7 +61,7 @@ def get_random_cover_ids(limit=24):
 
 def get_recent_album_covers(limit=24):
     """Cover ids of the most recently played albums, newest first, for the
-    empty-state mosaic.
+    empty-state mosaic and the recent-plays pile under the now-playing cover.
 
     Uses the Alternative Play Count table rather than tracks_persistent.
     tracks_persistent.lastplayed is bumped on skips too, so it would surface
@@ -69,7 +69,8 @@ def get_recent_album_covers(limit=24):
     (playcount / lastplayed) separate from skips (skipcount / lastskipped).
     So we count only tracks with an actual play (playcount > 0) and order by
     their real last-play time. Grouping by the album's artwork gives one cover
-    per album — an album whose tracks were played several times appears once.
+    per album — an album whose tracks were played several times appears once,
+    so callers never see the same cover twice.
     """
     with get_db_conn() as conn:
         rows = conn.execute(

@@ -268,12 +268,25 @@ hr {
     -webkit-backdrop-filter: blur(10px);
 }
 
-.np-cover {
+/* Left column of the card: the cover on top and, on large screens, the
+   recent-plays stack under it. Carries the grid placement the cover used to
+   own, so the responsive rules below only ever re-place this wrapper. */
+.np-side {
     grid-column: 1;
     grid-row: 1 / span 2;
     max-width: 300px;
     width: 100%;
+    min-width: 0;
+}
+
+.np-cover {
+    width: 100%;
     aspect-ratio: 1 / 1;
+    /* Between the resting sleeves (z-index 1..count, at most 5) and a lifted
+       one (z-index 50): the freshest sleeve tucks UNDER the cover at rest, but
+       a hovered/focused sleeve rises in FRONT of it. */
+    position: relative;
+    z-index: 10;
 }
 
 .np-cover img {
@@ -283,6 +296,87 @@ hr {
     border-radius: 10px;
     display: block;
     border: 1px solid var(--border-color);
+}
+
+/* Recent plays under the cover, as a pile of record sleeves: the freshest
+   listen sits on top (right under the playing cover) at full light, each
+   older one cascading down behind it, tilted and dimmer, only its lower edge
+   peeking out. Occlusion carries the order — nothing is dated. Hovering or
+   focusing a sleeve lifts it to the front, straightens and brightens it, and
+   names it in the caption line below the pile (kept at a readable size rather
+   than squeezed onto a possibly tiny sleeve). Only lives in the large
+   fixed-height layout — narrower screens have no free column under the cover —
+   so it stays display:none until the media query at the bottom turns it on. */
+.np-recent {
+    display: none;
+    /* Deliberately NOT a stacking context: the sleeves' z-indexes must compete
+       with the cover's in the card, so a lifted sleeve (z 50) can rise above
+       the cover (z 10) while resting ones (z 1..count) stay under it. */
+    flex: 1 1 auto;
+    flex-direction: column;
+    min-height: 0;
+    /* Negative, so the pile starts higher and the freshest sleeve slips under
+       the cover's bottom edge (which sits above it, see .np-cover). */
+    margin-top: -22px;
+}
+
+/* JS hides the block when there is nothing to show (no play history yet, or
+   too few covers to make a pile); keep the attribute effective despite the
+   display:flex from the media query below. */
+.np-recent[hidden] {
+    display: none;
+}
+
+/* Containing block of the absolutely-placed sleeves. overflow:visible so a
+   lifted sleeve can grow past the pile into the card's own padding. */
+.np-recent-pile {
+    position: relative;
+    flex: 1 1 auto;
+    min-height: 0;
+}
+
+/* One sleeve. JS sets its size (--np-recent-size), position (top/left),
+   tilt (--np-recent-rot), stacking (z-index) and age dimming
+   (--np-recent-age / --np-recent-sat) inline; the shared look and the
+   hover/focus lift live here. */
+.np-recent-sleeve {
+    position: absolute;
+    width: var(--np-recent-size, 150px);
+    height: var(--np-recent-size, 150px);
+    border-radius: 8px;
+    overflow: hidden;
+    border: 1px solid var(--border-color);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.5);
+    transform: rotate(var(--np-recent-rot, 0deg));
+    filter: brightness(var(--np-recent-age, 1)) saturate(var(--np-recent-sat, 1));
+    cursor: pointer;
+    transition: transform 200ms ease, filter 200ms ease, box-shadow 200ms ease;
+}
+
+/* Lift on hover: to the front, straightened, a touch larger, full light.
+   !important beats the inline per-sleeve transform/filter set by JS. The pile
+   is decorative (not focusable), so this is a mouse-only flourish. */
+.np-recent-sleeve:hover {
+    transform: rotate(0deg) scale(1.05) !important;
+    filter: none !important;
+    /* !important: each sleeve carries an inline z-index for its depth in the
+       pile, and inline styles otherwise beat this rule — so without it a
+       lifted lower sleeve would stay behind the fresher ones stacked on top. */
+    z-index: 50 !important;
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.7);
+}
+
+.np-recent-sleeve img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .np-recent-sleeve {
+        transition: none;
+    }
 }
 
 .np-meta {
@@ -775,7 +869,7 @@ hr {
     align-items: stretch;
 }
 
-.now-playing.is-empty .np-cover,
+.now-playing.is-empty .np-side,
 .now-playing.is-empty .np-meta,
 .now-playing.is-empty .np-lyrics-block {
     display: none;
@@ -962,6 +1056,26 @@ body.in-app .page-header {
     }
 }
 
+/* The recent-plays stack needs both the side-by-side cover+lyrics grid
+   (>1080px, see below) and the fixed-height layout above (≥600px tall) —
+   that combination is what leaves a tall empty column under the cover.
+   The wrapper stretches to the card's full height so the stack gets
+   exactly the leftover space below the cover. */
+@media (min-width: 1081px) and (min-height: 600px) {
+    .np-side {
+        align-self: stretch;
+        min-height: 0;
+        display: flex;
+        flex-direction: column;
+    }
+    .np-cover {
+        flex-shrink: 0;
+    }
+    .np-recent {
+        display: flex;
+    }
+}
+
 @media (max-width: 860px) {
     .main-layout {
         gap: 16px;
@@ -980,7 +1094,7 @@ body.in-app .page-header {
     .now-playing {
         grid-template-columns: 200px 1fr;
     }
-    .np-cover {
+    .np-side {
         grid-row: 1;
         max-width: 200px;
     }
@@ -996,7 +1110,7 @@ body.in-app .page-header {
     .now-playing {
         grid-template-columns: 160px 1fr;
     }
-    .np-cover {
+    .np-side {
         max-width: 160px;
     }
     .np-lyrics {
@@ -1012,7 +1126,7 @@ body.in-app .page-header {
         grid-template-columns: 120px 1fr;
         gap: 16px;
     }
-    .np-cover {
+    .np-side {
         grid-row: 1;
         max-width: 120px;
     }
