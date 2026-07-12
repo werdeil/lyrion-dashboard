@@ -20,6 +20,29 @@
     <string name="pref_keep_screen_on">Keep screen on</string>
     <string name="pref_keep_screen_on_summary">Prevent the screen from turning off while the dashboard is shown</string>
 
+    <string name="pref_category_watch">Watch</string>
+    <string name="pref_wear_install">Install the watch app</string>
+    <string name="pref_wear_install_summary">Install the Wear OS companion on your watch through the server</string>
+
+    <string name="wear_install_title">Install the watch app</string>
+    <string name="wear_install_intro">On the watch, enable developer options (Settings → System → About → tap the build number 7 times), then open Settings → Developer options → Wireless debugging.\n\n1. Enter below the IP address and port shown on the wireless debugging screen (connection address).\n2. The first time, also tap “Pair new device” on the watch and copy the pairing address and 6-digit code it displays.\n3. Press Install: the Lyrion Dashboard server pairs with the watch and installs the app.</string>
+    <string name="wear_pair_address">Pairing address (IP:port, first time only)</string>
+    <string name="wear_pair_code">Pairing code (6 digits, first time only)</string>
+    <string name="wear_connect_address">Connection address (IP:port)</string>
+    <string name="wear_install_button">Install on the watch</string>
+    <string name="wear_installing">Installing through the server… Keep the wireless debugging screen open on the watch.</string>
+    <string name="wear_install_success">Watch app installed 🎉</string>
+    <string name="wear_no_server">Set the server URL first</string>
+    <string name="wear_bad_connect_address">Enter the connection address as IP:port</string>
+    <string name="wear_bad_pairing">Pairing needs both the IP:port address and the 6-digit code</string>
+    <string name="wear_status_no_adb">The server has no adb binary — see android/README.md to enable watch installs</string>
+    <string name="wear_status_no_apk">No watch APK on the server yet (looked at %1$s) — it will be downloaded from the latest release, or drop a CI-built APK there</string>
+    <string name="wear_step_apk">The server could not find or download the watch APK</string>
+    <string name="wear_step_pair">Pairing with the watch failed — check the address and code</string>
+    <string name="wear_step_connect">Connection to the watch failed — check the connection address</string>
+    <string name="wear_step_install">The watch refused the install</string>
+    <string name="wear_step_input">Invalid request</string>
+
     <string name="discover_in_progress">Searching for Lyrion servers…</string>
     <string name="discover_no_server">No Lyrion server found on the network</string>
     <string name="discover_choose_server">Choose a server</string>

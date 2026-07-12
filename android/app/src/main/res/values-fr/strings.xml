@@ -17,6 +17,29 @@
     <string name="pref_keep_screen_on">Garder l\'écran allumé</string>
     <string name="pref_keep_screen_on_summary">Empêche l\'écran de s\'éteindre tant que le tableau de bord est affiché</string>
 
+    <string name="pref_category_watch">Montre</string>
+    <string name="pref_wear_install">Installer l\'app montre</string>
+    <string name="pref_wear_install_summary">Installe l\'app compagnon Wear OS sur votre montre via le serveur</string>
+
+    <string name="wear_install_title">Installer l\'app montre</string>
+    <string name="wear_install_intro">Sur la montre, activez les options développeur (Paramètres → Système → À propos → touchez 7 fois le numéro de build), puis ouvrez Paramètres → Options développeur → Débogage sans fil.\n\n1. Saisissez ci-dessous l\'adresse IP et le port affichés sur l\'écran de débogage sans fil (adresse de connexion).\n2. La première fois, touchez aussi « Associer un appareil » sur la montre et recopiez l\'adresse d\'association et le code à 6 chiffres affichés.\n3. Appuyez sur Installer : le serveur Lyrion Dashboard s\'associe à la montre et installe l\'app.</string>
+    <string name="wear_pair_address">Adresse d\'association (IP:port, première fois seulement)</string>
+    <string name="wear_pair_code">Code d\'association (6 chiffres, première fois seulement)</string>
+    <string name="wear_connect_address">Adresse de connexion (IP:port)</string>
+    <string name="wear_install_button">Installer sur la montre</string>
+    <string name="wear_installing">Installation via le serveur… Gardez l\'écran de débogage sans fil ouvert sur la montre.</string>
+    <string name="wear_install_success">App montre installée 🎉</string>
+    <string name="wear_no_server">Définissez d\'abord l\'URL du serveur</string>
+    <string name="wear_bad_connect_address">Saisissez l\'adresse de connexion au format IP:port</string>
+    <string name="wear_bad_pairing">L\'association demande l\'adresse IP:port et le code à 6 chiffres</string>
+    <string name="wear_status_no_adb">Le serveur n\'a pas de binaire adb — voir android/README.md pour activer l\'installation montre</string>
+    <string name="wear_status_no_apk">Pas encore d\'APK montre sur le serveur (cherché : %1$s) — il sera téléchargé depuis la dernière release, ou déposez-y un APK issu de la CI</string>
+    <string name="wear_step_apk">Le serveur n\'a pas pu trouver ni télécharger l\'APK montre</string>
+    <string name="wear_step_pair">L\'association avec la montre a échoué — vérifiez l\'adresse et le code</string>
+    <string name="wear_step_connect">La connexion à la montre a échoué — vérifiez l\'adresse de connexion</string>
+    <string name="wear_step_install">La montre a refusé l\'installation</string>
+    <string name="wear_step_input">Requête invalide</string>
+
     <string name="discover_in_progress">Recherche de serveurs Lyrion…</string>
     <string name="discover_no_server">Aucun serveur Lyrion trouvé sur le réseau</string>
     <string name="discover_choose_server">Choisir un serveur</string>

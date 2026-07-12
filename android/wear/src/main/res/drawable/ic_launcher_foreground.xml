@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Equalizer bars + musical note from static/favicon.svg (the page icon),
+     drawn in its 64-unit space and scaled into the 108dp adaptive-icon
+     viewport (content stays inside the 66dp safe zone). -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <group
+        android:translateX="20.4"
+        android:translateY="20.4"
+        android:scaleX="1.05"
+        android:scaleY="1.05">
+
+        <!-- Equalizer bars, each with the favicon's bottom-to-top gradient. -->
+        <path android:pathData="M13,36.5 A2.5,2.5 0 0 1 18,36.5 L18,47.5 A2.5,2.5 0 0 1 13,47.5 Z">
+            <aapt:attr name="android:fillColor">
+                <gradient
+                    android:type="linear"
+                    android:startX="15.5"
+                    android:startY="50"
+                    android:endX="15.5"
+                    android:endY="34"
+                    android:startColor="#3d72bb"
+                    android:endColor="#6fa6e8" />
+            </aapt:attr>
+        </path>
+        <path android:pathData="M22,28.5 A2.5,2.5 0 0 1 27,28.5 L27,47.5 A2.5,2.5 0 0 1 22,47.5 Z">
+            <aapt:attr name="android:fillColor">
+                <gradient
+                    android:type="linear"
+                    android:startX="24.5"
+                    android:startY="50"
+                    android:endX="24.5"
+                    android:endY="26"
+                    android:startColor="#3d72bb"
+                    android:endColor="#6fa6e8" />
+            </aapt:attr>
+        </path>
+        <path android:pathData="M31,40.5 A2.5,2.5 0 0 1 36,40.5 L36,47.5 A2.5,2.5 0 0 1 31,47.5 Z">
+            <aapt:attr name="android:fillColor">
+                <gradient
+                    android:type="linear"
+                    android:startX="33.5"
+                    android:startY="50"
+                    android:endX="33.5"
+                    android:endY="38"
+                    android:startColor="#3d72bb"
+                    android:endColor="#6fa6e8" />
+            </aapt:attr>
+        </path>
+
+        <!-- Musical note. -->
+        <path
+            android:fillColor="#f8f9fb"
+            android:pathData="M45,17.7 A1.7,1.7 0 0 1 48.4,17.7 L48.4,38.3 A1.7,1.7 0 0 1 45,38.3 Z" />
+        <path
+            android:fillColor="#f8f9fb"
+            android:pathData="M45,16 L54,13.6 L54,19.8 L45,22.2 Z" />
+        <path
+            android:fillColor="#f8f9fb"
+            android:pathData="M38.1,40 a5.2,5.2 0 1 0 10.4,0 a5.2,5.2 0 1 0 -10.4,0 Z" />
+    </group>
+</vector>

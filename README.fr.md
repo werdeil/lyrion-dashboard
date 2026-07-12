@@ -19,6 +19,7 @@ Application web Flask pour [Lyrion Music Server](https://github.com/LMS-Communit
 - **Statistiques de la bibliothèque** -- Albums, artistes, morceaux joués/non joués, genres, notes, paroles, vélocité d'écoute sur 30 jours.
 - **Serveur de fichiers** -- Sert les fichiers depuis un répertoire configurable.
 - **Application Android** -- Une fine surcouche WebView (même principe que [lms-material-app](https://github.com/CDrummond/lms-material-app)) avec découverte automatique du serveur LMS, voir [`android/`](android/README.md).
+- **Application Wear OS** -- Une app compagnon autonome pour montre affichant uniquement les paroles synchronisées du titre en cours, façon karaoké, voir [`android/`](android/README.md#wear-os-companion-wear).
 
 ## Structure du projet
 
@@ -47,7 +48,7 @@ Application web Flask pour [Lyrion Music Server](https://github.com/LMS-Communit
 │   ├── embed_lyrics.py                    # Intègre les paroles web dans les tags des fichiers
 │   ├── embed_lyrics_cron.sh               # Wrapper cron : ne retague que les fichiers modifiés
 │   └── generate_screenshots.py            # Regénère les captures des README (données factices)
-├── android/                               # Application Android (surcouche WebView)
+├── android/                               # Application Android (surcouche WebView) + app Wear OS
 ├── tests/
 └── docs/screenshots/                      # Captures d'écran du README
 ```

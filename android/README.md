@@ -8,6 +8,9 @@ provides the native shell.
 
 <img src="../docs/screenshots/dashboard-app.png" alt="Android app" width="240">
 
+The Gradle project has two modules: `app/` (the phone app described here)
+and `wear/` (a Wear OS companion, see [below](#wear-os-companion-wear)).
+
 ## Features
 
 - Full screen WebView loading the dashboard
@@ -38,8 +41,65 @@ From the command line (requires the Android SDK, `ANDROID_HOME` set):
 ```bash
 cd android
 ./gradlew assembleDebug
-# APK in app/build/outputs/apk/debug/app-debug.apk
+# Phone APK in app/build/outputs/apk/debug/app-debug.apk
+# Watch APK in wear/build/outputs/apk/debug/wear-debug.apk
 ```
+
+## Wear OS companion (`wear/`)
+
+A small native watch app (Compose for Wear OS — a WebView is not available
+on watches) that shows only the lyrics of the track currently playing,
+karaoke-style when they carry LRC timestamps.
+
+- **Standalone**: the watch polls `/now-playing.json` on the Lyrion
+  Dashboard server directly every 5 s and extrapolates the playback
+  position locally between polls, exactly like the web page does. No
+  phone-side component is involved; when the watch has no Wi-Fi, Wear OS
+  transparently proxies the HTTP requests through the paired phone's
+  Bluetooth connection.
+- **Synced lyrics first**: LRC lyrics from the library are highlighted
+  line-by-line and auto-centred. When the library has no synced lyrics,
+  the app asks the dashboard's web fallback (`/lyrics.json`) once per
+  track; plain lyrics are shown as scrollable text.
+- **Settings**: on first launch (or with a long-press on the lyrics
+  screen) set the server URL — typed or dictated through the system
+  input. A toggle keeps the screen on while music plays (on by default).
+- **Requirements**: Wear OS 2.23+ (API 26); the Lyrion Dashboard server
+  reachable from the watch (plain HTTP on the LAN is allowed).
+
+### Installing on the watch
+
+The easiest way is the **“Install the watch app” button in the phone
+app's settings**. Modern watches (Wear OS 4+, e.g. Pixel Watch) only
+expose *wireless debugging*, whose pairing protocol requires the real
+`adb` binary — so the phone app delegates the install to the Lyrion
+Dashboard server (`POST /wear/install.json`), which runs
+`adb pair` / `adb connect` / `adb install` from the LAN. To enable it:
+
+1. Make `adb` available to the server. With Docker, uncomment the
+   `command:` override in `docker-compose.override.yml.example` (installs
+   the Debian `adb` package at container start); on bare metal, install
+   `adb`/`android-tools` and optionally set `ADB_PATH`.
+2. Provide the APK: the server looks at `WEAR_APK_PATH` (default
+   `<custom data dir>/lyrion-wear.apk`). If the file is missing it
+   downloads the wear APK of the latest GitHub release. While testing
+   pre-release builds, drop the CI artifact (`lyrion-custom-data-wear-debug`)
+   there under that name.
+3. On the watch, enable developer options and *Wireless debugging*, tap
+   *Pair new device*, and copy the addresses/code into the phone app's
+   install screen. Pairing is only needed the first time; later updates
+   just need the connection address.
+
+Manual alternative from a computer (works on any watch):
+
+```bash
+adb pair <watch-ip>:<pairing-port> <6-digit-code>   # first time only
+adb connect <watch-ip>:<connect-port>
+adb -s <watch-ip>:<connect-port> install -r wear/build/outputs/apk/debug/wear-debug.apk
+```
+
+(Watches still offering the legacy *Debug over Wi-Fi* skip the pair step
+and use port 5555.)
 
 Debug builds use a distinct application ID (`.debug` suffix) and label
 ("Lyrion Dashboard (debug)"), so they install side by side with the signed

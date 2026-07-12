@@ -3,6 +3,7 @@ from flask import Flask
 from config import Config
 from routes.nowplaying import nowplaying_bp
 from routes.custom import custom_bp
+from routes.wear import wear_bp
 
 
 def create_app():
@@ -26,6 +27,7 @@ def create_app():
 
     flask_app.register_blueprint(nowplaying_bp)
     flask_app.register_blueprint(custom_bp)
+    flask_app.register_blueprint(wear_bp)
 
     return flask_app
 

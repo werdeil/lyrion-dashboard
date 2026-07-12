@@ -16,3 +16,4 @@ dependencyResolutionManagement {
 
 rootProject.name = "LyrionDashboard"
 include(":app")
+include(":wear")
