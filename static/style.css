@@ -1005,10 +1005,23 @@ body.in-app .page-header {
    otherwise clip the content with no way to scroll. They fall back to the
    default scrollable layout instead. */
 @media (min-width: 861px) and (min-height: 600px) {
+    /* dvh (visible viewport) instead of 100vh, which is the *large* viewport on
+       iOS/iPadOS Safari and overflows past the screen when the toolbars show.
+       The lock must sit on <html> too: overflow:hidden on <body> alone doesn't
+       stop the document scrolling on Safari. vh kept as a fallback; min-height
+       overridden so the base body rule's min-height:100vh doesn't win. */
+    html {
+        height: 100vh;
+        height: 100dvh;
+        overflow: hidden;
+    }
     body {
         display: flex;
         flex-direction: column;
         height: 100vh;
+        height: 100dvh;
+        min-height: 100vh;
+        min-height: 100dvh;
         overflow: hidden;
     }
     .main-layout {
