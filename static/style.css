@@ -911,9 +911,14 @@ body.in-app .page-header {
            viewport (as if the toolbars were hidden), so with the tab + address
            bars showing the body ends up taller than the visible area and the page
            overflows past the bottom of the screen. dvh tracks the visible viewport
-           and keeps the fixed layout exactly one screen tall. */
+           and keeps the fixed layout exactly one screen tall.
+           min-height must be overridden too: the base body rule sets
+           min-height:100vh, which would otherwise win over the dvh height and
+           keep forcing the body to the large-viewport height. */
         height: 100vh;
         height: 100dvh;
+        min-height: 100vh;
+        min-height: 100dvh;
         overflow: hidden;
     }
     .main-layout {
