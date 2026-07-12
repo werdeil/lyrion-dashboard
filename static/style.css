@@ -906,7 +906,14 @@ body.in-app .page-header {
     body {
         display: flex;
         flex-direction: column;
+        /* vh first as a fallback; dvh (dynamic viewport height) is what actually
+           fits the screen on mobile browsers. On iPad/Safari 100vh is the *large*
+           viewport (as if the toolbars were hidden), so with the tab + address
+           bars showing the body ends up taller than the visible area and the page
+           overflows past the bottom of the screen. dvh tracks the visible viewport
+           and keeps the fixed layout exactly one screen tall. */
         height: 100vh;
+        height: 100dvh;
         overflow: hidden;
     }
     .main-layout {
