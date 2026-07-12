@@ -31,21 +31,13 @@ class GetRecentAlbumCoversTest(unittest.TestCase):
         # lowercase references still match (SQLite is case-insensitive).
         conn.executescript("""
             CREATE TABLE tracks (id INTEGER, urlmd5 TEXT, audio INTEGER, album INTEGER);
-            CREATE TABLE albums (
-                id INTEGER, artwork TEXT, title TEXT, contributor INTEGER);
-            CREATE TABLE contributors (id INTEGER, name TEXT);
+            CREATE TABLE albums (id INTEGER, artwork TEXT);
             CREATE TABLE alternativeplaycount (
                 urlmd5 TEXT, playCount INTEGER, lastPlayed INTEGER,
                 skipCount INTEGER, lastSkipped INTEGER);
         """)
-        conn.executemany("INSERT INTO albums VALUES (?, ?, ?, ?)", [
-            (1, "ca", "Album A", 100),
-            (2, "cb", "Album B", 100),
-            (3, "cc", "Album C", None),
-            (4, "cd", "Album D", 100),
-            (5, None, "Album E", 100),
-        ])
-        conn.execute("INSERT INTO contributors VALUES (100, 'Artist X')")
+        conn.executemany("INSERT INTO albums VALUES (?, ?)",
+                         [(1, "ca"), (2, "cb"), (3, "cc"), (4, "cd"), (5, None)])
         # Album 1: two played tracks (latest play 500). Album 2 played (400),
         # album 3 played (300). Album 4: only skipped (playcount 0) but skipped
         # very recently — must be excluded. Album 5: played but no artwork.

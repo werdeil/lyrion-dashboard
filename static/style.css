@@ -353,11 +353,10 @@ hr {
     transition: transform 200ms ease, filter 200ms ease, box-shadow 200ms ease;
 }
 
-/* Lift: to the front, straightened, a touch larger, full light. !important
-   beats the inline per-sleeve transform/filter set by JS. :focus keeps the
-   keyboard (and touch, where a tap focuses) on par with the mouse. */
-.np-recent-sleeve:hover,
-.np-recent-sleeve:focus {
+/* Lift on hover: to the front, straightened, a touch larger, full light.
+   !important beats the inline per-sleeve transform/filter set by JS. The pile
+   is decorative (not focusable), so this is a mouse-only flourish. */
+.np-recent-sleeve:hover {
     transform: rotate(0deg) scale(1.05) !important;
     filter: none !important;
     /* !important: each sleeve carries an inline z-index for its depth in the
@@ -365,12 +364,6 @@ hr {
        lifted lower sleeve would stay behind the fresher ones stacked on top. */
     z-index: 50 !important;
     box-shadow: 0 16px 40px rgba(0, 0, 0, 0.7);
-    outline: none;
-}
-
-.np-recent-sleeve:focus-visible {
-    outline: 2px solid var(--accent-color);
-    outline-offset: 2px;
 }
 
 .np-recent-sleeve img {

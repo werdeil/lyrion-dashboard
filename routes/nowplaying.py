@@ -8,7 +8,6 @@ from services.database import (
     get_stats,
     get_random_cover_ids,
     get_recent_album_covers,
-    get_recent_albums,
 )
 from services.lyrics import fetch_lyrics
 from services.ratelimit import RateLimiter, Cooldown
@@ -113,18 +112,18 @@ def mosaic_covers_json():
     return jsonify(covers)
 
 
-@nowplaying_bp.route("/recent-albums.json")
-def recent_albums_json():
-    """The most recently played albums (artwork id, album title, artist),
-    newest first, for the stack of sleeves under the now-playing cover.
+@nowplaying_bp.route("/recent-covers.json")
+def recent_covers_json():
+    """Cover ids of the most recently played albums, newest first, for the
+    pile of sleeves under the now-playing cover.
 
     The page passes ?limit= — as many sleeves as fit under the cover plus a
     small buffer, since it drops the currently playing album client-side —
     clamped to keep the query sane. Unlike the mosaic there is no random
-    fallback: with no play history yet the stack simply doesn't show.
+    fallback: with no play history yet the pile simply doesn't show.
     """
     limit = min(max(request.args.get("limit", default=16, type=int), 1), 50)
-    return jsonify(get_recent_albums(limit))
+    return jsonify(get_recent_album_covers(limit))
 
 
 @nowplaying_bp.route("/stats.json")

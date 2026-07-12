@@ -59,10 +59,9 @@ def get_random_cover_ids(limit=24):
     return [row["artwork"] for row in rows]
 
 
-def get_recent_albums(limit=24):
-    """The most recently played albums, newest first: artwork coverid plus
-    album title and (album) artist, for the recent-plays stack under the
-    now-playing cover.
+def get_recent_album_covers(limit=24):
+    """Cover ids of the most recently played albums, newest first, for the
+    empty-state mosaic and the recent-plays pile under the now-playing cover.
 
     Uses the Alternative Play Count table rather than tracks_persistent.
     tracks_persistent.lastplayed is bumped on skips too, so it would surface
@@ -76,13 +75,10 @@ def get_recent_albums(limit=24):
     with get_db_conn() as conn:
         rows = conn.execute(
             """
-            SELECT al.artwork AS artwork,
-                   al.title   AS album,
-                   c.name     AS artist
+            SELECT al.artwork AS artwork
             FROM tracks t
             JOIN alternativeplaycount apc ON apc.urlmd5 = t.urlmd5
             JOIN albums al ON al.id = t.album
-            LEFT JOIN contributors c ON c.id = al.contributor
             WHERE t.audio = 1
               AND al.artwork IS NOT NULL
               AND apc.playcount > 0
@@ -93,16 +89,7 @@ def get_recent_albums(limit=24):
             """,
             (limit,),
         ).fetchall()
-    return [
-        {"artwork": row["artwork"], "album": row["album"], "artist": row["artist"]}
-        for row in rows
-    ]
-
-
-def get_recent_album_covers(limit=24):
-    """Cover ids of the most recently played albums, newest first, for the
-    empty-state mosaic — get_recent_albums() without the metadata."""
-    return [album["artwork"] for album in get_recent_albums(limit)]
+    return [row["artwork"] for row in rows]
 
 
 # The stats are four full-library aggregations — expensive on a big library —

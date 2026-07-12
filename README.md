@@ -135,7 +135,7 @@ library statistics and download everything under `CUSTOM_DATA_DIR`
 | GET | `/now-playing.json` | Live state of the currently playing track, auto-detected (JSON) |
 | GET | `/cover/<coverid>.jpg` | Proxies an album cover from Lyrion, same-origin |
 | GET | `/cover/remote.jpg` | Proxies the artwork of the currently playing remote/streaming track |
-| GET | `/recent-albums.json` | Recently played albums (artwork id, title, artist), newest first (JSON) |
+| GET | `/recent-covers.json` | Recently played album cover ids, newest first (JSON) |
 | GET | `/lyrics.json` | Fetches lyrics from the web for a track, on demand |
 | GET | `/files/<path>` | Serves a file from the custom data directory |
 

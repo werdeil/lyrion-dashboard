@@ -136,7 +136,7 @@ bibliothèque et télécharger tout le contenu de `CUSTOM_DATA_DIR`
 | GET | `/now-playing.json` | État live de la piste du lecteur en cours de lecture, détecté automatiquement (JSON) |
 | GET | `/cover/<coverid>.jpg` | Relaie une pochette depuis Lyrion, en same-origin |
 | GET | `/cover/remote.jpg` | Relaie la pochette de la piste distante/streamée en cours de lecture |
-| GET | `/recent-albums.json` | Albums récemment écoutés (id de pochette, titre, artiste), du plus récent au plus ancien (JSON) |
+| GET | `/recent-covers.json` | Ids de pochettes des albums récemment écoutés, du plus récent au plus ancien (JSON) |
 | GET | `/lyrics.json` | Récupère les paroles d'une piste sur le web, à la demande |
 | GET | `/files/<path>` | Sert un fichier depuis le répertoire custom data |
 

@@ -255,25 +255,19 @@ COVER_SVGS = {
 }
 
 
-# Recently played albums for the pile under the cover (shown on desktop). Each
-# gets a small generated cover, keyed by a hex id like the tracks above.
-# (hex id, album, artist, gradient stops)
-RECENT_ALBUMS = [
-    ("dd0a01", "Lignes de fuite", "Camille Verne",
-     [(0, "#1a2b4a"), (0.55, "#3d5a8a"), (1, "#7fa8d8")]),
-    ("dd0a02", "Nuit kinétique", "Les Halogènes",
-     [(0, "#12302a"), (0.55, "#2f7a5d"), (1, "#7ecbb0")]),
-    ("dd0a03", "Autoroute du soir", "Klaxon Doux",
-     [(0, "#3a1414"), (0.55, "#9a3f2c"), (1, "#e0895f")]),
-    ("dd0a04", "Jardin d'hiver", "Perce-Neige",
-     [(0, "#20301a"), (0.55, "#4f7a2f"), (1, "#9ccb6f")]),
-    ("dd0a05", "Basalte", "Ondine et Fils",
-     [(0, "#2a2540"), (0.55, "#5f4f8a"), (1, "#a58fd8")]),
-    ("dd0a06", "Papier bulle", "Suzanne Fabre",
-     [(0, "#402a20"), (0.55, "#8a5f3f"), (1, "#d8a87f")]),
+# Recently played album covers for the pile under the cover (shown on
+# desktop). Each is a small generated cover keyed by a hex id like the tracks
+# above. (hex id, gradient stops)
+RECENT_COVERS = [
+    ("dd0a01", [(0, "#1a2b4a"), (0.55, "#3d5a8a"), (1, "#7fa8d8")]),
+    ("dd0a02", [(0, "#12302a"), (0.55, "#2f7a5d"), (1, "#7ecbb0")]),
+    ("dd0a03", [(0, "#3a1414"), (0.55, "#9a3f2c"), (1, "#e0895f")]),
+    ("dd0a04", [(0, "#20301a"), (0.55, "#4f7a2f"), (1, "#9ccb6f")]),
+    ("dd0a05", [(0, "#2a2540"), (0.55, "#5f4f8a"), (1, "#a58fd8")]),
+    ("dd0a06", [(0, "#402a20"), (0.55, "#8a5f3f"), (1, "#d8a87f")]),
 ]
 
-for _cid, _album, _artist, _stops in RECENT_ALBUMS:
+for _cid, _stops in RECENT_COVERS:
     COVER_SVGS[_cid] = _cover_svg(
         _stops,
         [(180, 200, 150, 0.10, "#ffffff"), (300, 300, 190, 0.07, "#ffffff")],
@@ -292,10 +286,9 @@ np_routes.get_active_now_playing = lambda: dict(SCENARIO["now"])
 np_routes.get_track_lyrics = lambda track_id: SCENARIO["lyrics"]
 np_routes.get_stats = lambda: FAKE_STATS
 np_routes.fetch_cover = lambda coverid, size=None: (COVER_PNGS[coverid], "image/png")
-# Recently played albums feed the pile under the cover on the desktop shots.
-np_routes.get_recent_albums = lambda limit=16: [
-    {"artwork": cid, "album": album, "artist": artist}
-    for cid, album, artist, _stops in RECENT_ALBUMS
+# Recently played covers feed the pile under the cover on the desktop shots.
+np_routes.get_recent_album_covers = lambda limit=16: [
+    cid for cid, _stops in RECENT_COVERS
 ][:limit]
 
 

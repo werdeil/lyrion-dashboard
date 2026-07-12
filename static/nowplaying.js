@@ -700,33 +700,32 @@ function recentLayoutActive() {
     return !!(window.matchMedia && window.matchMedia(RECENT_MQ).matches);
 }
 
-var recentAlbums = null;   // last /recent-albums.json payload
+var recentCovers = null;   // last /recent-covers.json payload (cover ids)
 var recentKey = null;      // track key the payload was fetched for
 var recentLoading = false;
 
-// Lay the cached albums out as a pile sized to the space under the cover.
+// Lay the cached cover ids out as a pile sized to the space under the cover.
 // Never repeats a cover (unlike the empty-state mosaic, which loops its list
-// to fill the belt): with fewer albums than fit the pile is just shorter, and
+// to fill the belt): with fewer covers than fit the pile is just shorter, and
 // below RECENT_MIN it hides entirely.
 function renderRecent() {
     if (!el.recent || !el.recentPile) { return; }
     var current = currentTrack || {};
     var seen = {};
-    var albums = [];
-    for (var i = 0; i < (recentAlbums || []).length; i++) {
-        var album = recentAlbums[i];
-        if (!album || !album.artwork || seen[album.artwork]) { continue; }
+    var covers = [];
+    for (var i = 0; i < (recentCovers || []).length; i++) {
+        var cover = recentCovers[i];
+        if (!cover || seen[cover]) { continue; }
         // The album on the big cover heads the play history by definition;
         // keeping it would duplicate the artwork right above the pile.
-        if (current.coverid && String(album.artwork) === String(current.coverid)) { continue; }
-        if (current.album && album.album === current.album) { continue; }
-        seen[album.artwork] = true;
-        albums.push(album);
+        if (current.coverid && String(cover) === String(current.coverid)) { continue; }
+        seen[cover] = true;
+        covers.push(cover);
     }
     // Hidden whenever there's nothing to show or the layout has no free column
     // under the cover (narrow/short screens — the CSS keeps .np-recent
     // display:none there anyway, but gating here avoids a pointless retry loop).
-    if (!albums.length || !recentLayoutActive()) {
+    if (!covers.length || !recentLayoutActive()) {
         el.recent.hidden = true;
         recentRetries = 0;
         return;
@@ -758,7 +757,7 @@ function renderRecent() {
     var prefStep = w * RECENT_STEP_RATIO;
     var count = 0;
     var step = 0;
-    for (var c = Math.min(albums.length, RECENT_MAX); c >= RECENT_MIN; c--) {
+    for (var c = Math.min(covers.length, RECENT_MAX); c >= RECENT_MIN; c--) {
         if (sizeFirst > h) { break; }   // even the freshest sleeve overflows
         var sizeLast = Math.round(w * (RECENT_TOP_RATIO - RECENT_SHRINK * (c - 1)));
         var fitStep = (h - sizeLast) / (c - 1);   // c >= RECENT_MIN (3) so c-1 >= 2
@@ -775,7 +774,7 @@ function renderRecent() {
     var plan = [];
     for (i = 0; i < count; i++) {
         plan.push({
-            album: albums[i],
+            cover: covers[i],
             size: Math.round(w * (RECENT_TOP_RATIO - RECENT_SHRINK * i)),
             top: i * step,
         });
@@ -783,14 +782,10 @@ function renderRecent() {
 
     for (i = 0; i < count; i++) {
         var size = plan[i].size;
+        // Decorative: the pile shows the recent covers, with no name or action,
+        // so it isn't focusable — the lift is a mouse-hover flourish only.
         var sleeve = document.createElement('div');
         sleeve.className = 'np-recent-sleeve';
-        // Focusable: keyboard (and touch, where a tap focuses) gets the same
-        // lift-to-front reveal as the mouse hover.
-        sleeve.tabIndex = 0;
-        sleeve.setAttribute('aria-label', plan[i].album.album
-            ? plan[i].album.album + (plan[i].album.artist ? ' — ' + plan[i].album.artist : '')
-            : '');
         sleeve.style.width = size + 'px';
         sleeve.style.height = size + 'px';
         sleeve.style.top = plan[i].top + 'px';
@@ -811,7 +806,7 @@ function renderRecent() {
         sleeve.style.setProperty('--np-recent-sat', (1 - 0.25 * age).toFixed(3));
 
         var img = document.createElement('img');
-        img.src = '/cover/' + encodeURIComponent(plan[i].album.artwork) +
+        img.src = '/cover/' + encodeURIComponent(plan[i].cover) +
             '.jpg?size=' + RECENT_COVER_SIZE;
         img.alt = '';
         img.decoding = 'async';
@@ -830,12 +825,12 @@ function loadRecent() {
     var key = lastTrackKey;
     // A few more than the pile can show: the currently playing album is
     // dropped client-side.
-    fetch('/recent-albums.json?limit=' + (RECENT_MAX + 4))
+    fetch('/recent-covers.json?limit=' + (RECENT_MAX + 4))
         .then(function(r) { return r.json(); })
-        .then(function(albums) {
+        .then(function(covers) {
             recentLoading = false;
             recentKey = key;
-            recentAlbums = albums || [];
+            recentCovers = covers || [];
             renderRecent();
         })
         .catch(function() { recentLoading = false; });
@@ -845,7 +840,7 @@ function loadRecent() {
 // already fetched, so no extra network.
 var recentResizeTimer = null;
 window.addEventListener('resize', function() {
-    if (!recentAlbums) { return; }
+    if (!recentCovers) { return; }
     if (recentResizeTimer) { clearTimeout(recentResizeTimer); }
     recentResizeTimer = setTimeout(renderRecent, 300);
 });
@@ -856,7 +851,7 @@ function render(data) {
         loadMosaic();
         // Drop the pile's cache: the listens that just ended will reorder it,
         // so the next playback refetches instead of showing a stale pile.
-        recentAlbums = null;
+        recentCovers = null;
         recentKey = null;
         if (el.recent) { el.recent.hidden = true; }
         el.player.textContent = '';
