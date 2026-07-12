@@ -282,10 +282,11 @@ hr {
 .np-cover {
     width: 100%;
     aspect-ratio: 1 / 1;
-    /* Above the pile below it, so the freshest sleeve (pulled up by
-       .np-recent's negative margin) tucks under the cover's bottom edge. */
+    /* Between the resting sleeves (z-index 1..count, at most 5) and a lifted
+       one (z-index 50): the freshest sleeve tucks UNDER the cover at rest, but
+       a hovered/focused sleeve rises in FRONT of it. */
     position: relative;
-    z-index: 1;
+    z-index: 10;
 }
 
 .np-cover img {
@@ -308,11 +309,9 @@ hr {
    so it stays display:none until the media query at the bottom turns it on. */
 .np-recent {
     display: none;
-    position: relative;
-    /* Own stacking context, so the sleeves' z-indexes stay contained here and
-       the whole pile sits below the cover (z-index:1) — the freshest sleeve
-       must tuck UNDER the cover, not paint over it. */
-    z-index: 0;
+    /* Deliberately NOT a stacking context: the sleeves' z-indexes must compete
+       with the cover's in the card, so a lifted sleeve (z 50) can rise above
+       the cover (z 10) while resting ones (z 1..count) stay under it. */
     flex: 1 1 auto;
     flex-direction: column;
     min-height: 0;
