@@ -13,6 +13,7 @@ A Flask web app for [Lyrion Music Server](https://github.com/LMS-Community/slims
 ## Features
 
 - **Now Playing** -- Automatically detects the player currently playing and shows its track (cover art, title, artist, album), refreshed live via Lyrion's JSON-RPC API. The accent color adapts to the cover art automatically.
+- **Recent plays** -- On wide screens, the recently played albums stack up as a pile of record sleeves under the cover — the most recent on top, older ones cascading down, smaller and dimmer, so the order reads at a glance. Hovering a sleeve lifts it to the front. Built from the Alternative Play Count history, one cover per album, skips excluded.
 - **Synced lyrics** -- Lyrics with LRC timestamps are displayed line-by-line with real-time highlighting and auto-scroll synced to playback, karaoke-style. The source line is tinted in the accent color when the lyrics on screen are time-synced.
 - **Web lyrics fallback** -- When the library has no (synced) lyrics, a sync switch lets you search the web (LRCLIB, Musixmatch, Genius) on demand or automatically for every track. In auto mode, a retry button re-runs the search for the current track, bypassing the cache.
 - **Library statistics** -- Albums, artists, played/unplayed tracks, genres, ratings, lyrics, 30-day listening velocity.
@@ -200,7 +201,7 @@ scripts/embed_lyrics_cron.sh /path/to/music [MARKER] [-- OPTIONS]
 
 ### Regenerate the README screenshots (`scripts/generate_screenshots.py`)
 
-Runs the real app with the Lyrion/database layers mocked (fake now-playing track, synced LRC lyrics, generated cover art, canned stats) and captures the README images with headless Chromium: desktop in both languages, the responsive mobile view and the Android app view in a device frame. Each capture uses a different cover on purpose, to show the accent color adapting to the artwork. No Lyrion server or database is needed.
+Runs the real app with the Lyrion/database layers mocked (fake now-playing track, synced LRC lyrics, generated cover art, a fake recent-plays history, canned stats) and captures the README images with headless Chromium: desktop in both languages (with the recent-plays pile under the cover), the responsive mobile view and the Android app view in a device frame. Each capture uses a different cover on purpose, to show the accent color adapting to the artwork. No Lyrion server or database is needed.
 
 ```bash
 pip install -r requirements.txt playwright

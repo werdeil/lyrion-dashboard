@@ -13,6 +13,7 @@ Application web Flask pour [Lyrion Music Server](https://github.com/LMS-Communit
 ## Fonctionnalités
 
 - **Now Playing** -- Détecte automatiquement le lecteur en cours de lecture et affiche sa piste (pochette, titre, artiste, album), rafraîchi via l'API JSON-RPC de Lyrion. La couleur d'accent s'adapte automatiquement à la pochette.
+- **Dernières écoutes** -- Sur grand écran, les albums récemment écoutés s'empilent comme des pochettes de disque sous la cover — le plus récent au-dessus, les plus anciens qui descendent en cascade, plus petits et plus sombres, pour que l'ordre se lise d'un coup d'œil. Survoler une pochette la met au premier plan. Construit à partir de l'historique Alternative Play Count, une pochette par album, sauts exclus.
 - **Paroles synchronisées** -- Les paroles avec timestamps LRC sont affichées ligne par ligne avec surlignage et défilement automatiques synchronisés à la lecture, façon karaoké. La ligne « Source » est teintée de la couleur d'accent quand les paroles affichées sont synchronisées.
 - **Recherche web de paroles** -- Quand la bibliothèque n'a pas de paroles (synchronisées), un interrupteur de synchronisation permet de chercher sur le web (LRCLIB, Musixmatch, Genius) à la demande ou automatiquement pour chaque morceau. En mode auto, un bouton permet de relancer la recherche pour le morceau en cours, en contournant le cache.
 - **Statistiques de la bibliothèque** -- Albums, artistes, morceaux joués/non joués, genres, notes, paroles, vélocité d'écoute sur 30 jours.
@@ -135,6 +136,7 @@ bibliothèque et télécharger tout le contenu de `CUSTOM_DATA_DIR`
 | GET | `/now-playing.json` | État live de la piste du lecteur en cours de lecture, détecté automatiquement (JSON) |
 | GET | `/cover/<coverid>.jpg` | Relaie une pochette depuis Lyrion, en same-origin |
 | GET | `/cover/remote.jpg` | Relaie la pochette de la piste distante/streamée en cours de lecture |
+| GET | `/recent-albums.json` | Albums récemment écoutés (id de pochette, titre, artiste), du plus récent au plus ancien (JSON) |
 | GET | `/lyrics.json` | Récupère les paroles d'une piste sur le web, à la demande |
 | GET | `/files/<path>` | Sert un fichier depuis le répertoire custom data |
 
@@ -200,7 +202,7 @@ scripts/embed_lyrics_cron.sh /chemin/vers/musique [MARQUEUR] [-- OPTIONS]
 
 ### Regénérer les captures d'écran des README (`scripts/generate_screenshots.py`)
 
-Lance la vraie application avec les couches Lyrion/base de données mockées (piste factice en cours de lecture, paroles LRC synchronisées, pochettes générées, statistiques fixes) et capture les images des README avec Chromium headless : le desktop dans les deux langues, la vue mobile responsive et la vue application Android dans un cadre de téléphone. Chaque capture utilise volontairement une pochette différente, pour montrer l'adaptation de la couleur d'accent à la pochette. Aucun serveur Lyrion ni base de données n'est nécessaire.
+Lance la vraie application avec les couches Lyrion/base de données mockées (piste factice en cours de lecture, paroles LRC synchronisées, pochettes générées, historique d'écoutes factice, statistiques fixes) et capture les images des README avec Chromium headless : le desktop dans les deux langues (avec la pile des dernières écoutes sous la cover), la vue mobile responsive et la vue application Android dans un cadre de téléphone. Chaque capture utilise volontairement une pochette différente, pour montrer l'adaptation de la couleur d'accent à la pochette. Aucun serveur Lyrion ni base de données n'est nécessaire.
 
 ```bash
 pip install -r requirements.txt playwright
