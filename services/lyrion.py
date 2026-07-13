@@ -46,12 +46,9 @@ def lyrion_request(payload):
         verify=False,
         timeout=5,
     )
-    # Lyrion answers a status query for an unknown player id — e.g. an ephemeral
-    # player that has since disappeared, which it drops from the list entirely —
-    # with an empty body that isn't JSON. Returning {} rather than letting
-    # r.json() raise keeps a vanished _last_player from crashing the whole
-    # now-playing resolution before the live players are even enumerated;
-    # callers read `result` defensively and fall through to that enumeration.
+    # Lyrion replies with an empty (non-JSON) body when asked about an unknown
+    # player id — e.g. a vanished ephemeral player still held in _last_player.
+    # Return {} instead of letting r.json() raise; callers read `result` safely.
     try:
         return r.json()
     except ValueError:
