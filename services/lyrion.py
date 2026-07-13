@@ -46,7 +46,16 @@ def lyrion_request(payload):
         verify=False,
         timeout=5,
     )
-    return r.json()
+    # Lyrion answers a status query for an unknown player id — e.g. an ephemeral
+    # player that has since disappeared, which it drops from the list entirely —
+    # with an empty body that isn't JSON. Returning {} rather than letting
+    # r.json() raise keeps a vanished _last_player from crashing the whole
+    # now-playing resolution before the live players are even enumerated;
+    # callers read `result` defensively and fall through to that enumeration.
+    try:
+        return r.json()
+    except ValueError:
+        return {}
 
 
 def fetch_cover(coverid, size=None):
@@ -89,7 +98,7 @@ def get_players():
         "params": ["", ["players", "0", "100"]],
     }
     data = lyrion_request(payload)
-    return data["result"].get("players_loop", [])
+    return data.get("result", {}).get("players_loop", [])
 
 
 def get_now_playing(player_id):
