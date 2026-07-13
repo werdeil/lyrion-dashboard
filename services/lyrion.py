@@ -46,7 +46,13 @@ def lyrion_request(payload):
         verify=False,
         timeout=5,
     )
-    return r.json()
+    # Lyrion replies with an empty (non-JSON) body when asked about an unknown
+    # player id — e.g. a vanished ephemeral player still held in _last_player.
+    # Return {} instead of letting r.json() raise; callers read `result` safely.
+    try:
+        return r.json()
+    except ValueError:
+        return {}
 
 
 def fetch_cover(coverid, size=None):
@@ -89,7 +95,7 @@ def get_players():
         "params": ["", ["players", "0", "100"]],
     }
     data = lyrion_request(payload)
-    return data["result"].get("players_loop", [])
+    return data.get("result", {}).get("players_loop", [])
 
 
 def get_now_playing(player_id):
