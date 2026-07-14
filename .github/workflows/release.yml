@@ -46,7 +46,7 @@ jobs:
             exit 1
           fi
 
-      - name: Bump versionName and versionCode
+      - name: Bump the version
         env:
           VERSION: ${{ github.event.inputs.version }}
         run: |
@@ -63,6 +63,10 @@ jobs:
             echo "::error::No version change applied to $gradle — check its format"
             exit 1
           fi
+
+          # Keep the web app's version (read by config.py, exposed on /health)
+          # in sync with the Android versionName.
+          printf '%s\n' "$VERSION" > VERSION
 
           echo "Set versionName=$VERSION, versionCode=$version_code"
           grep -nE "versionCode|versionName" "$gradle"
