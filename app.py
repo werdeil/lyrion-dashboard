@@ -11,7 +11,7 @@ def create_app():
 
     @flask_app.route("/health", methods=["GET"])
     def healthcheck():
-        return {"status": "ok"}, 200
+        return {"status": "ok", "version": flask_app.config["VERSION"]}, 200
 
     @flask_app.after_request
     def set_security_headers(response):

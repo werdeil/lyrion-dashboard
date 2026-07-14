@@ -1,0 +1,104 @@
+name: Release
+
+# Manually cut a new release: bump the Android version, tag it, and open a
+# draft GitHub release with auto-generated notes. Publishing that draft fires
+# android.yml (release: published), which builds and attaches the signed APK.
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Semantic version to release, without the leading v (e.g. 0.2.0)"
+        required: true
+        type: string
+      prerelease:
+        description: "Mark the release as a pre-release"
+        required: false
+        default: false
+        type: boolean
+
+# Never cut two releases at once.
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          # Full history so the release notes can diff against the last tag.
+          fetch-depth: 0
+
+      - name: Validate inputs
+        env:
+          VERSION: ${{ github.event.inputs.version }}
+        run: |
+          if ! [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::Version '$VERSION' is not a valid X.Y.Z semver"
+            exit 1
+          fi
+          if git rev-parse "v$VERSION" >/dev/null 2>&1; then
+            echo "::error::Tag v$VERSION already exists"
+            exit 1
+          fi
+
+      - name: Bump the version
+        env:
+          VERSION: ${{ github.event.inputs.version }}
+        run: |
+          IFS='.' read -r major minor patch <<< "$VERSION"
+          # Same packing as documented in build.gradle.kts: X*10000 + Y*100 + Z.
+          version_code=$((major * 10000 + minor * 100 + patch))
+          gradle="android/app/build.gradle.kts"
+
+          sed -i -E "s/versionCode = [0-9]+/versionCode = ${version_code}/" "$gradle"
+          sed -i -E "s/versionName = \"[^\"]+\"/versionName = \"${VERSION}\"/" "$gradle"
+
+          # Fail loudly if the file didn't actually change (e.g. format drifted).
+          if git diff --quiet -- "$gradle"; then
+            echo "::error::No version change applied to $gradle — check its format"
+            exit 1
+          fi
+
+          # Keep the web app's version (read by config.py, exposed on /health)
+          # in sync with the Android versionName.
+          printf '%s\n' "$VERSION" > VERSION
+
+          echo "Set versionName=$VERSION, versionCode=$version_code"
+          grep -nE "versionCode|versionName" "$gradle"
+
+      - name: Commit and tag
+        env:
+          VERSION: ${{ github.event.inputs.version }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git commit -am "chore(release): v$VERSION"
+          git tag "v$VERSION"
+          git push origin "HEAD:${{ github.ref_name }}"
+          git push origin "v$VERSION"
+
+      - name: Create draft release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ github.event.inputs.version }}
+          PRERELEASE: ${{ github.event.inputs.prerelease }}
+        run: |
+          args=(--draft --generate-notes --title "v$VERSION" --verify-tag)
+          if [ "$PRERELEASE" = "true" ]; then
+            args+=(--prerelease)
+          fi
+          gh release create "v$VERSION" "${args[@]}"
+
+          {
+            echo "## Draft release v$VERSION created :rocket:"
+            echo
+            echo "Review the auto-generated notes and **Publish** the release."
+            echo "Publishing triggers \`android.yml\`, which builds and attaches the APK."
+            echo
+            gh release view "v$VERSION" --json url --jq .url
+          } >> "$GITHUB_STEP_SUMMARY"
