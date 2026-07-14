@@ -13,8 +13,8 @@ var LYRION_HOST = document.body.dataset.lyrionHost || '';
 
 // Inside the Android app a native bridge (window.LyrionApp) is injected;
 // reveal the header bar (hidden on the web, where the branding lives in the
-// tab title) with its menu button wired to the native app menu (falling back
-// to the settings screen with app versions that predate it).
+// tab title) with its menu button wired to the native full-screen settings
+// screen (openMenu on current apps, openSettings on ones that predate it).
 (function () {
     var appMenu = document.getElementById('app-menu');
     var bridge = window.LyrionApp;

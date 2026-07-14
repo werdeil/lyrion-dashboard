@@ -52,6 +52,19 @@ class SettingsActivity : AppCompatActivity() {
                 discoverServers()
                 true
             }
+
+            // Shortcuts that used to live in the header pop-up menu, now folded
+            // into this settings screen so the menu button opens it directly.
+            findPreference<Preference>(PREF_RELOAD)?.setOnPreferenceClickListener {
+                MainActivity.pendingReload = true
+                activity?.finish()
+                true
+            }
+
+            findPreference<Preference>(PREF_QUIT)?.setOnPreferenceClickListener {
+                activity?.finishAffinity()
+                true
+            }
         }
 
         override fun onDestroy() {
@@ -110,6 +123,8 @@ class SettingsActivity : AppCompatActivity() {
 
         companion object {
             private const val PREF_DISCOVER = "discover"
+            private const val PREF_RELOAD = "reload"
+            private const val PREF_QUIT = "quit"
 
             /** Default port of the Lyrion Dashboard Flask app (see config.py). */
             private const val DEFAULT_APP_PORT = 1111

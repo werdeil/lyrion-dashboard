@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="settings_title">Paramètres</string>
-    <string name="menu_settings">Paramètres</string>
     <string name="menu_reload">Recharger</string>
     <string name="menu_quit">Quitter</string>
 
@@ -16,6 +15,10 @@
     <string name="pref_category_display">Affichage</string>
     <string name="pref_keep_screen_on">Garder l\'écran allumé</string>
     <string name="pref_keep_screen_on_summary">Empêche l\'écran de s\'éteindre tant que le tableau de bord est affiché</string>
+
+    <string name="pref_category_actions">Actions</string>
+    <string name="pref_reload_summary">Recharger la page du tableau de bord</string>
+    <string name="pref_quit_summary">Fermer l\'application</string>
 
     <string name="discover_in_progress">Recherche de serveurs Lyrion…</string>
     <string name="discover_no_server">Aucun serveur Lyrion trouvé sur le réseau</string>
