@@ -3,7 +3,6 @@
     <string name="app_name" translatable="false">Lyrion Dashboard</string>
 
     <string name="settings_title">Settings</string>
-    <string name="menu_settings">Settings</string>
     <string name="menu_reload">Reload</string>
     <string name="menu_quit">Quit</string>
 
@@ -19,6 +18,10 @@
     <string name="pref_category_display">Display</string>
     <string name="pref_keep_screen_on">Keep screen on</string>
     <string name="pref_keep_screen_on_summary">Prevent the screen from turning off while the dashboard is shown</string>
+
+    <string name="pref_category_actions">Actions</string>
+    <string name="pref_reload_summary">Reload the dashboard</string>
+    <string name="pref_quit_summary">Close the app</string>
 
     <string name="discover_in_progress">Searching for Lyrion servers…</string>
     <string name="discover_no_server">No Lyrion server found on the network</string>

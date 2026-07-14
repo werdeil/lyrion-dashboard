@@ -13,7 +13,6 @@ import android.webkit.WebResourceError
 import android.webkit.WebResourceRequest
 import android.webkit.WebView
 import android.webkit.WebViewClient
-import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.preference.PreferenceManager
 
@@ -97,7 +96,8 @@ class MainActivity : AppCompatActivity() {
         val url = serverUrl()
         if (url == null) {
             openSettings()
-        } else if (url != loadedUrl || mainFrameFailed) {
+        } else if (pendingReload || url != loadedUrl || mainFrameFailed) {
+            pendingReload = false
             loadedUrl = url
             webView.loadUrl(url)
         }
@@ -141,34 +141,16 @@ class MainActivity : AppCompatActivity() {
         errorView.visibility = View.VISIBLE
     }
 
-    private fun showMenuDialog() {
-        AlertDialog.Builder(this)
-            .setTitle(R.string.app_name)
-            .setItems(
-                arrayOf(
-                    getString(R.string.menu_settings),
-                    getString(R.string.menu_reload),
-                    getString(R.string.menu_quit)
-                )
-            ) { _, which ->
-                when (which) {
-                    0 -> openSettings()
-                    1 -> reload()
-                    2 -> finish()
-                }
-            }
-            .setNegativeButton(android.R.string.cancel, null)
-            .show()
-    }
-
     private fun openSettings() {
         startActivity(Intent(this, SettingsActivity::class.java))
     }
 
     private inner class AppBridge {
+        // The header menu button opens the settings screen directly; it now
+        // carries the former pop-up shortcuts (reload, quit) as its own rows.
         @JavascriptInterface
         fun openMenu() {
-            runOnUiThread { this@MainActivity.showMenuDialog() }
+            runOnUiThread { this@MainActivity.openSettings() }
         }
 
         // Kept for dashboards older than the openMenu bridge.
@@ -216,5 +198,8 @@ class MainActivity : AppCompatActivity() {
     companion object {
         const val PREF_SERVER_URL = "server_url"
         const val PREF_KEEP_SCREEN_ON = "keep_screen_on"
+
+        /** Set by the settings screen's reload action to force a page reload. */
+        var pendingReload = false
     }
 }

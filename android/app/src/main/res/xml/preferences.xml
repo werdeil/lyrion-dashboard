@@ -24,4 +24,17 @@
             android:title="@string/pref_keep_screen_on"
             app:widgetLayout="@layout/preference_widget_material_switch" />
     </PreferenceCategory>
+
+    <PreferenceCategory android:title="@string/pref_category_actions">
+
+        <Preference
+            android:key="reload"
+            android:title="@string/menu_reload"
+            android:summary="@string/pref_reload_summary" />
+
+        <Preference
+            android:key="quit"
+            android:title="@string/menu_quit"
+            android:summary="@string/pref_quit_summary" />
+    </PreferenceCategory>
 </PreferenceScreen>
