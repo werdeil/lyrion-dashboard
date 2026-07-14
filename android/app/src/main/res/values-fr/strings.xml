@@ -17,7 +17,7 @@
     <string name="pref_keep_screen_on_summary">Empêche l\'écran de s\'éteindre tant que le tableau de bord est affiché</string>
 
     <string name="pref_category_actions">Actions</string>
-    <string name="pref_reload_summary">Recharger la page du tableau de bord</string>
+    <string name="pref_reload_summary">Recharger le tableau de bord</string>
     <string name="pref_quit_summary">Fermer l\'application</string>
 
     <string name="discover_in_progress">Recherche de serveurs Lyrion…</string>

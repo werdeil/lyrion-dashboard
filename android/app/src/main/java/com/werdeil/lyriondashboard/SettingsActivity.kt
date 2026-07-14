@@ -53,8 +53,8 @@ class SettingsActivity : AppCompatActivity() {
                 true
             }
 
-            // Shortcuts that used to live in the header pop-up menu, now folded
-            // into this settings screen so the menu button opens it directly.
+            // Reload finishes back to the dashboard and forces a page reload;
+            // quit tears down the whole task.
             findPreference<Preference>(PREF_RELOAD)?.setOnPreferenceClickListener {
                 MainActivity.pendingReload = true
                 activity?.finish()
