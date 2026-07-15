@@ -1133,9 +1133,16 @@ el.cover.addEventListener('error', function() {
     }
 });
 
-// A poll can outlive its 5s slot when the server is busy; piling a new
-// request onto a stuck one only feeds the very congestion that delayed it,
-// so ticks are skipped while one is still in flight.
+// How often the page asks the server for the current track. Kept in step with
+// the server-side now-playing cache (NOW_PLAYING_TTL, 2s): the cache bounds how
+// often Lyrion is actually queried regardless of how many clients poll, so a
+// tighter interval makes title changes surface in ~2-4s instead of ~5-7s
+// without adding upstream load.
+var POLL_INTERVAL_MS = 2000;
+
+// A poll can outlive its slot when the server is busy; piling a new request
+// onto a stuck one only feeds the very congestion that delayed it, so ticks
+// are skipped while one is still in flight.
 var pollInFlight = false;
 
 function poll() {
@@ -1208,7 +1215,7 @@ document.addEventListener('visibilitychange', function() {
 
 dimZeroSubRows();
 poll();
-setInterval(poll, 5000);
+setInterval(poll, POLL_INTERVAL_MS);
 setInterval(pollStats, 60000);
 setInterval(paintProgress, 1000);
 // The progress repaint (and thus the LRC highlight) only ticks once a second,
