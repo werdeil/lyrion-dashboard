@@ -98,6 +98,22 @@ def get_players():
     return data.get("result", {}).get("players_loop", [])
 
 
+def _player_connected(value):
+    """Interpret a Lyrion `connected` / `player_connected` flag.
+
+    Lyrion keeps disconnected players in memory with their last known transport
+    state, so an ephemeral player that went offline can still report `mode:
+    "play"` on its old track — a ghost that would otherwise mask the player
+    actually playing. The flag is 0 when offline, 1 when online; treat anything
+    missing or unparseable as connected so servers (or versions) that don't
+    report it keep behaving exactly as before.
+    """
+    try:
+        return int(value) != 0
+    except (TypeError, ValueError):
+        return True
+
+
 def get_now_playing(player_id):
     """Return the current track + transport state of a player.
 
@@ -125,8 +141,10 @@ def get_now_playing(player_id):
     loop = result.get("playlist_loop") or []
     track = loop[0] if loop else None
 
+    connected = _player_connected(result.get("player_connected"))
+
     if not track:
-        return {"playing": False, "mode": result.get("mode", "stop")}
+        return {"playing": False, "mode": result.get("mode", "stop"), "connected": connected}
 
     artwork_url = track.get("artwork_url")
     if artwork_url and not artwork_url.startswith("http"):
@@ -135,6 +153,7 @@ def get_now_playing(player_id):
 
     return {
         "playing": result.get("mode") == "play",
+        "connected": connected,
         "mode": result.get("mode", "stop"),
         "time": result.get("time"),
         "duration": result.get("duration") or track.get("duration"),
@@ -188,10 +207,15 @@ def _query_active_now_playing():
     actually playing, we return a not-playing payload so the page shows its
     empty state — a paused/stopped player with a track still loaded is
     deliberately not surfaced.
+
+    Disconnected players are ignored throughout: an ephemeral player that went
+    offline lingers in Lyrion with a stale `mode: "play"`, and both the
+    shortcut and the enumeration must skip that ghost so a player that is
+    genuinely playing (a different one you switched to) is still found.
     """
     if _last_player["id"]:
         now = get_now_playing(_last_player["id"])
-        if now.get("playing") and now.get("track_id"):
+        if now.get("connected", True) and now.get("playing") and now.get("track_id"):
             now["player_name"] = _last_player["name"]
             now["player_id"] = _last_player["id"]
             return now
@@ -199,6 +223,8 @@ def _query_active_now_playing():
     for player in get_players():
         player_id = player.get("playerid")
         if not player_id or player_id == _last_player["id"]:
+            continue
+        if not _player_connected(player.get("connected")):
             continue
 
         now = get_now_playing(player_id)

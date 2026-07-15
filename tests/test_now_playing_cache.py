@@ -28,18 +28,22 @@ class NowPlayingCacheTest(unittest.TestCase):
         self.players_calls = 0
         self.status_calls = []
         self.playing = {"p1": False, "p2": True}
+        self.connected = {"p1": True, "p2": True}
 
         def fake_players():
             self.players_calls += 1
-            return [{"playerid": "p1", "name": "Salon"},
-                    {"playerid": "p2", "name": "Cuisine"}]
+            return [{"playerid": "p1", "name": "Salon",
+                     "connected": 1 if self.connected.get("p1") else 0},
+                    {"playerid": "p2", "name": "Cuisine",
+                     "connected": 1 if self.connected.get("p2") else 0}]
 
         def fake_now(player_id):
             self.status_calls.append(player_id)
+            conn = self.connected.get(player_id, True)
             if self.playing.get(player_id):
-                return {"playing": True, "mode": "play", "time": 10.0,
-                        "duration": 200, "track_id": 42, "title": "Song"}
-            return {"playing": False, "mode": "stop"}
+                return {"playing": True, "connected": conn, "mode": "play",
+                        "time": 10.0, "duration": 200, "track_id": 42, "title": "Song"}
+            return {"playing": False, "connected": conn, "mode": "stop"}
 
         L.get_players = fake_players
         L.get_now_playing = fake_now
@@ -95,6 +99,26 @@ class NowPlayingCacheTest(unittest.TestCase):
     def test_callers_get_a_copy(self):
         L.get_active_now_playing()["title"] = "corrupted"
         self.assertEqual(L.get_active_now_playing()["title"], "Song")
+
+    def test_disconnected_shortcut_ghost_is_skipped(self):
+        # p2 gets pinned, then goes offline while Lyrion still reports it
+        # playing (a ghost of an ephemeral player). The shortcut must reject it
+        # and the enumeration must find the player now actually playing (p1).
+        L.get_active_now_playing()          # pins p2
+        L._now_cache["expires_at"] = 0      # force a refresh, keep the shortcut
+        self.connected["p2"] = False        # p2 offline, still "mode: play"
+        self.playing["p1"] = True
+        result = L.get_active_now_playing()
+        self.assertEqual(result["player_id"], "p1")
+        self.assertTrue(result["playing"])
+
+    def test_disconnected_player_is_not_surfaced(self):
+        # The only "playing" player is offline: nothing should be surfaced, and
+        # the shortcut must not latch onto the ghost.
+        self.connected["p2"] = False
+        result = L.get_active_now_playing()
+        self.assertFalse(result["playing"])
+        self.assertIsNone(L._last_player["id"])
 
 
 if __name__ == "__main__":
