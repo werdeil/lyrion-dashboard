@@ -1204,14 +1204,23 @@ function pollStats() {
         .catch(function() {});
 }
 
-document.addEventListener('visibilitychange', function() {
-    // Background tabs throttle setInterval, so the now-playing view can lag
-    // behind by far more than the poll period; catch up as soon as the tab
-    // is looked at again instead of waiting for the next tick.
-    if (document.visibilityState === 'visible') {
+// A backgrounded page has its timers throttled (browsers to ~1/min; an
+// Android WebView whose app is backgrounded can be frozen harder still), so
+// the now-playing view can lag the real track by up to a minute. Force an
+// immediate poll the moment the page is looked at again instead of waiting
+// for the next — possibly still-stretched — tick. We listen on three events
+// because no single one fires reliably everywhere: visibilitychange covers
+// tab switches, window 'focus' covers window/app refocus, and 'pageshow'
+// covers a page restored from the back/forward cache. poll()'s in-flight
+// guard collapses any overlap into one request.
+function catchUp() {
+    if (document.visibilityState !== 'hidden') {
         poll();
     }
-});
+}
+document.addEventListener('visibilitychange', catchUp);
+window.addEventListener('focus', catchUp);
+window.addEventListener('pageshow', catchUp);
 
 dimZeroSubRows();
 poll();

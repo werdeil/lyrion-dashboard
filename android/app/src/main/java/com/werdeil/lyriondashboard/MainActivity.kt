@@ -91,6 +91,13 @@ class MainActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
+        // Resume the WebView's renderer and JavaScript timers. Without this
+        // paired with onPause() below, the WebView never learns it was
+        // backgrounded, so on the way back it neither un-throttles its timers
+        // nor fires the page's visibilitychange handler — leaving the
+        // now-playing view stuck on a stale track (up to ~1 min) until a
+        // throttled poll finally lands.
+        webView.onResume()
         applyKeepScreenOn()
 
         val url = serverUrl()
@@ -101,6 +108,15 @@ class MainActivity : AppCompatActivity() {
             loadedUrl = url
             webView.loadUrl(url)
         }
+    }
+
+    override fun onPause() {
+        // Tell the WebView it is backgrounded so it stops extra rendering and,
+        // crucially, propagates the visibility change to the page — this is
+        // what lets onResume() (and the page's visibilitychange handler) bring
+        // the view back to a fresh track immediately on return.
+        webView.onPause()
+        super.onPause()
     }
 
     private fun serverUrl(): String? {
