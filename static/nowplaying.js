@@ -1133,16 +1133,12 @@ el.cover.addEventListener('error', function() {
     }
 });
 
-// How often the page asks the server for the current track. Kept in step with
-// the server-side now-playing cache (NOW_PLAYING_TTL, 2s): the cache bounds how
-// often Lyrion is actually queried regardless of how many clients poll, so a
-// tighter interval makes title changes surface in ~2-4s instead of ~5-7s
-// without adding upstream load.
+// Kept in step with the server-side cache (NOW_PLAYING_TTL, 2s), which bounds
+// how often Lyrion is queried regardless of poll rate.
 var POLL_INTERVAL_MS = 2000;
 
-// A poll can outlive its slot when the server is busy; piling a new request
-// onto a stuck one only feeds the very congestion that delayed it, so ticks
-// are skipped while one is still in flight.
+// Ticks are skipped while a poll is still in flight, so a stuck request can't
+// pile up more requests behind it.
 var pollInFlight = false;
 
 function poll() {
@@ -1204,15 +1200,9 @@ function pollStats() {
         .catch(function() {});
 }
 
-// A backgrounded page has its timers throttled (browsers to ~1/min; an
-// Android WebView whose app is backgrounded can be frozen harder still), so
-// the now-playing view can lag the real track by up to a minute. Force an
-// immediate poll the moment the page is looked at again instead of waiting
-// for the next — possibly still-stretched — tick. We listen on three events
-// because no single one fires reliably everywhere: visibilitychange covers
-// tab switches, window 'focus' covers window/app refocus, and 'pageshow'
-// covers a page restored from the back/forward cache. poll()'s in-flight
-// guard collapses any overlap into one request.
+// A backgrounded page has its timers throttled, so it can lag the real track
+// by up to a minute; poll immediately whenever it's looked at again. Three
+// events since none fires reliably everywhere; the in-flight guard dedupes.
 function catchUp() {
     if (document.visibilityState !== 'hidden') {
         poll();
