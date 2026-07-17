@@ -446,10 +446,7 @@ hr {
     opacity: 0.7;
 }
 
-/* Segmented control that replaces .np-player when several players play at once
-   (nowplaying.js reveals it, hiding the row). One segment per playing player;
-   the active one is filled like the app's standard buttons and carries the
-   "open Lyrion" link, the others switch which player the page follows. */
+/* Segmented control replacing .np-player when >= 2 players play. */
 .np-player-switch {
     display: inline-flex;
     align-items: stretch;
@@ -486,8 +483,7 @@ hr {
     color: var(--text-bright);
 }
 
-/* Active segment = followed player: accent fill + dark glyph, the same scheme
-   as the app's standard buttons (which brighten on hover). */
+/* Active segment: accent fill like the app's standard buttons. */
 .np-seg.is-active {
     background: var(--accent-color);
     color: var(--text-on-accent);

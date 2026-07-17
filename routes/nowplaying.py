@@ -18,8 +18,8 @@ nowplaying_bp = Blueprint("nowplaying", __name__)
 # Coverids are numeric ids or hex hashes; anything else must not reach the upstream URL.
 COVERID_RE = re.compile(r"[0-9a-fA-F]+")
 
-# Player ids are MAC addresses (or occasionally IPs); only compared against the
-# ids Lyrion already reported, never sent upstream, but keep junk out anyway.
+# Player ids are MAC addresses (or IPs); only matched against ids Lyrion
+# reported, never sent upstream, but keep junk out anyway.
 PLAYER_ID_RE = re.compile(r"[0-9A-Fa-f:.\-]{1,64}")
 
 # Fuses for the outbound lyrics searches: per-IP rate limit, per-track cooldown on refresh=1.
@@ -50,9 +50,8 @@ def now_playing_json():
     steady-state poll skips the database entirely; the page only reads lyrics
     on a track change anyway.
 
-    ?player=<id> pins a specific player when several are playing at once (the
-    switcher's pick); honoured only while that player is still playing, else the
-    response falls back to the automatic selection. A malformed id is ignored.
+    ?player=<id> pins a player (the switcher's pick), honoured while it keeps
+    playing, else the automatic selection. A malformed id is ignored.
     """
     selected = request.args.get("player")
     if selected and not PLAYER_ID_RE.fullmatch(selected):

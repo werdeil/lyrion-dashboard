@@ -149,15 +149,12 @@ def get_now_playing(player_id):
 
 
 # Snapshot of every currently-playing player, shared across clients so Lyrion
-# sees one enumeration (1 + N status calls) per TTL rather than that per poll
-# per client. Several players playing at once is rare, so the enumeration cost
-# is bounded and amortised across all clients.
+# sees one enumeration (1 + N status calls) per TTL rather than per poll per client.
 NOW_PLAYING_TTL = 2
 
 _now_cache = {"players": [], "fetched_at": 0, "expires_at": 0}
 _now_lock = threading.Lock()
-# The player shown last on the automatic path, so the display stays on it while
-# it keeps playing instead of flipping between simultaneously-playing players.
+# Player shown last on the automatic path, so it stays put instead of flipping.
 _last_player = {"id": None, "name": None}
 
 
@@ -177,8 +174,8 @@ def get_active_now_playing(selected_id=None):
     """
     with _now_lock:
         now_ts = time.time()
-        # expires_at starts at 0, so the first call always fetches; an empty
-        # list is a valid cached result (nothing playing) and is kept for the TTL.
+        # expires_at starts at 0, so the first call fetches; an empty list is a
+        # valid cached result kept for the TTL.
         if _now_cache["expires_at"] <= now_ts:
             _now_cache["players"] = _query_playing_players()
             _now_cache["fetched_at"] = time.time()
@@ -196,9 +193,7 @@ def get_active_now_playing(selected_id=None):
             )
             selection_active = chosen is not None
         if chosen is None:
-            # No (or stale) selection: pick automatically, which also updates
-            # the sticky _last_player — kept inside the lock since that state
-            # is shared across threads.
+            # Under the lock: _auto_select mutates the shared _last_player.
             chosen = _auto_select(playing)
 
         if chosen is None:
@@ -219,13 +214,10 @@ def get_active_now_playing(selected_id=None):
 
 
 def _auto_select(playing):
-    """Pick a player automatically among those playing: keep the one shown last
-    if it is still playing (so the display stays put across polls), otherwise
-    the first in Lyrion's order. Records the pick in _last_player, or clears it
-    when nothing is playing so the shortcut doesn't point at an idle player.
-
-    Only ever reached on the automatic path, so an explicit per-client
-    selection never pollutes the sticky auto-pick other clients rely on.
+    """Pick a player among those playing: the one shown last if still playing,
+    else the first in Lyrion's order. Records it in _last_player (cleared when
+    nothing plays). Only reached on the automatic path, so an explicit
+    per-client pick never pollutes the auto-pick other clients rely on.
     """
     if not playing:
         _last_player["id"] = None
