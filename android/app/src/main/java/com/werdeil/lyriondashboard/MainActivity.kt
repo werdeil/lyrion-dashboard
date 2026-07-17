@@ -91,6 +91,10 @@ class MainActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
+        // Paired with onPause(): un-throttles the WebView's JS timers and fires
+        // the page's visibilitychange handler so it refreshes on return instead
+        // of staying on a stale track for up to ~1 min.
+        webView.onResume()
         applyKeepScreenOn()
 
         val url = serverUrl()
@@ -101,6 +105,12 @@ class MainActivity : AppCompatActivity() {
             loadedUrl = url
             webView.loadUrl(url)
         }
+    }
+
+    override fun onPause() {
+        // Mark the WebView backgrounded so the transition reaches the page.
+        webView.onPause()
+        super.onPause()
     }
 
     private fun serverUrl(): String? {

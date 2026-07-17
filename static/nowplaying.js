@@ -1133,9 +1133,12 @@ el.cover.addEventListener('error', function() {
     }
 });
 
-// A poll can outlive its 5s slot when the server is busy; piling a new
-// request onto a stuck one only feeds the very congestion that delayed it,
-// so ticks are skipped while one is still in flight.
+// Kept in step with the server-side cache (NOW_PLAYING_TTL, 2s), which bounds
+// how often Lyrion is queried regardless of poll rate.
+var POLL_INTERVAL_MS = 2000;
+
+// Ticks are skipped while a poll is still in flight, so a stuck request can't
+// pile up more requests behind it.
 var pollInFlight = false;
 
 function poll() {
@@ -1197,18 +1200,21 @@ function pollStats() {
         .catch(function() {});
 }
 
-document.addEventListener('visibilitychange', function() {
-    // Background tabs throttle setInterval, so the now-playing view can lag
-    // behind by far more than the poll period; catch up as soon as the tab
-    // is looked at again instead of waiting for the next tick.
-    if (document.visibilityState === 'visible') {
+// A backgrounded page has its timers throttled, so it can lag the real track
+// by up to a minute; poll immediately whenever it's looked at again. Three
+// events since none fires reliably everywhere; the in-flight guard dedupes.
+function catchUp() {
+    if (document.visibilityState !== 'hidden') {
         poll();
     }
-});
+}
+document.addEventListener('visibilitychange', catchUp);
+window.addEventListener('focus', catchUp);
+window.addEventListener('pageshow', catchUp);
 
 dimZeroSubRows();
 poll();
-setInterval(poll, 5000);
+setInterval(poll, POLL_INTERVAL_MS);
 setInterval(pollStats, 60000);
 setInterval(paintProgress, 1000);
 // The progress repaint (and thus the LRC highlight) only ticks once a second,
