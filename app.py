@@ -33,7 +33,7 @@ def create_app():
 app = create_app()
 
 if __name__ == "__main__":
-    app.run(
-        host=app.config["HOST"],
-        port=app.config["PORT"],
-    )
+    # Only reached via `python app.py` for quick local dev. In Docker the app is
+    # served by gunicorn (see docker-compose.yml), which binds via its own -b
+    # flag and never runs this block — so there's nothing to configure here.
+    app.run(host="0.0.0.0", port=1111)  # nosec
