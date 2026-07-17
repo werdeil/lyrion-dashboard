@@ -154,7 +154,7 @@ def get_now_playing(player_id):
 # is bounded and amortised across all clients.
 NOW_PLAYING_TTL = 2
 
-_now_cache = {"players": None, "fetched_at": 0, "expires_at": 0}
+_now_cache = {"players": [], "fetched_at": 0, "expires_at": 0}
 _now_lock = threading.Lock()
 # The player shown last on the automatic path, so the display stays on it while
 # it keeps playing instead of flipping between simultaneously-playing players.
@@ -177,7 +177,9 @@ def get_active_now_playing(selected_id=None):
     """
     with _now_lock:
         now_ts = time.time()
-        if _now_cache["players"] is None or _now_cache["expires_at"] <= now_ts:
+        # expires_at starts at 0, so the first call always fetches; an empty
+        # list is a valid cached result (nothing playing) and is kept for the TTL.
+        if _now_cache["expires_at"] <= now_ts:
             _now_cache["players"] = _query_playing_players()
             _now_cache["fetched_at"] = time.time()
             _now_cache["expires_at"] = _now_cache["fetched_at"] + NOW_PLAYING_TTL

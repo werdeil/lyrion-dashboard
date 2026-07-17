@@ -52,7 +52,7 @@ class NowPlayingCacheTest(unittest.TestCase):
 
     @staticmethod
     def _reset_state():
-        L._now_cache.update(players=None, fetched_at=0, expires_at=0)
+        L._now_cache.update(players=[], fetched_at=0, expires_at=0)
         L._last_player.update(id=None, name=None)
 
     def test_result_is_cached_within_ttl(self):
