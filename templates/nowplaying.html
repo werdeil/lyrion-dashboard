@@ -58,6 +58,12 @@
                             </svg>
                         </a>
                     </p>
+                    {# Replaces the row above when several players play at once:
+                       a segment per playing player, filled by nowplaying.js.
+                       The active segment carries the "open Lyrion" link; the
+                       others switch which player the page follows. #}
+                    <div class="np-player-switch" id="np-player-switch"
+                         role="group" aria-label="{{ t.choose_player }}" hidden></div>
                     <p class="np-title" id="np-title">—</p>
                     <p class="np-artist" id="np-artist"></p>
                     <p class="np-album" id="np-album"></p>

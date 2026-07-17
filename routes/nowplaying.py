@@ -18,6 +18,10 @@ nowplaying_bp = Blueprint("nowplaying", __name__)
 # Coverids are numeric ids or hex hashes; anything else must not reach the upstream URL.
 COVERID_RE = re.compile(r"[0-9a-fA-F]+")
 
+# Player ids are MAC addresses (or occasionally IPs); only compared against the
+# ids Lyrion already reported, never sent upstream, but keep junk out anyway.
+PLAYER_ID_RE = re.compile(r"[0-9A-Fa-f:.\-]{1,64}")
+
 # Fuses for the outbound lyrics searches: per-IP rate limit, per-track cooldown on refresh=1.
 LYRICS_RATE = RateLimiter(limit=10, window=60)
 REFRESH_COOLDOWN = Cooldown(interval=30)
@@ -38,15 +42,22 @@ def index():
 
 @nowplaying_bp.route("/now-playing.json")
 def now_playing_json():
-    """Live state of whichever player is currently playing, polled by the page.
+    """Live state of the player to display, polled by the page.
 
     The page passes ?known=<track key> — the id|title|artist|album key of the
     track it already displays (the same key render() dedupes on). Lyrics are
     only looked up and included when the playing track differs from it, so the
     steady-state poll skips the database entirely; the page only reads lyrics
     on a track change anyway.
+
+    ?player=<id> pins a specific player when several are playing at once (the
+    switcher's pick); honoured only while that player is still playing, else the
+    response falls back to the automatic selection. A malformed id is ignored.
     """
-    now = get_active_now_playing()
+    selected = request.args.get("player")
+    if selected and not PLAYER_ID_RE.fullmatch(selected):
+        selected = None
+    now = get_active_now_playing(selected_id=selected)
     track_key = "|".join(
         str(now.get(f)) if now.get(f) is not None else ""
         for f in ("track_id", "title", "artist", "album")

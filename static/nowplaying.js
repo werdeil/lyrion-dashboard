@@ -37,6 +37,7 @@ var el = {
     player: document.getElementById('np-player'),
     playerRow: document.getElementById('np-player-row'),
     playerLink: document.getElementById('np-player-link'),
+    playerSwitch: document.getElementById('np-player-switch'),
     title:  document.getElementById('np-title'),
     artist: document.getElementById('np-artist'),
     album:  document.getElementById('np-album'),
@@ -121,6 +122,94 @@ function setLyrionLink(playerId) {
     // The empty-state "open Lyrion" button always targets the plain Material
     // page: with nothing playing there is no player to focus.
     setMaterialLink(el.emptyOpen, null);
+}
+
+// Which player this device chose to follow when several play at once; kept per
+// device (the server holds no selection state) and sent to the poll as
+// ?player=<id>. Null means "let the server pick automatically".
+var SELECTED_PLAYER_KEY = 'lyrion.selectedPlayer';
+var selectedPlayer = null;
+try { selectedPlayer = localStorage.getItem(SELECTED_PLAYER_KEY) || null; } catch (e) {}
+
+function setSelectedPlayer(id) {
+    selectedPlayer = id || null;
+    try {
+        if (selectedPlayer) { localStorage.setItem(SELECTED_PLAYER_KEY, selectedPlayer); }
+        else { localStorage.removeItem(SELECTED_PLAYER_KEY); }
+    } catch (e) {}
+}
+
+// The "open in a new tab" glyph shown on the active segment, same icon as the
+// player-name row's arrow in the template.
+var SWITCH_ARROW_PATH = 'M19 19H5V5h7V3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2v-7h-2v7zM14 3v2h3.59l-9.83 9.83 1.41 1.41L19 6.41V10h2V3h-7z';
+function makeSwitchArrow() {
+    var ns = 'http://www.w3.org/2000/svg';
+    var svg = document.createElementNS(ns, 'svg');
+    svg.setAttribute('viewBox', '0 0 24 24');
+    svg.setAttribute('aria-hidden', 'true');
+    svg.setAttribute('focusable', 'false');
+    svg.setAttribute('class', 'np-seg-arrow');
+    var path = document.createElementNS(ns, 'path');
+    path.setAttribute('d', SWITCH_ARROW_PATH);
+    svg.appendChild(path);
+    return svg;
+}
+
+// Signature of the currently rendered switcher (player ids + active id), so the
+// DOM is only rebuilt when it actually changes — steady-state polls keep it
+// (and any focus/hover) untouched.
+var lastSwitchKey = null;
+
+function renderPlayerSwitch(data) {
+    if (!el.playerSwitch) { return; }
+    var players = data.players || [];
+
+    // Our pinned player is no longer playing (or the server ignored it): drop
+    // the pick so we follow the automatic selection again.
+    if (selectedPlayer && data.selection_active === false) {
+        setSelectedPlayer(null);
+    }
+
+    // Fewer than two players playing: no switcher, keep the classic name row.
+    if (players.length < 2) {
+        el.playerSwitch.hidden = true;
+        el.playerSwitch.textContent = '';
+        lastSwitchKey = null;
+        return;
+    }
+
+    // Two or more: the switcher replaces the name -> Lyrion row.
+    el.playerRow.hidden = true;
+    el.playerSwitch.hidden = false;
+
+    var activeId = data.player_id;
+    var key = players.map(function (p) { return p.id; }).join(',') + '|' + activeId;
+    if (key === lastSwitchKey) { return; }
+    lastSwitchKey = key;
+
+    el.playerSwitch.textContent = '';
+    players.forEach(function (p) {
+        var active = p.id === activeId;
+        var seg;
+        if (active) {
+            // The followed player's segment doubles as the Lyrion link.
+            seg = document.createElement('a');
+            setMaterialLink(seg, p.id);
+            seg.title = I18N.open_lyrion;
+            seg.appendChild(document.createTextNode(p.name || ''));
+            seg.appendChild(makeSwitchArrow());
+        } else {
+            seg = document.createElement('button');
+            seg.type = 'button';
+            seg.appendChild(document.createTextNode(p.name || ''));
+            seg.addEventListener('click', function () {
+                setSelectedPlayer(p.id);
+                poll();  // reflect the switch now instead of at the next tick
+            });
+        }
+        seg.className = 'np-seg' + (active ? ' is-active' : '');
+        el.playerSwitch.appendChild(seg);
+    });
 }
 var lastTrackKey = null;
 var currentTrack = null;
@@ -855,6 +944,8 @@ function render(data) {
         recentKey = null;
         if (el.recent) { el.recent.hidden = true; }
         el.player.textContent = '';
+        if (el.playerSwitch) { el.playerSwitch.hidden = true; el.playerSwitch.textContent = ''; }
+        lastSwitchKey = null;
         el.cover.removeAttribute('src');
         setLyrionLink(null);
         resetColors();
@@ -884,6 +975,9 @@ function render(data) {
     setLyrionLink(data.player_id);
     el.player.textContent = data.player_name || '';
     el.playerRow.hidden = !data.player_name;
+    // When several players play at once this swaps the name row for a switcher
+    // (and hides the row); with one player it just keeps the row hidden.
+    renderPlayerSwitch(data);
     el.title.textContent = data.title || '';
     el.artist.textContent = data.artist || '';
     el.album.textContent = data.album
@@ -1149,10 +1243,12 @@ function poll() {
     var sentAt = Date.now();
     // Tell the server which track is already on screen: it skips the lyrics
     // lookup (and the response omits them) while the track hasn't changed —
-    // render() only reads data.lyrics on a track change anyway.
-    var url = lastTrackKey === null
-        ? '/now-playing.json'
-        : '/now-playing.json?known=' + encodeURIComponent(lastTrackKey);
+    // render() only reads data.lyrics on a track change anyway. And, when this
+    // device pinned a player from the switcher, which one to follow.
+    var params = [];
+    if (lastTrackKey !== null) { params.push('known=' + encodeURIComponent(lastTrackKey)); }
+    if (selectedPlayer) { params.push('player=' + encodeURIComponent(selectedPlayer)); }
+    var url = '/now-playing.json' + (params.length ? '?' + params.join('&') : '');
     fetch(url)
         .then(function(r) { return r.json(); })
         .then(function(data) {
