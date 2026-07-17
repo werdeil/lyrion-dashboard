@@ -446,6 +446,62 @@ hr {
     opacity: 0.7;
 }
 
+/* Segmented control replacing .np-player when >= 2 players play. */
+.np-player-switch {
+    display: inline-flex;
+    align-items: stretch;
+    gap: 2px;
+    margin: 0 0 6px;
+    padding: 2px;
+    max-width: 100%;
+    flex-wrap: wrap;
+    border-radius: 7px;
+    background: color-mix(in srgb, var(--tint-color) 12%, rgba(0, 0, 0, 0.25));
+    border: 1px solid color-mix(in srgb, var(--tint-color) 24%, rgba(255, 255, 255, 0.05));
+}
+
+.np-seg {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    border: 0;
+    border-radius: 5px;
+    background: transparent;
+    color: var(--text-muted);
+    font-size: var(--fs-xs);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    text-decoration: none;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: color 180ms ease, background 180ms ease;
+}
+
+.np-seg:hover,
+.np-seg:focus-visible {
+    color: var(--text-bright);
+}
+
+/* Active segment: accent fill like the app's standard buttons. */
+.np-seg.is-active {
+    background: var(--accent-color);
+    color: var(--text-on-accent);
+    font-weight: bold;
+}
+
+.np-seg.is-active:hover {
+    color: var(--text-on-accent);
+    filter: brightness(1.05);
+}
+
+.np-seg-arrow {
+    width: 0.95em;
+    height: 0.95em;
+    fill: currentColor;
+    opacity: 0.8;
+}
+
 .np-progress {
     margin-top: 16px;
     height: 3px;

@@ -26,6 +26,8 @@ NOW = {
     "track_id": 42, "title": "Song", "artist": "Muse", "album": "Album",
     "year": 2001, "coverid": "abc", "artwork_url": None,
     "player_name": "Salon", "player_id": "p1",
+    "players": [{"id": "p1", "name": "Salon"}, {"id": "p2", "name": "Cuisine"}],
+    "selection_active": False,
 }
 # The exact key the page builds: [track_id, title, artist, album].join('|').
 KEY = "42|Song|Muse|Album"
@@ -55,6 +57,34 @@ class NowPlayingKnownTest(unittest.TestCase):
         ).get_json()
         self.assertEqual(data["lyrics"], "la la la")
         mock_lyrics.assert_called_once()
+
+
+@patch("routes.nowplaying.get_track_lyrics", return_value="la la la")
+@patch("routes.nowplaying.get_active_now_playing", return_value=dict(NOW))
+class NowPlayingPlayerParamTest(unittest.TestCase):
+    """?player= pins one player when several are playing; the response carries
+    the list of playing players for the page's switcher."""
+
+    def setUp(self):
+        self.client = create_app().test_client()
+
+    def test_player_param_is_forwarded(self, mock_now, _lyrics):
+        self.client.get("/now-playing.json", query_string={"player": "aa:bb:cc"})
+        mock_now.assert_called_with(selected_id="aa:bb:cc")
+
+    def test_no_player_param_selects_automatically(self, mock_now, _lyrics):
+        self.client.get("/now-playing.json")
+        mock_now.assert_called_with(selected_id=None)
+
+    def test_malformed_player_is_ignored(self, mock_now, _lyrics):
+        # A space isn't a valid player-id char, so the pick is dropped.
+        self.client.get("/now-playing.json", query_string={"player": "aa bb"})
+        mock_now.assert_called_with(selected_id=None)
+
+    def test_response_exposes_the_playing_players(self, _now, _lyrics):
+        data = self.client.get("/now-playing.json").get_json()
+        self.assertEqual([p["id"] for p in data["players"]], ["p1", "p2"])
+        self.assertIn("selection_active", data)
 
 
 if __name__ == "__main__":
