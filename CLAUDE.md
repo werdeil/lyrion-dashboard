@@ -69,6 +69,11 @@ Pylint config (`.pylintrc`) intentionally disables the docstring-required
 checks and `broad-exception-caught`, caps line length at 130, and allows
 `fetch_lyrics`' 7-arg signature. Match those norms rather than fighting them.
 
+When opening a PR, follow `.github/pull_request_template.md`: fill in what/why
+and how it was tested, and work through its checklist (it mirrors the CI gates
+above plus the FR/EN string parity, README lockstep, and no-auth-by-design
+rules).
+
 ## Architecture
 
 ### Request layering (strict)
