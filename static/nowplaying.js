@@ -138,22 +138,38 @@ function setSelectedPlayer(id) {
     } catch (e) {}
 }
 
-var SWITCH_ARROW_PATH = 'M19 19H5V5h7V3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2v-7h-2v7zM14 3v2h3.59l-9.83 9.83 1.41 1.41L19 6.41V10h2V3h-7z';
-function makeSwitchArrow() {
+var LYRION_ARROW_PATH = 'M19 19H5V5h7V3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2v-7h-2v7zM14 3v2h3.59l-9.83 9.83 1.41 1.41L19 6.41V10h2V3h-7z';
+var CHEVRON_PATH = 'M7 10l5 5 5-5z';
+function makeIcon(pathD, cls) {
     var ns = 'http://www.w3.org/2000/svg';
     var svg = document.createElementNS(ns, 'svg');
     svg.setAttribute('viewBox', '0 0 24 24');
     svg.setAttribute('aria-hidden', 'true');
     svg.setAttribute('focusable', 'false');
-    svg.setAttribute('class', 'np-seg-arrow');
+    svg.setAttribute('class', cls);
     var path = document.createElementNS(ns, 'path');
-    path.setAttribute('d', SWITCH_ARROW_PATH);
+    path.setAttribute('d', pathD);
     svg.appendChild(path);
     return svg;
 }
 
+function closeSwitchMenu() {
+    if (!el.playerSwitch) { return; }
+    var menu = el.playerSwitch.querySelector('.np-switch-menu');
+    var toggle = el.playerSwitch.querySelector('.np-switch-toggle');
+    if (menu) { menu.hidden = true; }
+    if (toggle) { toggle.setAttribute('aria-expanded', 'false'); }
+}
+// Close the menu on an outside click or Escape.
+document.addEventListener('click', function (e) {
+    if (el.playerSwitch && !el.playerSwitch.contains(e.target)) { closeSwitchMenu(); }
+});
+document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') { closeSwitchMenu(); }
+});
+
 // Signature (player ids + active id) so the DOM is only rebuilt on real change,
-// keeping focus/hover across steady-state polls.
+// keeping the menu state across steady-state polls.
 var lastSwitchKey = null;
 
 function renderPlayerSwitch(data) {
@@ -172,37 +188,68 @@ function renderPlayerSwitch(data) {
         return;
     }
 
-    el.playerRow.hidden = true;  // the switcher takes over the name row
+    el.playerRow.hidden = true;  // the dropdown takes over the name row
     el.playerSwitch.hidden = false;
 
     var activeId = data.player_id;
     var key = players.map(function (p) { return p.id; }).join(',') + '|' + activeId;
     if (key === lastSwitchKey) { return; }
     lastSwitchKey = key;
-
     el.playerSwitch.textContent = '';
+
+    // Trigger: the followed player's name + a chevron, opening the menu.
+    var toggle = document.createElement('button');
+    toggle.type = 'button';
+    toggle.className = 'np-switch-toggle';
+    toggle.setAttribute('aria-haspopup', 'true');
+    toggle.setAttribute('aria-expanded', 'false');
+    var toggleName = document.createElement('span');
+    toggleName.className = 'np-switch-current';
+    toggleName.textContent = data.player_name || '';
+    toggle.appendChild(toggleName);
+    toggle.appendChild(makeIcon(CHEVRON_PATH, 'np-switch-chevron'));
+
+    var menu = document.createElement('div');
+    menu.className = 'np-switch-menu';
+    menu.setAttribute('role', 'menu');
+    menu.hidden = true;
+
     players.forEach(function (p) {
-        var active = p.id === activeId;
-        var seg;
-        if (active) {
-            // Active segment doubles as the Lyrion link.
-            seg = document.createElement('a');
-            setMaterialLink(seg, p.id);
-            seg.title = I18N.open_lyrion;
-            seg.appendChild(document.createTextNode(p.name || ''));
-            seg.appendChild(makeSwitchArrow());
+        var current = p.id === activeId;
+        var item;
+        if (current) {
+            // The followed player's row opens Lyrion (like the single-player name).
+            item = document.createElement('a');
+            setMaterialLink(item, p.id);
+            item.title = I18N.open_lyrion;
+            item.appendChild(document.createTextNode(p.name || ''));
+            item.appendChild(makeIcon(LYRION_ARROW_PATH, 'np-switch-arrow'));
+            // Let the link open, but close the menu behind it.
+            item.addEventListener('click', closeSwitchMenu);
         } else {
-            seg = document.createElement('button');
-            seg.type = 'button';
-            seg.appendChild(document.createTextNode(p.name || ''));
-            seg.addEventListener('click', function () {
+            item = document.createElement('button');
+            item.type = 'button';
+            item.appendChild(document.createTextNode(p.name || ''));
+            item.addEventListener('click', function () {
+                closeSwitchMenu();
                 setSelectedPlayer(p.id);
                 poll();
             });
         }
-        seg.className = 'np-seg' + (active ? ' is-active' : '');
-        el.playerSwitch.appendChild(seg);
+        item.className = 'np-switch-item' + (current ? ' is-current' : '');
+        item.setAttribute('role', 'menuitem');
+        menu.appendChild(item);
     });
+
+    toggle.addEventListener('click', function (e) {
+        e.stopPropagation();
+        var open = menu.hidden;
+        menu.hidden = !open;
+        toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+    });
+
+    el.playerSwitch.appendChild(toggle);
+    el.playerSwitch.appendChild(menu);
 }
 var lastTrackKey = null;
 var currentTrack = null;
