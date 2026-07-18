@@ -3,7 +3,9 @@ __pycache__/
 .DS_Store
 .env
 docker-compose.override.yml
-.claude/
+# Ignore local Claude settings, but share repo skills with contributors.
+.claude/*
+!.claude/skills/
 CLAUDE.md
 .venv-cli/
 .venv/
