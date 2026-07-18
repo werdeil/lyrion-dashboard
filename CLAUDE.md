@@ -145,6 +145,32 @@ cron wrapper that only re-tags files whose `ctime` changed;
 `generate_screenshots.py` regenerates the README images with mocked
 Lyrion/DB layers and headless Chromium.
 
+## Code style & comments
+
+The codebase has a deliberate comment culture — match it rather than stripping
+it or padding it out:
+
+- **Comment the _why_, not the _what_.** Existing comments and docstrings
+  explain reasoning and trade-offs (why a cache ages by wall-clock time, why the
+  cache key isn't `track_id` alone, why a search retries without the album), not
+  what the next line obviously does. Add a comment when a choice would puzzle
+  the next reader; skip it when the code speaks for itself.
+- **Docstrings where they add something, not everywhere.** `.pylintrc` disables
+  the docstring-required checks on purpose. Public service functions carry rich
+  docstrings that document the contract and the intent (`get_active_now_playing`,
+  `fetch_lyrics`, `lyrion_request` are good models); trivial helpers don't need
+  one.
+- **Reference the audit tags for accepted risks.** Security/performance
+  decisions that were reviewed and accepted cite their tag from the audit
+  ([PR #15](https://github.com/werdeil/lyrion-dashboard/pull/15)) — "audit S1",
+  "P8", etc. Keep that reference in the comment when you touch such code, and
+  keep the inline `# nosec` (with its justification) that pairs with it, so the
+  bandit trail and the audit stay connected.
+- **Broad `except Exception` is intentional** around web providers and tag
+  writers, where any single failure must not break the chain; `.pylintrc`
+  disables `broad-exception-caught` for this reason. Don't narrow those without
+  cause, and don't add new broad catches where a specific one belongs.
+
 ## Testing conventions
 
 Tests use `unittest` + `unittest.mock.patch`. Each `tests/test_*.py` is
