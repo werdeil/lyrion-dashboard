@@ -100,6 +100,29 @@ to `bridge.openMenu()` / `openSettings()`. On Android, the "open in Lyrion"
 links become `intent://` URLs targeting the LMS Material app. Guard any
 app-only behaviour behind the presence of the bridge, as the existing code does.
 
+## Regenerate the README screenshots after a visual change
+
+The README images (`docs/screenshots/`) are checked in and embedded in
+`README.md` (EN, `dashboard-en.png`), `README.fr.md` (FR, `dashboard-fr.png`),
+plus `dashboard-mobile.png` and `dashboard-app.png`. **If your change alters
+what the dashboard looks like** — layout, styling, colors, the empty state, the
+lyrics/stats panels, an icon, anything a user would see — regenerate them so the
+docs don't drift from the app:
+
+```bash
+pip install -r requirements.txt playwright
+playwright install chromium        # once
+python scripts/generate_screenshots.py
+```
+
+The script runs the real app with the Lyrion/DB layers mocked (fake track,
+synced LRC, generated cover art, canned stats) and captures every image with
+headless Chromium — desktop in **both** languages, the mobile view, and the
+Android app view. No Lyrion server or database is needed. Commit the updated
+PNGs alongside the code change, and keep both language shots in sync (they're
+regenerated together). Skip this only for changes with no visual effect (pure
+refactors, endpoint-only tweaks).
+
 ## Checklist
 
 1. No new framework/bundler/npm dep; stay vanilla and edit the single JS file.
@@ -107,3 +130,4 @@ app-only behaviour behind the presence of the bridge, as the existing code does.
 3. Read server data from the existing endpoints / `data-*` attributes.
 4. Keep covers same-origin so tinting works.
 5. Run `npx --yes eslint@9 static/*.js` — it gates CI.
+6. Visual change? Regenerate `docs/screenshots/` (see above) and commit the PNGs.
