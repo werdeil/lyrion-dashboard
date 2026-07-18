@@ -102,12 +102,11 @@ L'application est accessible sur `http://localhost:1111`.
 | `DB_DIR` | Répertoire contenant `library.db` de Lyrion | -- |
 | `DB_PERSIST_DIR` | Répertoire contenant `persist.db` de Lyrion | -- |
 | `CUSTOM_DATA_DIR` | Répertoire des fichiers générés | `/opt/scripts/custom_data` |
-| `HOST` | Adresse d'écoute | `0.0.0.0` |
-| `PORT` | Port d'écoute | `1111` |
 | `LYRICS_PROVIDERS` | Fournisseurs de paroles web, essayés dans l'ordre (`lrclib`, `musixmatch`, `genius`) | `lrclib,musixmatch,genius` |
 | `MUSIXMATCH_TOKEN` | Jeton Musixmatch fixe (sinon récupéré automatiquement) | -- |
 | `LRCLIB_TIMEOUT` | Délai d'expiration des requêtes LRCLIB, en secondes | `15` |
 | `LYRICS_VERIFY_DURATION_TOLERANCE` | Écart max (secondes) toléré par `--verify` dans `embed_lyrics.py` | `3` |
+| `DEV` | Mettre à `1` pour recharger les templates à la volée et désactiver le cache statique (développement) | -- |
 
 ## Sécurité
 
@@ -136,6 +135,7 @@ bibliothèque et télécharger tout le contenu de `CUSTOM_DATA_DIR`
 | GET | `/now-playing.json` | État live de la piste du lecteur en cours de lecture, détecté automatiquement (JSON) |
 | GET | `/cover/<coverid>.jpg` | Relaie une pochette depuis Lyrion, en same-origin |
 | GET | `/cover/remote.jpg` | Relaie la pochette de la piste distante/streamée en cours de lecture |
+| GET | `/mosaic-covers.json` | Ids de pochettes pour la mosaïque de l'état vide, les plus récemment écoutés d'abord (JSON) |
 | GET | `/recent-covers.json` | Ids de pochettes des albums récemment écoutés, du plus récent au plus ancien (JSON) |
 | GET | `/lyrics.json` | Récupère les paroles d'une piste sur le web, à la demande |
 | GET | `/files/<path>` | Sert un fichier depuis le répertoire custom data |
@@ -177,6 +177,7 @@ python scripts/embed_lyrics.py "/chemin/vers/musique/A*" /chemin/vers/musique/B*
 |---|---|
 | `--force` | Réécrit le tag même si des paroles sont déjà présentes. |
 | `--clear` | Efface le tag existant quand rien n'est trouvé en ligne, pour refléter ce que proposent les fournisseurs. Traite aussi les fichiers déjà taggés (donc une requête web par fichier) ; combinable avec `--force`. |
+| `--no-verify` | Accepte les paroles d'un fournisseur même quand son titre/artiste/durée ne correspondent pas au fichier. Désactivé par défaut : les tags étant écrits définitivement, un mauvais résultat est pire que l'absence de paroles. |
 | `--dry-run` | Affiche ce qui serait fait, sans rien écrire. |
 | `--delay 0.5` | Délai (secondes) entre deux requêtes web (défaut : 0.5). |
 | `--verbose` | Journalise chaque fichier, y compris ceux ignorés. |
