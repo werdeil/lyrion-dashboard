@@ -6,7 +6,6 @@ docker-compose.override.yml
 # Ignore local Claude settings, but share repo skills with contributors.
 .claude/*
 !.claude/skills/
-CLAUDE.md
 .venv-cli/
 .venv/
 venv/
