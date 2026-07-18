@@ -168,3 +168,13 @@ contributors). Consult them when a task matches:
 - **`lyrion-api`** — querying Lyrion over JSON-RPC (tags, caching, TLS rules).
 - **`add-route`** — adding a Flask endpoint (route → service → test layering).
 - **`i18n`** — adding/translating UI strings and keeping the READMEs in sync.
+- **`testing`** — the `unittest`/`mock.patch` conventions (standalone files,
+  env-before-import, where to patch, testing caches/clock).
+- **`frontend`** — the vanilla JS/CSS page (accent tint, karaoke sync, polling,
+  i18n wiring, the Android bridge, the ESLint gate).
+- **`lyrics`** — the web fallback providers, cache/verification, and embedding
+  lyrics into audio file tags.
+- **`release`** — cutting a version (the `VERSION`/gradle mirrors, the manual
+  Release → publish → `android.yml` chain).
+- **`android`** — the WebView wrapper (shell-only principle, signing split,
+  static F-Droid versioning, discovery, the JS↔native bridge).
