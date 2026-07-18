@@ -69,6 +69,11 @@ Pylint config (`.pylintrc`) intentionally disables the docstring-required
 checks and `broad-exception-caught`, caps line length at 130, and allows
 `fetch_lyrics`' 7-arg signature. Match those norms rather than fighting them.
 
+In Claude Code on the web, `.claude/hooks/session-start.sh` installs these into
+a project `.venv` at session start (put first on `PATH`), so tests, pylint,
+pip-audit and bandit run without manual setup. Locally it's a no-op — manage
+your own venv.
+
 When opening a PR, follow `.github/pull_request_template.md`: fill in what/why
 and how it was tested, and work through its checklist (it mirrors the CI gates
 above plus the FR/EN string parity, README lockstep, and no-auth-by-design
@@ -107,7 +112,8 @@ handler grows domain logic, that logic belongs in a service.
   never for public CDN URLs. **See the `lyrion-api` skill.**
 - `services/database.py` — read-only SQLite access. Opens Lyrion's `library.db`
   in RO mode and `ATTACH`es `persist.db` (also RO) per request via a context
-  manager. The app never writes to these DBs — they belong to Lyrion.
+  manager. The app never writes to these DBs — they belong to Lyrion. Stats are
+  cached single-flight for `STATS_TTL`. **See the `database` skill.**
 - `services/lyrics.py` — web lyrics fallback (LRCLIB, Musixmatch, Genius, tried
   in `LYRICS_PROVIDERS` order; synced-capable providers first). Results live in
   a process-local in-memory cache (single gunicorn worker + threads means all
@@ -203,6 +209,8 @@ Project skills live in `.claude/skills/` (tracked in git, shared with
 contributors). Consult them when a task matches:
 
 - **`lyrion-api`** — querying Lyrion over JSON-RPC (tags, caching, TLS rules).
+- **`database`** — reading Lyrion's read-only SQLite DBs (tables, Alternative
+  Play Count, the stats cache, adding a statistic).
 - **`add-route`** — adding a Flask endpoint (route → service → test layering).
 - **`i18n`** — adding/translating UI strings and keeping the READMEs in sync.
 - **`testing`** — the `unittest`/`mock.patch` conventions (standalone files,
