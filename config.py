@@ -28,14 +28,9 @@ class Config:
     # Custom data directory
     CUSTOM_DATA_DIR = os.getenv("CUSTOM_DATA_DIR", "/opt/scripts/custom_data")
 
-    # Server
-    # Binds all interfaces on purpose (Docker); set HOST to bind narrower.
-    HOST = os.getenv("HOST", "0.0.0.0")  # nosec
-    PORT = int(os.getenv("PORT", "1111"))
-
     # Development helpers: when DEV=1, Jinja re-reads templates from disk on
     # every request and static files are served with no cache, so HTML/CSS
     # edits show up on a simple page refresh (no worker/container restart).
-    DEV = os.getenv("DEV", "").lower() in ("1", "true", "yes")
+    DEV = os.getenv("DEV") == "1"
     TEMPLATES_AUTO_RELOAD = DEV
     SEND_FILE_MAX_AGE_DEFAULT = 0 if DEV else None

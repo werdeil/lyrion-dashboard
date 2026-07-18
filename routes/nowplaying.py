@@ -138,12 +138,7 @@ def recent_covers_json():
 
 @nowplaying_bp.route("/stats.json")
 def stats_json():
-    stats = get_stats()
-    return current_app.response_class(
-        response=current_app.json.dumps(stats, indent=2, ensure_ascii=False),
-        status=200,
-        mimetype="application/json",
-    )
+    return jsonify(get_stats())
 
 
 @nowplaying_bp.route("/lyrics.json")
