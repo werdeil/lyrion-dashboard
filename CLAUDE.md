@@ -79,6 +79,10 @@ and how it was tested, and work through its checklist (it mirrors the CI gates
 above plus the FR/EN string parity, README lockstep, and no-auth-by-design
 rules).
 
+**Never subscribe to / watch a PR for activity** (CI results, review comments)
+on this repo — don't auto-monitor or auto-fix. Report status when asked and let
+the maintainer drive the PR.
+
 ## Architecture
 
 ### Request layering (strict)
