@@ -83,6 +83,10 @@ rules).
 on this repo — don't auto-monitor or auto-fix. Report status when asked and let
 the maintainer drive the PR.
 
+**Never merge a PR** on this repo — merging is the maintainer's call, always.
+Prepare and push the branch, open or update the PR, but leave the merge to a
+human.
+
 ## Architecture
 
 ### Request layering (strict)
