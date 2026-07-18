@@ -37,6 +37,7 @@ var el = {
     player: document.getElementById('np-player'),
     playerRow: document.getElementById('np-player-row'),
     playerLink: document.getElementById('np-player-link'),
+    playerSwitch: document.getElementById('np-player-switch'),
     title:  document.getElementById('np-title'),
     artist: document.getElementById('np-artist'),
     album:  document.getElementById('np-album'),
@@ -121,6 +122,134 @@ function setLyrionLink(playerId) {
     // The empty-state "open Lyrion" button always targets the plain Material
     // page: with nothing playing there is no player to focus.
     setMaterialLink(el.emptyOpen, null);
+}
+
+// Player this device follows when several play at once, kept per device (the
+// server holds no selection state) and sent to the poll as ?player=<id>.
+var SELECTED_PLAYER_KEY = 'lyrion.selectedPlayer';
+var selectedPlayer = null;
+try { selectedPlayer = localStorage.getItem(SELECTED_PLAYER_KEY) || null; } catch (e) {}
+
+function setSelectedPlayer(id) {
+    selectedPlayer = id || null;
+    try {
+        if (selectedPlayer) { localStorage.setItem(SELECTED_PLAYER_KEY, selectedPlayer); }
+        else { localStorage.removeItem(SELECTED_PLAYER_KEY); }
+    } catch (e) {}
+}
+
+var LYRION_ARROW_PATH = 'M19 19H5V5h7V3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2v-7h-2v7zM14 3v2h3.59l-9.83 9.83 1.41 1.41L19 6.41V10h2V3h-7z';
+var CHEVRON_PATH = 'M7 10l5 5 5-5z';
+function makeIcon(pathD, cls) {
+    var ns = 'http://www.w3.org/2000/svg';
+    var svg = document.createElementNS(ns, 'svg');
+    svg.setAttribute('viewBox', '0 0 24 24');
+    svg.setAttribute('aria-hidden', 'true');
+    svg.setAttribute('focusable', 'false');
+    svg.setAttribute('class', cls);
+    var path = document.createElementNS(ns, 'path');
+    path.setAttribute('d', pathD);
+    svg.appendChild(path);
+    return svg;
+}
+
+function closeSwitchMenu() {
+    if (!el.playerSwitch) { return; }
+    var menu = el.playerSwitch.querySelector('.np-switch-menu');
+    var toggle = el.playerSwitch.querySelector('.np-switch-toggle');
+    if (menu) { menu.hidden = true; }
+    if (toggle) { toggle.setAttribute('aria-expanded', 'false'); }
+}
+// Close the menu on an outside click or Escape.
+document.addEventListener('click', function (e) {
+    if (el.playerSwitch && !el.playerSwitch.contains(e.target)) { closeSwitchMenu(); }
+});
+document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') { closeSwitchMenu(); }
+});
+
+// Signature (player ids + active id) so the DOM is only rebuilt on real change,
+// keeping the menu state across steady-state polls.
+var lastSwitchKey = null;
+
+function renderPlayerSwitch(data) {
+    if (!el.playerSwitch) { return; }
+    var players = data.players || [];
+
+    // Followed player stopped (or was ignored): revert to automatic selection.
+    if (selectedPlayer && data.selection_active === false) {
+        setSelectedPlayer(null);
+    }
+
+    if (players.length < 2) {
+        el.playerSwitch.hidden = true;
+        el.playerSwitch.textContent = '';
+        lastSwitchKey = null;
+        return;
+    }
+
+    el.playerRow.hidden = true;  // the dropdown takes over the name row
+    el.playerSwitch.hidden = false;
+
+    var activeId = data.player_id;
+    var key = players.map(function (p) { return p.id; }).join(',') + '|' + activeId;
+    if (key === lastSwitchKey) { return; }
+    lastSwitchKey = key;
+    el.playerSwitch.textContent = '';
+
+    // Trigger: the followed player's name + a chevron, opening the menu.
+    var toggle = document.createElement('button');
+    toggle.type = 'button';
+    toggle.className = 'np-switch-toggle';
+    toggle.setAttribute('aria-haspopup', 'true');
+    toggle.setAttribute('aria-expanded', 'false');
+    var toggleName = document.createElement('span');
+    toggleName.className = 'np-switch-current';
+    toggleName.textContent = data.player_name || '';
+    toggle.appendChild(toggleName);
+    toggle.appendChild(makeIcon(CHEVRON_PATH, 'np-switch-chevron'));
+
+    var menu = document.createElement('div');
+    menu.className = 'np-switch-menu';
+    menu.setAttribute('role', 'menu');
+    menu.hidden = true;
+
+    players.forEach(function (p) {
+        var current = p.id === activeId;
+        var item;
+        if (current) {
+            // The followed player's row opens Lyrion (like the single-player name).
+            item = document.createElement('a');
+            setMaterialLink(item, p.id);
+            item.title = I18N.open_lyrion;
+            item.appendChild(document.createTextNode(p.name || ''));
+            item.appendChild(makeIcon(LYRION_ARROW_PATH, 'np-switch-arrow'));
+            // Let the link open, but close the menu behind it.
+            item.addEventListener('click', closeSwitchMenu);
+        } else {
+            item = document.createElement('button');
+            item.type = 'button';
+            item.appendChild(document.createTextNode(p.name || ''));
+            item.addEventListener('click', function () {
+                closeSwitchMenu();
+                setSelectedPlayer(p.id);
+                poll();
+            });
+        }
+        item.className = 'np-switch-item' + (current ? ' is-current' : '');
+        item.setAttribute('role', 'menuitem');
+        menu.appendChild(item);
+    });
+
+    toggle.addEventListener('click', function (e) {
+        e.stopPropagation();
+        var open = menu.hidden;
+        menu.hidden = !open;
+        toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+    });
+
+    el.playerSwitch.appendChild(toggle);
+    el.playerSwitch.appendChild(menu);
 }
 var lastTrackKey = null;
 var currentTrack = null;
@@ -855,6 +984,8 @@ function render(data) {
         recentKey = null;
         if (el.recent) { el.recent.hidden = true; }
         el.player.textContent = '';
+        if (el.playerSwitch) { el.playerSwitch.hidden = true; el.playerSwitch.textContent = ''; }
+        lastSwitchKey = null;
         el.cover.removeAttribute('src');
         setLyrionLink(null);
         resetColors();
@@ -884,6 +1015,7 @@ function render(data) {
     setLyrionLink(data.player_id);
     el.player.textContent = data.player_name || '';
     el.playerRow.hidden = !data.player_name;
+    renderPlayerSwitch(data);
     el.title.textContent = data.title || '';
     el.artist.textContent = data.artist || '';
     el.album.textContent = data.album
@@ -1152,10 +1284,12 @@ function poll() {
     var sentAt = Date.now();
     // Tell the server which track is already on screen: it skips the lyrics
     // lookup (and the response omits them) while the track hasn't changed —
-    // render() only reads data.lyrics on a track change anyway.
-    var url = lastTrackKey === null
-        ? '/now-playing.json'
-        : '/now-playing.json?known=' + encodeURIComponent(lastTrackKey);
+    // render() only reads data.lyrics on a track change anyway. And, when set,
+    // which player this device pinned.
+    var params = [];
+    if (lastTrackKey !== null) { params.push('known=' + encodeURIComponent(lastTrackKey)); }
+    if (selectedPlayer) { params.push('player=' + encodeURIComponent(selectedPlayer)); }
+    var url = '/now-playing.json' + (params.length ? '?' + params.join('&') : '');
     fetch(url)
         .then(function(r) { return r.json(); })
         .then(function(data) {

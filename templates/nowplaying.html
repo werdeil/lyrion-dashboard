@@ -58,6 +58,10 @@
                             </svg>
                         </a>
                     </p>
+                    {# Replaces the row above when >= 2 players play; filled by
+                       nowplaying.js. #}
+                    <div class="np-player-switch" id="np-player-switch"
+                         role="group" aria-label="{{ t.choose_player }}" hidden></div>
                     <p class="np-title" id="np-title">—</p>
                     <p class="np-artist" id="np-artist"></p>
                     <p class="np-album" id="np-album"></p>

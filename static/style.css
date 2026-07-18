@@ -446,6 +446,130 @@ hr {
     opacity: 0.7;
 }
 
+/* Player picker replacing .np-player when >= 2 players play: a compact
+   name + chevron trigger opening a dropdown of the playing players. Stays on
+   one line whatever the count or name length. */
+.np-player-switch {
+    position: relative;
+    display: flex;
+    justify-content: flex-start;
+    margin: 0 0 6px;
+}
+
+.np-player-switch > .np-switch-toggle {
+    flex: 0 1 auto;
+    min-width: 0;
+}
+
+.np-switch-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35em;
+    max-width: 100%;
+    padding: 4px 6px;
+    margin: -4px -6px;
+    border: 0;
+    border-radius: 5px;
+    background: transparent;
+    color: var(--text-muted);
+    font-size: var(--fs-xs);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    cursor: pointer;
+    transition: color 250ms ease;
+}
+
+.np-switch-toggle:hover,
+.np-switch-toggle:focus-visible,
+.np-switch-toggle[aria-expanded="true"] {
+    color: var(--accent-color);
+}
+
+.np-switch-current {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.np-switch-chevron {
+    width: 1.1em;
+    height: 1.1em;
+    fill: currentColor;
+    flex: none;
+    opacity: 0.8;
+    transition: transform 180ms ease;
+}
+
+.np-switch-toggle[aria-expanded="true"] .np-switch-chevron {
+    transform: rotate(180deg);
+}
+
+/* The menu of playing players, anchored under the trigger. */
+.np-switch-menu[hidden] {
+    display: none;  /* the class's display:flex would otherwise beat [hidden] */
+}
+
+.np-switch-menu {
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    z-index: 20;
+    min-width: 12rem;
+    max-width: min(18rem, 80vw);
+    max-height: 15rem;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 4px;
+    border-radius: 8px;
+    background: var(--surface);
+    border: 1px solid var(--border-color);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+}
+
+.np-switch-item {
+    display: flex;
+    align-items: center;
+    gap: 0.4em;
+    padding: 8px 10px;
+    border: 0;
+    border-radius: 5px;
+    background: transparent;
+    color: var(--text);
+    font-size: var(--fs-sm);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    text-align: left;
+    text-decoration: none;
+    white-space: nowrap;
+    cursor: pointer;
+}
+
+.np-switch-item:hover,
+.np-switch-item:focus-visible {
+    background: color-mix(in srgb, var(--accent-color) 16%, transparent);
+    color: var(--text-bright);
+}
+
+/* Followed player: highlighted, and its row opens Lyrion. */
+.np-switch-item.is-current {
+    color: var(--accent-color);
+    font-weight: bold;
+}
+
+.np-switch-arrow {
+    width: 0.95em;
+    height: 0.95em;
+    margin-left: auto;
+    fill: currentColor;
+    opacity: 0.8;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .np-switch-chevron { transition: none; }
+}
+
 .np-progress {
     margin-top: 16px;
     height: 3px;
