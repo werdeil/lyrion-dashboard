@@ -155,6 +155,12 @@ it or padding it out:
   cache key isn't `track_id` alone, why a search retries without the album), not
   what the next line obviously does. Add a comment when a choice would puzzle
   the next reader; skip it when the code speaks for itself.
+- **Comments are timeless — describe the _state_, not the _change_.** A comment
+  documents how the code is now, as if it had always been that way, not the edit
+  that produced it. Write "the cache ages by wall-clock time so shared clients
+  stay accurate", never "changed this to age by wall-clock time" or "was 5s, now
+  2s". Anything about _why it changed_ belongs in the commit message and the PR,
+  not in a comment that the next reader will meet with no memory of the old code.
 - **Docstrings where they add something, not everywhere.** `.pylintrc` disables
   the docstring-required checks on purpose. Public service functions carry rich
   docstrings that document the contract and the intent (`get_active_now_playing`,
