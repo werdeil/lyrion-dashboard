@@ -114,6 +114,18 @@ stands alone (`# pylint: disable=duplicate-code`):
 
 `tests/test_now_playing_route.py` is the reference example — mirror its shape.
 
+## Keep the README in sync
+
+The public surface is documented in the READMEs, and they must not drift from
+the app. When your endpoint changes that surface, update **both** `README.md`
+(EN) and `README.fr.md` (FR) in lockstep (see the `i18n` skill's README parity
+rule):
+
+- **New/changed route** → the **Endpoints** table (Method / Route / Description).
+- **New config env var** the route relies on → the **Configuration** table
+  **and** `.env.example` (with a short comment), so operators can discover it.
+- **User-visible feature** → the **Features** list.
+
 ## Checklist
 
 1. Put domain logic in a `services/` function; keep the handler thin.
@@ -124,5 +136,7 @@ stands alone (`# pylint: disable=duplicate-code`):
    headers unless overriding.
 5. Localize page strings in both `fr` and `en`; leave JSON unlocalized.
 6. Add `tests/test_<name>_route.py` patching the imported services.
-7. Run `python -m unittest discover` and `pylint app.py config.py i18n.py
+7. Public surface changed? Update the Endpoints/Configuration/Features docs in
+   **both** READMEs (and `.env.example` for a new env var).
+8. Run `python -m unittest discover` and `pylint app.py config.py i18n.py
    routes services scripts tests` — both gate CI (`.github/workflows/python-ci.yml`).
