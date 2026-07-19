@@ -27,6 +27,13 @@ android {
         versionName = "0.2.3"
     }
 
+    // AGP embeds a signed dependency graph ("Dependency metadata" signing
+    // block, meant for Play Console) that F-Droid's scanner rejects — strip it.
+    dependenciesInfo {
+        includeInApk = false
+        includeInBundle = false
+    }
+
     // A fixed debug keystore (standard debug credentials, committed on
     // purpose) so every CI build signs the debug APK with the same key —
     // otherwise each ephemeral runner generates its own and Android
