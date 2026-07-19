@@ -23,8 +23,8 @@ android {
         // be committed. Bump both for every release (versionCode packs the
         // semver as X*10000 + Y*100 + Z); CI fails the release if the tag
         // doesn't match versionName.
-        versionCode = 202
-        versionName = "0.2.2"
+        versionCode = 203
+        versionName = "0.2.3"
     }
 
     // A fixed debug keystore (standard debug credentials, committed on
