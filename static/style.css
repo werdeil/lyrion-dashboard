@@ -268,9 +268,8 @@ hr {
     -webkit-backdrop-filter: blur(10px);
 }
 
-/* Left column of the card: the cover on top and, on large screens, the
-   recent-plays stack under it. The grid placement lives on this wrapper (not
-   on the cover), so the responsive rules below only ever re-place it. */
+/* Left column (cover + recent-plays stack). The grid placement lives here so
+   the responsive rules below only ever re-place this wrapper. */
 .np-side {
     grid-column: 1;
     grid-row: 1 / span 2;
@@ -588,20 +587,11 @@ hr {
 }
 
 .np-lyrics {
-    /* position:relative makes this the offsetParent of the .lrc-line
-       children, so their offsetTop is measured against this scroll box.
-       Without it the lines resolve to <body> and the auto-scroll centring
-       over-scrolls (notably on mobile, where the lyrics block sits far down
-       the page), pinning the active line to the top and hiding past lines. */
+    /* offsetParent for the .lrc-line children: without it their offsetTop
+       resolves against <body> and the karaoke auto-scroll over-scrolls. */
     position: relative;
-    /* The active karaoke line is scaled up (1.03) and clipping happens at
-       this box's padding edge, so a near-full-width line would get cut off
-       on both sides. The card around it already has 20px of padding: extend
-       the box into that existing margin (negative side margins) and give the
-       same amount back as inner padding. Both percentages resolve against the
-       containing block's width, so they cancel exactly: the text wraps at the
-       same width as ever (plain and synced modes stay identical), while the
-       clip edge moves 2% out — beyond the scaled line's ±1.5% overhang. */
+    /* The scaled-up (1.03) active line would clip at the padding edge: trade
+       2% margin for 2% padding so the clip edge moves out, wrapping unchanged. */
     margin: 12px -2% 0;
     padding: 0 2%;
     max-height: 420px;
