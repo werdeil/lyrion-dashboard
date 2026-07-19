@@ -42,7 +42,10 @@ android {
 
     // Release signing is driven by environment variables so CI can sign
     // without the release keystore ever being committed. Without them the
-    // release build stays unsigned (app-release-unsigned.apk).
+    // release build stays unsigned (app-release-unsigned.apk) — which is
+    // what local and F-Droid builds want, but never a GitHub release: the
+    // release workflow verifies the signature and fails instead of
+    // publishing an unsigned APK.
     val keystorePath = System.getenv("ANDROID_KEYSTORE_PATH")
     if (keystorePath != null) {
         signingConfigs {

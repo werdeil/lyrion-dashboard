@@ -77,7 +77,8 @@ your own venv.
 When opening a PR, follow `.github/pull_request_template.md`: fill in what/why
 and how it was tested, and work through its checklist (it mirrors the CI gates
 above plus the FR/EN string parity, README lockstep, and no-auth-by-design
-rules).
+rules). PR titles and descriptions are written in **English**, like commit
+messages — only the user-facing UI and the READMEs are bilingual.
 
 **Never subscribe to / watch a PR for activity** (CI results, review comments)
 on this repo — don't auto-monitor or auto-fix. Report status when asked and let

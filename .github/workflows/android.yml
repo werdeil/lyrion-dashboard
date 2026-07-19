@@ -54,8 +54,6 @@ jobs:
           name: lyrion-custom-data-debug
           path: android/app/build/outputs/apk/debug/app-debug.apk
 
-      # The release APK is signed only when the signing secrets are
-      # configured in the repository; otherwise it is built unsigned.
       # F-Droid builds from the source at the tag, so the version must be
       # committed in build.gradle.kts — this only guards their coherence.
       - name: Check that the release tag matches the app version
@@ -68,7 +66,10 @@ jobs:
             exit 1
           fi
 
-      - name: Build release APK
+      # A release must never ship unsigned: every step below fails loudly
+      # rather than falling back to an unsigned APK. Secrets are only ever
+      # reported as present/absent or by length, never echoed.
+      - name: Decode the release keystore
         if: github.event_name == 'release'
         env:
           KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
@@ -76,18 +77,94 @@ jobs:
           ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
         run: |
-          if [ -n "$KEYSTORE_BASE64" ]; then
-            echo "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/keystore.jks"
-            export ANDROID_KEYSTORE_PATH="$RUNNER_TEMP/keystore.jks"
+          set -euo pipefail
+
+          missing=0
+          for name in ANDROID_KEYSTORE_BASE64 ANDROID_KEYSTORE_PASSWORD ANDROID_KEY_ALIAS ANDROID_KEY_PASSWORD; do
+            case "$name" in
+              ANDROID_KEYSTORE_BASE64) value="${KEYSTORE_BASE64:-}" ;;
+              ANDROID_KEYSTORE_PASSWORD) value="${ANDROID_KEYSTORE_PASSWORD:-}" ;;
+              ANDROID_KEY_ALIAS) value="${ANDROID_KEY_ALIAS:-}" ;;
+              ANDROID_KEY_PASSWORD) value="${ANDROID_KEY_PASSWORD:-}" ;;
+            esac
+            if [ -z "$value" ]; then
+              echo "::error::Secret $name is missing or empty; a release cannot be signed."
+              missing=1
+            else
+              echo "$name: present (${#value} characters)"
+            fi
+          done
+          [ "$missing" -eq 0 ] || exit 1
+
+          # Strip whitespace/newlines a copy-paste may have introduced, and
+          # reject anything that is not strictly valid base64.
+          printf '%s' "$KEYSTORE_BASE64" | tr -d '[:space:]' | base64 -d > "$RUNNER_TEMP/keystore.jks" || {
+            echo "::error::ANDROID_KEYSTORE_BASE64 is not valid base64. Regenerate it with: base64 -w0 release.jks"
+            exit 1
+          }
+
+          size=$(wc -c < "$RUNNER_TEMP/keystore.jks" | tr -d '[:space:]')
+          echo "Decoded keystore: $size bytes"
+          if [ "$size" -lt 512 ]; then
+            echo "::error::Decoded keystore is only $size bytes — the secret is empty or truncated."
+            exit 1
           fi
+
+          # Prove the keystore opens with the given password and really
+          # contains the expected alias, before Gradle gets a chance to
+          # silently skip signing.
+          if ! keytool -list -keystore "$RUNNER_TEMP/keystore.jks" \
+                 -storepass "$ANDROID_KEYSTORE_PASSWORD" \
+                 -alias "$ANDROID_KEY_ALIAS" > /dev/null 2>&1; then
+            echo "::error::Cannot open the keystore with ANDROID_KEYSTORE_PASSWORD, or alias ANDROID_KEY_ALIAS is absent from it."
+            exit 1
+          fi
+          echo "Keystore decoded and alias verified."
+
+      - name: Build release APK
+        if: github.event_name == 'release'
+        env:
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+          export ANDROID_KEYSTORE_PATH="$RUNNER_TEMP/keystore.jks"
           ./gradlew assembleRelease
+
+      - name: Verify the release APK is signed
+        if: github.event_name == 'release'
+        run: |
+          set -euo pipefail
+          apk=app/build/outputs/apk/release/app-release.apk
+
+          if [ ! -f "$apk" ]; then
+            echo "::error::$apk not found. Gradle produced:"
+            ls -1 app/build/outputs/apk/release/ || true
+            echo "::error::An app-release-unsigned.apk means the release signingConfig was not applied."
+            exit 1
+          fi
+
+          # AGP installs build-tools under $ANDROID_HOME, so apksigner exists
+          # by the time the build has run; take the newest version available.
+          apksigner=$(find "${ANDROID_HOME:-${ANDROID_SDK_ROOT:-/opt/android-sdk}}/build-tools" -name apksigner -type f 2>/dev/null | sort -V | tail -n 1 || true)
+          if [ -z "$apksigner" ]; then
+            echo "::error::apksigner not found in the Android SDK; cannot verify the signature."
+            exit 1
+          fi
+
+          "$apksigner" verify --verbose --print-certs "$apk"
+          echo "Release APK is signed."
 
       - name: Attach release APK to the GitHub release
         if: github.event_name == 'release'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          apk=$(ls app/build/outputs/apk/release/*.apk | head -n 1)
-          cp "$apk" "lyrion-custom-data-${{ github.event.release.tag_name }}.apk"
-          gh release upload "${{ github.event.release.tag_name }}" \
-            "lyrion-custom-data-${{ github.event.release.tag_name }}.apk" --clobber
+          set -euo pipefail
+          # Explicit filename: a glob would happily pick up an unsigned or
+          # stale APK if several ever landed in this directory.
+          apk=app/build/outputs/apk/release/app-release.apk
+          asset="lyrion-custom-data-${{ github.event.release.tag_name }}.apk"
+          cp "$apk" "$asset"
+          gh release upload "${{ github.event.release.tag_name }}" "$asset" --clobber
