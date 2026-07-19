@@ -178,15 +178,19 @@ A comment (or docstring) must earn its place. The only things that justify one:
   ("audit S1", "P8", …) and keep the paired inline `# nosec` justification, so
   the bandit trail and the audit stay connected. These are mandatory, not
   optional.
-- **A public service contract** — a short docstring on the service functions
-  routes call (`fetch_lyrics`, `get_active_now_playing`): arguments, return
-  shape, caching behaviour. Nothing else gets a docstring — not routes, not
-  helpers, not tests; `.pylintrc` disables the docstring checks on purpose.
+- **A public contract** — per PEP 257, public functions carry a docstring
+  stating the contract: arguments, return shape, side effects (caching,
+  rate limits). One summary line when that's enough (`get_track_lyrics`), a
+  few more when the contract has real subtleties (`fetch_lyrics`). Private
+  and trivial helpers don't get one; `.pylintrc` disables the
+  docstring-required checks so this stays judgment, not ceremony.
 
 Rules for the comments that do survive:
 
-- **Two lines max.** If the rationale needs a paragraph, it belongs in the
-  commit message or the PR description, not in the code.
+- **Two lines max** for inline comments. If the rationale needs a paragraph,
+  it belongs in the commit message or the PR description, not in the code.
+  Contract docstrings may run longer, but stay lean: document the contract,
+  not the implementation.
 - **Timeless — describe the _state_, not the _change_.** Write "the cache ages
   by wall-clock time", never "changed this to age by wall-clock time" or "was
   5s, now 2s". Why it changed goes in the commit, which the next reader — who
