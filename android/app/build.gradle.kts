@@ -54,6 +54,12 @@ android {
                 storePassword = System.getenv("ANDROID_KEYSTORE_PASSWORD")
                 keyAlias = System.getenv("ANDROID_KEY_ALIAS")
                 keyPassword = System.getenv("ANDROID_KEY_PASSWORD")
+                // With minSdk >= 24 AGP skips v1 (JAR) signing, but F-Droid's
+                // reproducible-builds tooling (`fdroid signatures`) can only
+                // extract a v1 signature — so force all three schemes on.
+                enableV1Signing = true
+                enableV2Signing = true
+                enableV3Signing = true
             }
         }
     }
