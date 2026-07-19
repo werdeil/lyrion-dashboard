@@ -161,35 +161,47 @@ Lyrion/DB layers and headless Chromium.
 
 ## Code style & comments
 
-The codebase has a deliberate comment culture — match it rather than stripping
-it or padding it out:
+**Comments are the exception, not the norm.** The default is no comment: intent
+belongs in naming and small functions, not in prose. Parts of the codebase are
+still over-commented from an earlier, chattier culture — that density is a
+legacy, not a licence: never match it, and when you touch a block, delete the
+comments in it that the rules below don't justify.
 
-- **Comment the _why_, not the _what_.** Existing comments and docstrings
-  explain reasoning and trade-offs (why a cache ages by wall-clock time, why the
-  cache key isn't `track_id` alone, why a search retries without the album), not
-  what the next line obviously does. Add a comment when a choice would puzzle
-  the next reader; skip it when the code speaks for itself.
-- **Comments are timeless — describe the _state_, not the _change_.** A comment
-  documents how the code is now, as if it had always been that way, not the edit
-  that produced it. Write "the cache ages by wall-clock time so shared clients
-  stay accurate", never "changed this to age by wall-clock time" or "was 5s, now
-  2s". Anything about _why it changed_ belongs in the commit message and the PR,
-  not in a comment that the next reader will meet with no memory of the old code.
-- **Docstrings where they add something, not everywhere.** `.pylintrc` disables
-  the docstring-required checks on purpose. Public service functions carry rich
-  docstrings that document the contract and the intent (`get_active_now_playing`,
-  `fetch_lyrics`, `lyrion_request` are good models); trivial helpers don't need
-  one.
-- **Reference the audit tags for accepted risks.** Security/performance
-  decisions that were reviewed and accepted cite their tag from the audit
-  ([PR #15](https://github.com/werdeil/lyrion-dashboard/pull/15)) — "audit S1",
-  "P8", etc. Keep that reference in the comment when you touch such code, and
-  keep the inline `# nosec` (with its justification) that pairs with it, so the
-  bandit trail and the audit stay connected.
-- **Broad `except Exception` is intentional** around web providers and tag
-  writers, where any single failure must not break the chain; `.pylintrc`
-  disables `broad-exception-caught` for this reason. Don't narrow those without
-  cause, and don't add new broad catches where a specific one belongs.
+A comment (or docstring) must earn its place. The only things that justify one:
+
+- **A constraint the code cannot show** — a locking/ordering rule, a cache
+  subtlety, an invariant that a refactor could silently break.
+- **An external quirk** — Lyrion returning empty non-JSON bodies, a provider
+  blocking default user agents. Things no amount of local reading would reveal.
+- **An accepted risk** — security/performance decisions reviewed in the audit
+  ([PR #15](https://github.com/werdeil/lyrion-dashboard/pull/15)) cite their tag
+  ("audit S1", "P8", …) and keep the paired inline `# nosec` justification, so
+  the bandit trail and the audit stay connected. These are mandatory, not
+  optional.
+- **A public contract** — per PEP 257, public functions carry a docstring
+  stating the contract: arguments, return shape, side effects (caching,
+  rate limits). One summary line when that's enough (`get_track_lyrics`), a
+  few more when the contract has real subtleties (`fetch_lyrics`). Private
+  and trivial helpers don't get one; `.pylintrc` disables the
+  docstring-required checks so this stays judgment, not ceremony.
+
+Rules for the comments that do survive:
+
+- **Two lines max** for inline comments. If the rationale needs a paragraph,
+  it belongs in the commit message or the PR description, not in the code.
+  Contract docstrings may run longer, but stay lean: document the contract,
+  not the implementation.
+- **Timeless — describe the _state_, not the _change_.** Write "the cache ages
+  by wall-clock time", never "changed this to age by wall-clock time" or "was
+  5s, now 2s". Why it changed goes in the commit, which the next reader — who
+  has no memory of the old code — can dig up if they care.
+- **Never narrate the obvious** — what the next line does, section banners,
+  restating a name. If the code says it, the comment is noise: delete it.
+
+**Broad `except Exception` is intentional** around web providers and tag
+writers, where any single failure must not break the chain; `.pylintrc`
+disables `broad-exception-caught` for this reason. Don't narrow those without
+cause, and don't add new broad catches where a specific one belongs.
 
 ## Testing conventions
 

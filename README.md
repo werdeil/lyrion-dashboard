@@ -102,12 +102,11 @@ The app is available at `http://localhost:1111`.
 | `DB_DIR` | Directory containing Lyrion's `library.db` | -- |
 | `DB_PERSIST_DIR` | Directory containing Lyrion's `persist.db` | -- |
 | `CUSTOM_DATA_DIR` | Generated files directory | `/opt/scripts/custom_data` |
-| `HOST` | Listen address | `0.0.0.0` |
-| `PORT` | Listen port | `1111` |
 | `LYRICS_PROVIDERS` | Web lyrics providers, tried in order (`lrclib`, `musixmatch`, `genius`) | `lrclib,musixmatch,genius` |
 | `MUSIXMATCH_TOKEN` | Fixed Musixmatch token (otherwise fetched automatically) | -- |
 | `LRCLIB_TIMEOUT` | LRCLIB request timeout, in seconds | `15` |
 | `LYRICS_VERIFY_DURATION_TOLERANCE` | Max drift (seconds) tolerated by `--verify` in `embed_lyrics.py` | `3` |
+| `DEV` | Set to `1` to live-reload templates and disable static caching (development) | -- |
 
 ## Security
 
@@ -135,6 +134,7 @@ library statistics and download everything under `CUSTOM_DATA_DIR`
 | GET | `/now-playing.json` | Live state of the currently playing track, auto-detected (JSON) |
 | GET | `/cover/<coverid>.jpg` | Proxies an album cover from Lyrion, same-origin |
 | GET | `/cover/remote.jpg` | Proxies the artwork of the currently playing remote/streaming track |
+| GET | `/mosaic-covers.json` | Album cover ids for the empty-state mosaic, recently played first (JSON) |
 | GET | `/recent-covers.json` | Recently played album cover ids, newest first (JSON) |
 | GET | `/lyrics.json` | Fetches lyrics from the web for a track, on demand |
 | GET | `/files/<path>` | Serves a file from the custom data directory |
@@ -176,6 +176,7 @@ python scripts/embed_lyrics.py "/path/to/music/A*" /path/to/music/B*
 |---|---|
 | `--force` | Rewrites the tag even if lyrics are already present. |
 | `--clear` | Erases the existing tag when nothing is found online, to reflect what the providers offer. Also processes already-tagged files (so one web request per file); combinable with `--force`. |
+| `--no-verify` | Accepts a provider's lyrics even when its own title/artist/duration don't match the file. Off by default: since tags are written permanently, a mismatched result is worse than no lyrics. |
 | `--dry-run` | Prints what would be done, without writing anything. |
 | `--delay 0.5` | Delay (seconds) between web requests (default: 0.5). |
 | `--verbose` | Logs every file, including skipped ones. |

@@ -24,7 +24,7 @@
         <a class="lyrion-link" id="lyrion-link"
            href="{{ (lyrion_host ~ '/material/') if lyrion_host else '#' }}"
            target="_blank" rel="noopener noreferrer" title="{{ t.open_lyrion }}">
-            <img src="{{ url_for('static', filename='lyrion.svg') }}" alt="Logo Lyrion">
+            <img src="{{ url_for('static', filename='lyrion.svg') }}" alt="{{ t.lyrion_logo_alt }}">
         </a>
     </div>
 
@@ -37,10 +37,7 @@
                         <img id="np-cover-img" alt="{{ t.cover_alt }}"
                              data-fallback="{{ url_for('static', filename='no-cover.svg') }}">
                     </div>
-                    {# Recent plays as a pile of record sleeves under the cover
-                       (desktop only, see CSS): the freshest listen on top, older
-                       ones cascading down behind it; hover/focus lifts a sleeve
-                       to the front. Filled by JS from /recent-albums.json. #}
+                    {# Recent-plays sleeve pile, filled by nowplaying.js from /recent-covers.json (desktop only). #}
                     <div class="np-recent" id="np-recent" hidden>
                         <div class="np-recent-pile" id="np-recent-pile"></div>
                     </div>
@@ -94,8 +91,7 @@
                     </div>
                 </div>
                 <div class="np-empty" id="np-empty">
-                    {# Background collage of random library covers, filled by JS
-                       from /random-covers.json. Decorative only. #}
+                    {# Decorative cover mosaic, filled by nowplaying.js from /mosaic-covers.json. #}
                     <div class="np-empty-mosaic" id="np-empty-mosaic" aria-hidden="true"></div>
                     <div class="np-empty-content">
                         <span class="np-empty-icon">&#9835;</span>

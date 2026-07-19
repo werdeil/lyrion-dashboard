@@ -500,9 +500,8 @@ function setLyrics(text, isEmpty, keepScroll) {
             el.lyrics.appendChild(div);
             lrcNodes.push(div);
         }
-        // Set the scroll only once the lines exist: setting it before the
-        // rebuild let scroll-behavior:smooth cancel the reset mid-animation, so
-        // the view never returned to the top on a track change.
+        // Set the scroll only once the lines exist: doing it before the rebuild
+        // would let scroll-behavior:smooth cancel the reset mid-animation.
         el.lyrics.scrollTop = prevScroll;
         syncLyrics();
     } else {
@@ -786,17 +785,8 @@ window.addEventListener('resize', function() {
     mosaicResizeTimer = setTimeout(function() { layoutMosaic(mosaicIds); }, 300);
 });
 
-// Recent plays under the cover (desktop only): the previous albums as a pile
-// of record sleeves the playing cover sits on. The freshest listen is on top
-// at full light; each older one cascades down behind it, tilted and dimmer,
-// only its lower edge showing. Occlusion carries the order — nothing is
-// dated. Hover/focus lifts a sleeve to the front (pure CSS, see .np-recent-*).
-//
-// Thumbnail size for the sleeve art, and the pile's shape as fractions of the
-// column width. Age now drives size as well as brightness: the freshest
-// listen is RECENT_TOP_RATIO of the column, each older one RECENT_SHRINK
-// narrower (60% → 50% → 40% …), down to RECENT_MIN_RATIO. RECENT_STEP_RATIO
-// is the vertical cascade step between successive sleeves.
+// Recent plays as a pile of sleeves under the cover (desktop only): freshest
+// on top, older ones smaller and dimmer. Ratios are fractions of the column.
 var RECENT_COVER_SIZE = 300;
 var RECENT_TOP_RATIO = 0.60;
 var RECENT_SHRINK = 0.10;
@@ -808,8 +798,7 @@ var RECENT_STEP_RATIO = 0.26;
 // Minimum px of an older sleeve that must stay uncovered below the fresher
 // one on top of it, so it can still be hovered.
 var RECENT_MIN_PEEK = 22;
-// Slight horizontal nudge off centre, alternating left/right by depth, as a
-// fraction of the column — the "tossed pile" lean of option H.
+// Horizontal nudge off centre, alternating by depth — the pile's "tossed" lean.
 var RECENT_LANE_SHIFT = 0.08;
 // The shrink ramp (0.60, 0.50, … 0.20 of the column) bottoms out at five
 // sleeves; also the visual cap.
@@ -1256,8 +1245,8 @@ if (el.scrollReset) {
 
 el.cover.addEventListener('load', sampleCoverTint);
 
-// Broken-cover fallback, moved out of an inline onerror for the CSP. The
-// guard keeps a broken placeholder from looping the error event forever.
+// Broken-cover fallback (an inline onerror would violate the CSP); the guard
+// keeps a broken placeholder from looping the error event forever.
 el.cover.addEventListener('error', function() {
     var fallback = el.cover.dataset.fallback;
     if (fallback && el.cover.src.indexOf(fallback) === -1) {
