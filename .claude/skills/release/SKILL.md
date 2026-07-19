@@ -52,10 +52,20 @@ Publishing the draft fires `android.yml` on `release: published`, which:
 
 - Re-checks the tag matches `versionName` in `build.gradle.kts` (F-Droid
   coherence guard) — a mismatch fails the job.
-- Builds the **release APK**. It is **signed** only when the repo secrets
+- Builds the **release APK**, which **must** be signed. The four repo secrets
   `ANDROID_KEYSTORE_BASE64`, `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS`,
-  `ANDROID_KEY_PASSWORD` are configured; otherwise it builds unsigned.
+  `ANDROID_KEY_PASSWORD` are all required: the job decodes the keystore,
+  checks it opens with that password and holds that alias, and **fails** if
+  any of it is missing or malformed. It never falls back to unsigned.
+- Verifies the built APK with `apksigner` and fails if Gradle produced
+  `app-release-unsigned.apk` — a release published unsigned in the past
+  (v0.2.1) because this check did not exist.
 - Attaches `lyrion-custom-data-vX.Y.Z.apk` to the release.
+
+Note the ref subtlety: on a `release` event GitHub runs the workflow **as it
+exists at the tagged commit**. Recreating a release on an old tag replays that
+tag's `android.yml`, not the current one — so a workflow fix only takes effect
+for tags cut after it landed (or after the tag is moved).
 
 `android.yml` also builds a **debug** APK on every push touching `android/**`
 (uploaded as a workflow artifact, not attached to a release).

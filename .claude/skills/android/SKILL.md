@@ -58,7 +58,10 @@ The release APK is built and attached only when a GitHub release is published
   distinct label, so they install **side by side** with the release app.
 - **Release** signing is driven by environment variables
   (`ANDROID_KEYSTORE_PATH` and friends) so the release keystore is never
-  committed; without them the release build stays unsigned.
+  committed. Without them a *local* release build stays unsigned, which is
+  also what F-Droid wants — but the release workflow refuses to publish an
+  unsigned APK: it validates the keystore up front and runs `apksigner
+  verify` on the result (see the `release` skill).
 
 ## Versioning (must stay static)
 
