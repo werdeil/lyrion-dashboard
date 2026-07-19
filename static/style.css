@@ -269,8 +269,8 @@ hr {
 }
 
 /* Left column of the card: the cover on top and, on large screens, the
-   recent-plays stack under it. Carries the grid placement the cover used to
-   own, so the responsive rules below only ever re-place this wrapper. */
+   recent-plays stack under it. The grid placement lives on this wrapper (not
+   on the cover), so the responsive rules below only ever re-place it. */
 .np-side {
     grid-column: 1;
     grid-row: 1 / span 2;
@@ -595,7 +595,7 @@ hr {
        the page), pinning the active line to the top and hiding past lines. */
     position: relative;
     /* The active karaoke line is scaled up (1.03) and clipping happens at
-       this box's padding edge, so a near-full-width line used to get cut off
+       this box's padding edge, so a near-full-width line would get cut off
        on both sides. The card around it already has 20px of padding: extend
        the box into that existing margin (negative side margins) and give the
        same amount back as inner padding. Both percentages resolve against the

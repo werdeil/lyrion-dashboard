@@ -501,8 +501,9 @@ function setLyrics(text, isEmpty, keepScroll) {
             lrcNodes.push(div);
         }
         // Set the scroll only once the lines exist: setting it before the
-        // rebuild let scroll-behavior:smooth cancel the reset mid-animation, so
-        // the view never returned to the top on a track change.
+        // rebuild would let scroll-behavior:smooth cancel the reset
+        // mid-animation, so the view would never return to the top on a
+        // track change.
         el.lyrics.scrollTop = prevScroll;
         syncLyrics();
     } else {
@@ -793,7 +794,7 @@ window.addEventListener('resize', function() {
 // dated. Hover/focus lifts a sleeve to the front (pure CSS, see .np-recent-*).
 //
 // Thumbnail size for the sleeve art, and the pile's shape as fractions of the
-// column width. Age now drives size as well as brightness: the freshest
+// column width. Age drives size as well as brightness: the freshest
 // listen is RECENT_TOP_RATIO of the column, each older one RECENT_SHRINK
 // narrower (60% → 50% → 40% …), down to RECENT_MIN_RATIO. RECENT_STEP_RATIO
 // is the vertical cascade step between successive sleeves.
@@ -809,7 +810,7 @@ var RECENT_STEP_RATIO = 0.26;
 // one on top of it, so it can still be hovered.
 var RECENT_MIN_PEEK = 22;
 // Slight horizontal nudge off centre, alternating left/right by depth, as a
-// fraction of the column — the "tossed pile" lean of option H.
+// fraction of the column — the pile's "tossed" lean.
 var RECENT_LANE_SHIFT = 0.08;
 // The shrink ramp (0.60, 0.50, … 0.20 of the column) bottoms out at five
 // sleeves; also the visual cap.
@@ -1256,8 +1257,9 @@ if (el.scrollReset) {
 
 el.cover.addEventListener('load', sampleCoverTint);
 
-// Broken-cover fallback, moved out of an inline onerror for the CSP. The
-// guard keeps a broken placeholder from looping the error event forever.
+// Broken-cover fallback as a listener — an inline onerror attribute would
+// violate the CSP. The guard keeps a broken placeholder from looping the
+// error event forever.
 el.cover.addEventListener('error', function() {
     var fallback = el.cover.dataset.fallback;
     if (fallback && el.cover.src.indexOf(fallback) === -1) {

@@ -39,9 +39,10 @@ BROWSER_UA = (
 TTL_HIT = 24 * 3600
 TTL_MISS = 3600
 
-# LRCLIB can get slow under load (8-10s response times on busy evenings), which
-# silently turned every fetch into a timeout. Give it a generous, configurable
-# budget since this is a user-initiated fallback, not a hot path.
+# LRCLIB can get slow under load (8-10s response times on busy evenings); a
+# tight budget would silently turn every fetch into a timeout. Give it a
+# generous, configurable one since this is a user-initiated fallback, not a
+# hot path.
 LRCLIB_TIMEOUT = int(os.getenv("LRCLIB_TIMEOUT", "15"))
 
 # When verifying a result against the requested track (opt-in, used by the batch
