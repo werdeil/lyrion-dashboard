@@ -60,7 +60,7 @@ Publishing the draft fires `android.yml` on `release: published`, which:
 - Verifies the built APK with `apksigner` and fails if Gradle produced
   `app-release-unsigned.apk` — a release published unsigned in the past
   (v0.2.1) because this check did not exist.
-- Attaches `lyrion-custom-data-vX.Y.Z.apk` to the release.
+- Attaches `lyrion-dashboard-vX.Y.Z.apk` to the release.
 
 Note the ref subtlety: on a `release` event GitHub runs the workflow **as it
 exists at the tagged commit**. Recreating a release on an old tag replays that
