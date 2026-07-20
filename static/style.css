@@ -1105,11 +1105,8 @@ body.in-app .page-header {
     color: #ffb7c0;
 }
 
-/* Fixed, non-scrolling viewport layout — wide screens, whether tall or a
-   short landscape (phones at ~926x430, where the scrollable fallback leaves a
-   tall void beside the stats column once it's scrolled). Everything that can
-   overflow scrolls internally: lyrics, stats, and on short landscape the card
-   itself (see the landscape block below), so nothing is clipped out of reach. */
+/* Fixed, non-scrolling viewport layout — wide screens, tall or in landscape.
+   Every overflowing region scrolls internally, so nothing is clipped out of reach. */
 @media (min-width: 861px) and (min-height: 600px),
        (min-width: 861px) and (max-height: 600px) and (orientation: landscape) {
     /* dvh (visible viewport) instead of 100vh, which is the *large* viewport on
@@ -1229,17 +1226,16 @@ body.in-app .page-header {
     }
 }
 
-/* Wide short landscape runs the fixed layout above; the card scrolls as a
-   whole in case the cover row and controls outgrow the viewport, which the
-   fixed layout's overflow:hidden would clip with no way to reach. */
+/* Safety valve for the fixed layout's overflow:hidden — a very short viewport
+   scrolls the card instead of clipping the controls out of reach. */
 @media (max-height: 600px) and (orientation: landscape) and (min-width: 861px) {
     .now-playing {
         overflow-y: auto;
     }
 }
 
-/* Narrow short landscape stays on the scrollable page: cap the lyrics box so
-   the card doesn't grow into endless scrolling. */
+/* Narrow landscape stays on the scrollable page: cap the lyrics box so the
+   card doesn't grow into endless scrolling. */
 @media (max-height: 600px) and (orientation: landscape) and (max-width: 860px) {
     .np-lyrics {
         max-height: 240px;
