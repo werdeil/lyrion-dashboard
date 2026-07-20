@@ -174,12 +174,12 @@ python scripts/embed_lyrics.py "/path/to/music/A*" /path/to/music/B*
 
 | Option | Description |
 |---|---|
-| `--force` | Rewrites the tag even if lyrics are already present. |
-| `--clear` | Erases the existing tag when nothing is found online, to reflect what the providers offer. Also processes already-tagged files (so one web request per file); combinable with `--force`. |
-| `--no-verify` | Accepts a provider's lyrics even when its own title/artist/duration don't match the file. Off by default: since tags are written permanently, a mismatched result is worse than no lyrics. |
-| `--dry-run` | Prints what would be done, without writing anything. |
-| `--delay 0.5` | Delay (seconds) between web requests (default: 0.5). |
-| `--verbose` | Logs every file, including skipped ones. |
+| <code>&#8209;&#8209;force</code> | Rewrites the tag even if lyrics are already present. |
+| <code>&#8209;&#8209;clear</code> | Erases the existing tag when nothing is found online, to reflect what the providers offer. Also processes already-tagged files (so one web request per file); combinable with `--force`. |
+| <code>&#8209;&#8209;no&#8209;verify</code> | Accepts a provider's lyrics even when its own title/artist/duration don't match the file. Off by default: since tags are written permanently, a mismatched result is worse than no lyrics. |
+| <code>&#8209;&#8209;dry&#8209;run</code> | Prints what would be done, without writing anything. |
+| <code>&#8209;&#8209;delay&nbsp;0.5</code> | Delay (seconds) between web requests (default: 0.5). |
+| <code>&#8209;&#8209;verbose</code> | Logs every file, including skipped ones. |
 
 ### Cron: only re-tag changed files (`scripts/embed_lyrics_cron.sh`)
 

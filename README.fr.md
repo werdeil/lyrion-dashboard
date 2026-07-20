@@ -175,12 +175,12 @@ python scripts/embed_lyrics.py "/chemin/vers/musique/A*" /chemin/vers/musique/B*
 
 | Option | Description |
 |---|---|
-| `--force` | Réécrit le tag même si des paroles sont déjà présentes. |
-| `--clear` | Efface le tag existant quand rien n'est trouvé en ligne, pour refléter ce que proposent les fournisseurs. Traite aussi les fichiers déjà taggés (donc une requête web par fichier) ; combinable avec `--force`. |
-| `--no-verify` | Accepte les paroles d'un fournisseur même quand son titre/artiste/durée ne correspondent pas au fichier. Désactivé par défaut : les tags étant écrits définitivement, un mauvais résultat est pire que l'absence de paroles. |
-| `--dry-run` | Affiche ce qui serait fait, sans rien écrire. |
-| `--delay 0.5` | Délai (secondes) entre deux requêtes web (défaut : 0.5). |
-| `--verbose` | Journalise chaque fichier, y compris ceux ignorés. |
+| <code>&#8209;&#8209;force</code> | Réécrit le tag même si des paroles sont déjà présentes. |
+| <code>&#8209;&#8209;clear</code> | Efface le tag existant quand rien n'est trouvé en ligne, pour refléter ce que proposent les fournisseurs. Traite aussi les fichiers déjà taggés (donc une requête web par fichier) ; combinable avec `--force`. |
+| <code>&#8209;&#8209;no&#8209;verify</code> | Accepte les paroles d'un fournisseur même quand son titre/artiste/durée ne correspondent pas au fichier. Désactivé par défaut : les tags étant écrits définitivement, un mauvais résultat est pire que l'absence de paroles. |
+| <code>&#8209;&#8209;dry&#8209;run</code> | Affiche ce qui serait fait, sans rien écrire. |
+| <code>&#8209;&#8209;delay&nbsp;0.5</code> | Délai (secondes) entre deux requêtes web (défaut : 0.5). |
+| <code>&#8209;&#8209;verbose</code> | Journalise chaque fichier, y compris ceux ignorés. |
 
 ### Cron : ne re-taguer que les fichiers modifiés (`scripts/embed_lyrics_cron.sh`)
 
