@@ -1261,3 +1261,17 @@ body.in-app .page-header {
         font-size: 1.2rem;
     }
 }
+
+/* Floor the card, per cover size, so the idle mosaic and a lyrics-less playing
+   card share a height instead of the card growing when playback starts. */
+@media (min-width: 541px) and (max-width: 860px) {
+    .now-playing {
+        min-height: 345px;
+    }
+}
+
+@media (max-width: 540px) {
+    .now-playing {
+        min-height: 275px;
+    }
+}
