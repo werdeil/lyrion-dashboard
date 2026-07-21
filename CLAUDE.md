@@ -188,10 +188,16 @@ A comment (or docstring) must earn its place. The only things that justify one:
 
 Rules for the comments that do survive:
 
-- **Two lines max** for inline comments. If the rationale needs a paragraph,
-  it belongs in the commit message or the PR description, not in the code.
-  Contract docstrings may run longer, but stay lean: document the contract,
-  not the implementation.
+- **Two lines max** for any code comment — Python, CSS and JS alike, block or
+  inline. If the rationale needs a paragraph, it belongs in the commit message
+  or the PR description, not in the code. Contract docstrings may run longer,
+  but stay lean: document the contract, not the implementation.
+- **No motivation, no problem-story in the code.** State the surviving
+  constraint in a clause and stop — never the symptom it fixes, the before/after
+  heights, the reflow it prevents, or why the value is what it is. That is the
+  commit message's job. Litmus test: if the comment would read as a sentence in
+  your PR description, it is a commit message in the wrong place — cut it to the
+  constraint or delete it. (This rule is the one most often broken; hold it hard.)
 - **Timeless — describe the _state_, not the _change_.** Write "the cache ages
   by wall-clock time", never "changed this to age by wall-clock time" or "was
   5s, now 2s". Why it changed goes in the commit, which the next reader — who
