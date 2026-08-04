@@ -109,7 +109,7 @@
 
             {# Group order is by how fast the numbers move: history changes with every
                play, completion with the library, the library block only on a scan. #}
-            {# No stat-value here: the accent marks a group's total, and this group has none. #}
+            {# The accent (stat-value) marks a group's total; a group without one accents nothing. #}
             <div class="stat-group">
                 <div class="stat-group-title">
                     <span class="stat-group-title-label">&#127911; {{ t.history }}</span>
@@ -226,7 +226,7 @@
                 </div>
                 <div class="stat-row">
                     <span class="stat-label">{{ t.genres }}</span>
-                    <span class="stat-value" data-stat="genres">{{ stats.genres }}</span>
+                    <span data-stat="genres">{{ stats.genres }}</span>
                 </div>
                 <div class="stat-row">
                     <span class="stat-label">{{ t.rated_songs }}</span>

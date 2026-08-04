@@ -241,10 +241,6 @@ hr {
     margin-left: 8px;
 }
 
-.stat-row.sub .stat-value {
-    color: var(--text-muted);
-}
-
 .velocity-value {
     font-size: var(--fs-xl);
     font-weight: bold;
