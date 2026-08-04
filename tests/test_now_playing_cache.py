@@ -29,11 +29,14 @@ class NowPlayingCacheTest(unittest.TestCase):
         self.players_calls = 0
         self.status_calls = []
         self.playing = {"p1": False, "p2": True}
+        self.connected = {"p1": True, "p2": True}
 
         def fake_players():
             self.players_calls += 1
-            return [{"playerid": "p1", "name": "Salon"},
-                    {"playerid": "p2", "name": "Cuisine"}]
+            return [{"playerid": "p1", "name": "Salon",
+                     "connected": 1 if self.connected.get("p1") else 0},
+                    {"playerid": "p2", "name": "Cuisine",
+                     "connected": 1 if self.connected.get("p2") else 0}]
 
         def fake_now(player_id):
             self.status_calls.append(player_id)
@@ -122,6 +125,25 @@ class NowPlayingCacheTest(unittest.TestCase):
     def test_callers_get_a_copy(self):
         L.get_active_now_playing()["title"] = "corrupted"
         self.assertEqual(L.get_active_now_playing()["title"], "Song")
+
+    def test_disconnected_player_is_not_surfaced(self):
+        # The only "playing" player went offline: Lyrion still reports it as
+        # playing its old track, the page must fall back to the empty state.
+        self.connected["p2"] = False
+        result = L.get_active_now_playing()
+        self.assertFalse(result["playing"])
+        self.assertEqual(result["players"], [])
+        self.assertIsNone(L._last_player["id"])
+        self.assertNotIn("p2", self.status_calls)
+
+    def test_disconnected_player_does_not_keep_the_auto_pick(self):
+        self.playing["p1"] = True  # both playing, auto locks onto p1
+        self.assertEqual(L.get_active_now_playing()["player_id"], "p1")
+        L._now_cache["expires_at"] = 0  # force a re-enumeration
+        self.connected["p1"] = False    # p1 offline, still "mode: play"
+        result = L.get_active_now_playing()
+        self.assertEqual(result["player_id"], "p2")
+        self.assertEqual([p["id"] for p in result["players"]], ["p2"])
 
 
 if __name__ == "__main__":

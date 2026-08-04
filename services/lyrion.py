@@ -237,6 +237,15 @@ def _auto_select(playing):
     return chosen
 
 
+def _player_connected(value):
+    # Lyrion's `connected` flag: 0 offline, 1 online. Missing or unparseable is
+    # read as connected, so a server that doesn't report it behaves as before.
+    try:
+        return int(value) != 0
+    except (TypeError, ValueError):
+        return True
+
+
 def _query_playing_players():
     """Enumerate players and return those currently playing, in Lyrion's order.
 
@@ -245,11 +254,16 @@ def _query_playing_players():
     get_now_playing payload enriched with player_id/player_name (the id also
     lets the page deep-link "open Lyrion" to this very player, ?player=<id>). A
     paused/stopped player with a track still loaded is deliberately left out.
+    Players Lyrion lists as disconnected are skipped before their status is
+    queried: they keep their last transport state, so `mode: play` from one is
+    stale, and polling them costs an upstream request per TTL for nothing.
     """
     playing = []
     for player in get_players():
         player_id = player.get("playerid")
         if not player_id:
+            continue
+        if not _player_connected(player.get("connected")):
             continue
         now = get_now_playing(player_id)
         if now.get("playing") and now.get("track_id"):
