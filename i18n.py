@@ -30,7 +30,7 @@ TRANSLATIONS = {
         "source_library": "Bibliothèque",
         # Stats
         "stats_title": "Statistiques",
-        "listening": "Écoute",
+        "history": "Historique",
         "tracks": "Morceaux",
         "albums": "Albums",
         "album_artists": "Artistes d'album",
@@ -70,7 +70,7 @@ TRANSLATIONS = {
         "source_library": "Library",
         # Stats
         "stats_title": "Statistics",
-        "listening": "Listening",
+        "history": "History",
         "tracks": "Tracks",
         "albums": "Albums",
         "album_artists": "Album artists",

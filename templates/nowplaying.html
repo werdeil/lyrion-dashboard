@@ -107,27 +107,28 @@
         <div class="stats-panel">
             <h2>&#127928; {{ t.stats_title }}</h2>
 
-            {# Group order is by how fast the numbers move: listening changes with every
+            {# Group order is by how fast the numbers move: history changes with every
                play, completion with the library, the library block only on a scan. #}
+            {# No stat-value here: the accent marks a group's total, and this group has none. #}
             <div class="stat-group">
                 <div class="stat-group-title">
-                    <span class="stat-group-title-label">&#127911; {{ t.listening }}</span>
+                    <span class="stat-group-title-label">&#127911; {{ t.history }}</span>
                 </div>
                 <div class="stat-row">
                     <span class="stat-label">{{ t.played_last_30d }}</span>
-                    <span class="stat-value" data-stat="velocity_30d">{{ stats.velocity_30d }}</span>
+                    <span data-stat="velocity_30d">{{ stats.velocity_30d }}</span>
                 </div>
                 <div class="stat-row">
                     <span class="stat-label">{{ t.played_last_year }}</span>
-                    <span class="stat-value" data-stat="velocity_1year">{{ stats.velocity_1year }}</span>
+                    <span data-stat="velocity_1year">{{ stats.velocity_1year }}</span>
                 </div>
                 <div class="stat-row">
                     <span class="stat-label">{{ t.total_plays }}</span>
-                    <span class="stat-value" data-stat="songs_total_plays_apc">{{ stats.songs_total_plays_apc }}</span>
+                    <span data-stat="songs_total_plays_apc">{{ stats.songs_total_plays_apc }}</span>
                 </div>
                 <div class="stat-row">
                     <span class="stat-label">{{ t.total_skips }}</span>
-                    <span class="stat-value" data-stat="songs_total_skips_apc">{{ stats.songs_total_skips_apc }}</span>
+                    <span data-stat="songs_total_skips_apc">{{ stats.songs_total_skips_apc }}</span>
                 </div>
             </div>
 
