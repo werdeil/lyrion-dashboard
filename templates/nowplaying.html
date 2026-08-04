@@ -107,6 +107,49 @@
         <div class="stats-panel">
             <h2>&#127928; {{ t.stats_title }}</h2>
 
+            {# Group order is by how fast the numbers move: listening changes with every
+               play, completion with the library, the library block only on a scan. #}
+            <div class="stat-group">
+                <div class="stat-group-title">
+                    <span class="stat-group-title-label">&#127911; {{ t.listening }}</span>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-label">{{ t.played_last_30d }}</span>
+                    <span class="stat-value" data-stat="velocity_30d">{{ stats.velocity_30d }}</span>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-label">{{ t.played_last_year }}</span>
+                    <span class="stat-value" data-stat="velocity_1year">{{ stats.velocity_1year }}</span>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-label">{{ t.total_plays }}</span>
+                    <span class="stat-value" data-stat="songs_total_plays_apc">{{ stats.songs_total_plays_apc }}</span>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-label">{{ t.total_skips }}</span>
+                    <span class="stat-value" data-stat="songs_total_skips_apc">{{ stats.songs_total_skips_apc }}</span>
+                </div>
+            </div>
+
+            <div class="stat-group">
+                <div class="stat-group-title">
+                    <span class="stat-group-title-label">&#127926; {{ t.tracks }}</span>
+                    <span class="stat-group-total" data-stat="songs_total">{{ stats.songs_total }}</span>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-label">{{ t.total }}</span>
+                    <span class="stat-value" data-stat="songs_total">{{ stats.songs_total }}</span>
+                </div>
+                <div class="stat-row sub">
+                    <span class="stat-label">{{ t.played }}</span>
+                    <span data-stat="songs_played_apc" data-stat-pct="songs_played_pct">{{ stats.songs_played_apc }} <small>({{ stats.songs_played_pct }}%)</small></span>
+                </div>
+                <div class="stat-row sub">
+                    <span class="stat-label">{{ t.unplayed }}</span>
+                    <span data-stat="songs_unplayed_apc" data-stat-pct="songs_unplayed_apc_pct">{{ stats.songs_unplayed_apc }} <small>({{ stats.songs_unplayed_apc_pct }}%)</small></span>
+                </div>
+            </div>
+
             <div class="stat-group">
                 <div class="stat-group-title">
                     <span class="stat-group-title-label">&#127925; {{ t.albums }}</span>
@@ -130,7 +173,6 @@
                 </div>
             </div>
 
-            <!-- Album Artists -->
             <div class="stat-group">
                 <div class="stat-group-title">
                     <span class="stat-group-title-label">&#127908; {{ t.album_artists }}</span>
@@ -154,7 +196,6 @@
                 </div>
             </div>
 
-            <!-- Track Artists -->
             <div class="stat-group">
                 <div class="stat-group-title">
                     <span class="stat-group-title-label">&#127917; {{ t.track_artists }}</span>
@@ -178,38 +219,9 @@
                 </div>
             </div>
 
-            <!-- Songs -->
             <div class="stat-group">
                 <div class="stat-group-title">
-                    <span class="stat-group-title-label">&#127926; {{ t.tracks }}</span>
-                    <span class="stat-group-total" data-stat="songs_total">{{ stats.songs_total }}</span>
-                </div>
-                <div class="stat-row">
-                    <span class="stat-label">{{ t.total }}</span>
-                    <span class="stat-value" data-stat="songs_total">{{ stats.songs_total }}</span>
-                </div>
-                <div class="stat-row sub">
-                    <span class="stat-label">{{ t.played }}</span>
-                    <span data-stat="songs_played_apc" data-stat-pct="songs_played_pct">{{ stats.songs_played_apc }} <small>({{ stats.songs_played_pct }}%)</small></span>
-                </div>
-                <div class="stat-row sub">
-                    <span class="stat-label">{{ t.unplayed }}</span>
-                    <span data-stat="songs_unplayed_apc" data-stat-pct="songs_unplayed_apc_pct">{{ stats.songs_unplayed_apc }} <small>({{ stats.songs_unplayed_apc_pct }}%)</small></span>
-                </div>
-                <div class="stat-row sub">
-                    <span class="stat-label">{{ t.total_plays }}</span>
-                    <span class="stat-value" data-stat="songs_total_plays_apc">{{ stats.songs_total_plays_apc }}</span>
-                </div>
-                <div class="stat-row sub">
-                    <span class="stat-label">{{ t.total_skips }}</span>
-                    <span class="stat-value" data-stat="songs_total_skips_apc">{{ stats.songs_total_skips_apc }}</span>
-                </div>
-            </div>
-
-            <!-- Divers -->
-            <div class="stat-group">
-                <div class="stat-group-title">
-                    <span class="stat-group-title-label">&#127928; {{ t.misc }}</span>
+                    <span class="stat-group-title-label">&#128191; {{ t.library }}</span>
                 </div>
                 <div class="stat-row">
                     <span class="stat-label">{{ t.genres }}</span>
@@ -222,14 +234,6 @@
                 <div class="stat-row">
                     <span class="stat-label">{{ t.with_lyrics }}</span>
                     <span data-stat="songs_with_lyrics" data-stat-pct="songs_with_lyrics_pct">{{ stats.songs_with_lyrics }} <small>({{ stats.songs_with_lyrics_pct }}%)</small></span>
-                </div>
-                <div class="stat-row">
-                    <span class="stat-label">{{ t.played_last_30d }}</span>
-                    <span class="stat-value" data-stat="velocity_30d">{{ stats.velocity_30d }}</span>
-                </div>
-                <div class="stat-row">
-                    <span class="stat-label">{{ t.played_last_year }}</span>
-                    <span class="stat-value" data-stat="velocity_1year">{{ stats.velocity_1year }}</span>
                 </div>
             </div>
         </div>

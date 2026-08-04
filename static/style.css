@@ -158,6 +158,10 @@ hr {
     margin-bottom: 16px;
 }
 
+.stat-group:last-child {
+    margin-bottom: 0;
+}
+
 .stat-group-title {
     font-size: var(--fs-xs);
     color: var(--text-muted);
