@@ -158,6 +158,10 @@ hr {
     margin-bottom: 16px;
 }
 
+.stat-group:last-child {
+    margin-bottom: 0;
+}
+
 .stat-group-title {
     font-size: var(--fs-xs);
     color: var(--text-muted);
@@ -235,24 +239,6 @@ hr {
     color: var(--accent-color);
     white-space: nowrap;
     margin-left: 8px;
-}
-
-.stat-row.sub .stat-value {
-    color: var(--text-muted);
-}
-
-.velocity-value {
-    font-size: var(--fs-xl);
-    font-weight: bold;
-    color: var(--accent-color);
-    text-align: center;
-    margin-top: 4px;
-}
-
-.velocity-label {
-    text-align: center;
-    font-size: var(--fs-xs);
-    color: var(--text-muted);
 }
 
 .now-playing {
