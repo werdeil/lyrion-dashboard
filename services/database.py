@@ -233,7 +233,8 @@ def _compute_stats():
             "track_artists_non_played": (row["track_artists_unplayed"] or 0) + (row["track_artists_partially_played"] or 0),
         })
 
-        # Query 4: misc stats (genres, ratings, lyrics, velocity)
+        # The velocity windows start at local midnight: SQLite's 'now' is UTC, so the
+        # localtime/utc pair round-trips the boundary through the TZ environment.
         row = cur.execute("""
             SELECT
                 (SELECT COUNT(*) FROM genres) AS genres,
@@ -243,9 +244,11 @@ def _compute_stats():
                 (SELECT COUNT(DISTINCT id) FROM tracks
                  WHERE audio = 1 AND lyrics IS NOT NULL)                       AS songs_with_lyrics,
                 (SELECT COUNT(*) FROM persist.tracks_persistent
-                 WHERE lastplayed > strftime('%s', 'now', '-30 days'))         AS velocity_30d,
+                 WHERE lastplayed >= strftime('%s', 'now', 'localtime', 'start of day',
+                                              '-30 days', 'utc'))              AS velocity_30d,
                 (SELECT COUNT(*) FROM persist.tracks_persistent
-                 WHERE lastplayed > strftime('%s', 'now', '-1 year'))          AS velocity_1year
+                 WHERE lastplayed >= strftime('%s', 'now', 'localtime', 'start of day',
+                                              '-1 year', 'utc'))               AS velocity_1year
         """).fetchone()
 
         stats.update({
