@@ -1191,31 +1191,31 @@ if (el.retry) {
     el.retry.addEventListener('click', retryLyrics);
 }
 
-// Short lyrics that already fit the box have nothing to scroll — a gesture
-// on them can't mean "let me scroll away from the highlight", so don't let it
-// trip auto-follow off.
-function isLyricsScrollable() {
-    return el.lyrics.scrollHeight > el.lyrics.clientHeight + 1;
+// Pixels the box can still travel in the direction a gesture pushes it
+// (positive delta scrolls down), zero at either end and for unscrollable text.
+function scrollRoom(delta) {
+    if (delta > 0) {
+        return Math.max(0, el.lyrics.scrollHeight - el.lyrics.clientHeight - el.lyrics.scrollTop);
+    }
+    return Math.max(0, el.lyrics.scrollTop);
 }
 
-// A deliberate scroll gesture (wheel or touch drag) on the synced lyrics
-// pauses the karaoke auto-follow, so it doesn't fight the user for control.
-// Programmatic scrolling from syncLyrics() never fires these events, so
-// telling it apart from a real gesture needs no extra bookkeeping — only
-// telling a real gesture apart from an incidental bump does, via the
-// SCROLL_PAUSE_THRESHOLD accumulated below. These listeners are passive, so
-// the browser applies the native scroll regardless of that bookkeeping; below
-// the threshold, resync immediately rather than waiting for the next
-// periodic syncLyrics() tick, otherwise the delayed snap-back reads as a
-// bounce. Above the threshold, let the native scroll ride and pause instead.
+// A deliberate scroll gesture (wheel or touch drag) on the synced lyrics pauses
+// the karaoke auto-follow, so it doesn't fight the user for control. Only the
+// travel the box can absorb counts: a gesture pushing against an end it already
+// rests at moves nothing, so it can't mean "let me read elsewhere".
+// Programmatic scrolls from syncLyrics() never fire these events, so no
+// bookkeeping is needed to tell them from a real gesture. The listeners are
+// passive — the native scroll applies regardless, so below the threshold resync
+// at once rather than letting the next periodic tick snap back as a bounce.
 el.lyrics.addEventListener('wheel', function(e) {
-    if (!lrcLines || !autoFollowScroll || !isLyricsScrollable()) { return; }
+    if (!lrcLines || !autoFollowScroll) { return; }
     var now = Date.now();
     // A gap between ticks starts a new gesture, so unrelated bumps spread out
     // over time don't add up into a false trigger.
     if (now - wheelLastAt > 400) { wheelAccum = 0; }
     wheelLastAt = now;
-    wheelAccum += Math.abs(e.deltaY);
+    wheelAccum += Math.min(Math.abs(e.deltaY), scrollRoom(e.deltaY));
     if (wheelAccum > SCROLL_PAUSE_THRESHOLD) {
         setAutoFollow(false);
     } else {
@@ -1228,8 +1228,9 @@ el.lyrics.addEventListener('touchstart', function(e) {
 }, { passive: true });
 
 el.lyrics.addEventListener('touchmove', function(e) {
-    if (!lrcLines || !autoFollowScroll || !isLyricsScrollable() || touchStartY === null || !e.touches.length) { return; }
-    if (Math.abs(e.touches[0].clientY - touchStartY) > SCROLL_PAUSE_THRESHOLD) {
+    if (!lrcLines || !autoFollowScroll || touchStartY === null || !e.touches.length) { return; }
+    var moved = touchStartY - e.touches[0].clientY;
+    if (Math.min(Math.abs(moved), scrollRoom(moved)) > SCROLL_PAUSE_THRESHOLD) {
         setAutoFollow(false);
     } else {
         syncLyrics(true);
