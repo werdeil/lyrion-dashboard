@@ -18,6 +18,7 @@ services:
       - LRCLIB_TIMEOUT=${LRCLIB_TIMEOUT:-15}
       - LYRICS_VERIFY_DURATION_TOLERANCE=${LYRICS_VERIFY_DURATION_TOLERANCE:-3}
       - DEV=${DEV:-}
+      - TZ=${TZ:-UTC}
     healthcheck:
       test: ["CMD-SHELL", "python -c 'import os, urllib.request as u; u.urlopen(f\"http://127.0.0.1:1111/health\")'"
       ]
