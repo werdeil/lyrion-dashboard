@@ -244,10 +244,14 @@ def _query_playing_players():
     we enumerate players and query `status` on each. Every returned entry is the
     get_now_playing payload enriched with player_id/player_name (the id also
     lets the page deep-link "open Lyrion" to this very player, ?player=<id>). A
-    paused/stopped player with a track still loaded is deliberately left out.
+    paused/stopped player with a track still loaded is deliberately left out, as
+    is a disconnected one — its cached `mode` can still say "play" after an
+    ungraceful (power-cut) drop, since Lyrion never saw a clean stop.
     """
     playing = []
     for player in get_players():
+        if not player.get("connected", 1):
+            continue
         player_id = player.get("playerid")
         if not player_id:
             continue

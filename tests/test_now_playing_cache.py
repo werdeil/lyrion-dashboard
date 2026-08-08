@@ -123,6 +123,18 @@ class NowPlayingCacheTest(unittest.TestCase):
         L.get_active_now_playing()["title"] = "corrupted"
         self.assertEqual(L.get_active_now_playing()["title"], "Song")
 
+    def test_disconnected_player_is_skipped_despite_stale_playing_mode(self):
+        # p2 vanished (power cut) but Lyrion still lists it, mode stuck on "play".
+        def fake_players_disconnected():
+            self.players_calls += 1
+            return [{"playerid": "p1", "name": "Salon"},
+                    {"playerid": "p2", "name": "Cuisine", "connected": 0}]
+
+        L.get_players = fake_players_disconnected
+        result = L.get_active_now_playing()
+        self.assertFalse(result["playing"])
+        self.assertEqual(result["players"], [])
+
 
 if __name__ == "__main__":
     unittest.main()
