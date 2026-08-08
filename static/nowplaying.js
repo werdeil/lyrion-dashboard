@@ -1262,10 +1262,12 @@ var POLL_INTERVAL_MS = 2000;
 // Ticks are skipped while a poll is still in flight, so a stuck request can't
 // pile up more requests behind it.
 var pollInFlight = false;
+var pollController = null;
 
 function poll() {
     if (pollInFlight) { return; }
     pollInFlight = true;
+    pollController = new AbortController();
     // Time the round trip so render() can back-date the position. data.time is
     // measured server-side (when it queries Lyrion), but we only learn it after
     // the whole network round trip, by which point playback has moved on. The
@@ -1280,7 +1282,7 @@ function poll() {
     if (lastTrackKey !== null) { params.push('known=' + encodeURIComponent(lastTrackKey)); }
     if (selectedPlayer) { params.push('player=' + encodeURIComponent(selectedPlayer)); }
     var url = '/now-playing.json' + (params.length ? '?' + params.join('&') : '');
-    fetch(url)
+    fetch(url, { signal: pollController.signal })
         .then(function(r) { return r.json(); })
         .then(function(data) {
             pollInFlight = false;
@@ -1324,13 +1326,15 @@ function pollStats() {
         .catch(function() {});
 }
 
-// A backgrounded page has its timers throttled, so it can lag the real track
-// by up to a minute; poll immediately whenever it's looked at again. Three
-// events since none fires reliably everywhere; the in-flight guard dedupes.
+// A backgrounded page has its timers throttled and any in-flight poll may
+// never settle (the OS can suspend the socket), so on return: abort it, poll again.
 function catchUp() {
-    if (document.visibilityState !== 'hidden') {
-        poll();
+    if (document.visibilityState === 'hidden') { return; }
+    if (pollInFlight) {
+        pollController.abort();
+        pollInFlight = false;
     }
+    poll();
 }
 document.addEventListener('visibilitychange', catchUp);
 window.addEventListener('focus', catchUp);

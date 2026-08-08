@@ -14,6 +14,7 @@ export default [
                 navigator: "readonly",
                 localStorage: "readonly",
                 fetch: "readonly",
+                AbortController: "readonly",
                 setInterval: "readonly",
                 setTimeout: "readonly",
                 clearInterval: "readonly",
