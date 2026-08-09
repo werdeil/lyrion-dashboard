@@ -1258,16 +1258,46 @@ el.cover.addEventListener('error', function() {
 // Kept in step with the server-side cache (NOW_PLAYING_TTL, 2s), which bounds
 // how often Lyrion is queried regardless of poll rate.
 var POLL_INTERVAL_MS = 2000;
+// A request the OS suspended mid-flight (network handover, doze) can hang for
+// minutes without ever failing, so give every poll a deadline of its own.
+var POLL_TIMEOUT_MS = 8000;
 
 // Ticks are skipped while a poll is still in flight, so a stuck request can't
 // pile up more requests behind it.
 var pollInFlight = false;
 var pollController = null;
+var pollWatchdog = null;
+var pollSeq = 0;
+
+// A response that lost its race — aborted, or superseded by a later poll — must
+// neither clear the newer poll's flag nor render its stale payload.
+function endPoll(seq) {
+    if (seq !== pollSeq) { return false; }
+    clearTimeout(pollWatchdog);
+    pollInFlight = false;
+    return true;
+}
+
+function abortPoll() {
+    if (!pollInFlight) { return; }
+    pollSeq++;
+    clearTimeout(pollWatchdog);
+    pollInFlight = false;
+    pollController.abort();
+}
+
+function restartPoll() {
+    abortPoll();
+    poll();
+}
 
 function poll() {
     if (pollInFlight) { return; }
     pollInFlight = true;
-    pollController = new AbortController();
+    var seq = ++pollSeq;
+    var controller = new AbortController();
+    pollController = controller;
+    pollWatchdog = setTimeout(restartPoll, POLL_TIMEOUT_MS);
     // Time the round trip so render() can back-date the position. data.time is
     // measured server-side (when it queries Lyrion), but we only learn it after
     // the whole network round trip, by which point playback has moved on. The
@@ -1282,14 +1312,16 @@ function poll() {
     if (lastTrackKey !== null) { params.push('known=' + encodeURIComponent(lastTrackKey)); }
     if (selectedPlayer) { params.push('player=' + encodeURIComponent(selectedPlayer)); }
     var url = '/now-playing.json' + (params.length ? '?' + params.join('&') : '');
-    fetch(url, { signal: pollController.signal })
+    // no-store: the URL is stable while the track plays, so a cached body would
+    // be exactly the state we poll to leave behind.
+    fetch(url, { signal: controller.signal, cache: 'no-store' })
         .then(function(r) { return r.json(); })
         .then(function(data) {
-            pollInFlight = false;
+            if (!endPoll(seq)) { return; }
             pollRtt = Date.now() - sentAt;
             render(data);
         })
-        .catch(function() { pollInFlight = false; });
+        .catch(function() { endPoll(seq); });
 }
 
 function renderStats(stats) {
@@ -1330,11 +1362,7 @@ function pollStats() {
 // never settle (the OS can suspend the socket), so on return: abort it, poll again.
 function catchUp() {
     if (document.visibilityState === 'hidden') { return; }
-    if (pollInFlight) {
-        pollController.abort();
-        pollInFlight = false;
-    }
-    poll();
+    restartPoll();
 }
 document.addEventListener('visibilitychange', catchUp);
 window.addEventListener('focus', catchUp);
