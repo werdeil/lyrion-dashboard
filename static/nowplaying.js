@@ -1054,6 +1054,15 @@ function render(data) {
     }
 }
 
+// Why the panel came back empty: a search that ran and found nothing reads
+// differently from one the server's fuses held back or that never reached the
+// providers — both return instantly, which otherwise looks like a broken retry.
+function emptyLyricsMessage(res) {
+    if (res && res.throttled) { return I18N.lyrics_throttled; }
+    if (res && res.source === 'unavailable') { return I18N.lyrics_unavailable; }
+    return I18N.no_lyrics_found;
+}
+
 function fetchLyrics() {
     if (!currentTrack) { return; }
     var track = currentTrack;
@@ -1084,13 +1093,13 @@ function fetchLyrics() {
                 setLyrics(lyrics, false);
                 setLyricsSource(res.source);
             } else {
-                setLyrics(I18N.no_lyrics_found, true);
+                setLyrics(emptyLyricsMessage(res), true);
             }
         })
         .catch(function() {
             if (track !== currentTrack) { return; }
             setSearching(false);
-            setLyrics(I18N.no_lyrics_found, true);
+            setLyrics(I18N.lyrics_unavailable, true);
         });
 }
 

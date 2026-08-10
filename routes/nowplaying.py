@@ -25,6 +25,7 @@ PLAYER_ID_RE = re.compile(r"[0-9A-Fa-f:.\-]{1,64}")
 # Fuses for the outbound lyrics searches: per-IP rate limit, per-track cooldown on refresh=1.
 LYRICS_RATE = RateLimiter(limit=10, window=60)
 REFRESH_COOLDOWN = Cooldown(interval=30)
+THROTTLED_RESULT = {"lyrics": None, "synced": None, "source": "none", "throttled": True}
 
 
 @nowplaying_bp.route("/")
@@ -150,15 +151,21 @@ def lyrics_json():
     cached in-memory by services.lyrics, so repeated clicks are cheap. Rate
     limited (see LYRICS_RATE / REFRESH_COOLDOWN above) because every cache
     miss fans out to third-party services from our IP.
+
+    A response carries `"throttled": true` when one of those fuses kept the
+    search from running and nothing came back, so the page can say the retry
+    was held rather than that the track has no lyrics anywhere.
     """
     if not LYRICS_RATE.allow(request.remote_addr or "unknown"):
-        abort(429)
+        return jsonify(THROTTLED_RESULT), 429
     force = request.args.get("refresh") == "1"
+    held = False
     if force:
         track_key = "|".join(
             request.args.get(f) or "" for f in ("track_id", "artist", "title")
         )
         force = REFRESH_COOLDOWN.allow(track_key)
+        held = not force
     result = fetch_lyrics(
         track_id=request.args.get("track_id"),
         artist=request.args.get("artist"),
@@ -167,4 +174,6 @@ def lyrics_json():
         duration=request.args.get("duration"),
         force=force,
     )
+    if held and not (result["lyrics"] or result["synced"]):
+        result["throttled"] = True
     return jsonify(result)
