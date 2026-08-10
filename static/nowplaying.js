@@ -1084,13 +1084,13 @@ function fetchLyrics() {
                 setLyrics(lyrics, false);
                 setLyricsSource(res.source);
             } else {
-                setLyrics(I18N.no_lyrics_web, true);
+                setLyrics(I18N.no_lyrics_found, true);
             }
         })
         .catch(function() {
             if (track !== currentTrack) { return; }
             setSearching(false);
-            setLyrics(I18N.no_lyrics_web, true);
+            setLyrics(I18N.no_lyrics_found, true);
         });
 }
 
