@@ -480,7 +480,7 @@ function setLyrics(text, isEmpty, keepScroll) {
     lrcActiveIdx = -1;
 
     if (!text || isEmpty) {
-        el.lyrics.textContent = text || I18N.no_lyrics;
+        el.lyrics.textContent = text || I18N.no_lyrics_library;
         el.lyrics.classList.toggle('empty', !!isEmpty || !text);
         el.lyrics.scrollTop = prevScroll;
         updateScrollReset();
@@ -1030,7 +1030,7 @@ function render(data) {
         // belongs on top of it now — and the new track's own album, if it was
         // in the pile, must come out (renderRecent drops it).
         loadRecent();
-        setLyrics(data.lyrics || I18N.no_lyrics, !data.lyrics);
+        setLyrics(data.lyrics || I18N.no_lyrics_library, !data.lyrics);
         setLyricsSource(data.lyrics ? 'library' : null);
         lyricsTried = false;
         webResult = null;
@@ -1131,7 +1131,7 @@ function trySyncedFromWeb() {
 // current scroll position instead of jumping back to the top.
 function showLocal() {
     var data = currentTrack || {};
-    setLyrics(data.lyrics || I18N.no_lyrics, !data.lyrics, true);
+    setLyrics(data.lyrics || I18N.no_lyrics_library, !data.lyrics, true);
     setLyricsSource(data.lyrics ? 'library' : null);
 }
 

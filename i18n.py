@@ -13,7 +13,7 @@ TRANSLATIONS = {
     "fr": {
         # Now playing
         "empty_state": "Aucune lecture en cours",
-        "no_lyrics": "Pas de paroles",
+        "no_lyrics_library": "Aucune parole dans la bibliothèque",
         "lyrics_search": "Recherche automatique de paroles sur le web (synchro si disponible)",
         "lyrics_sync_toggle": "Activer/Désactiver la synchronisation des paroles",
         "searching": "Recherche…",
@@ -53,7 +53,7 @@ TRANSLATIONS = {
     "en": {
         # Now playing
         "empty_state": "Nothing playing",
-        "no_lyrics": "No lyrics",
+        "no_lyrics_library": "No lyrics in the library",
         "lyrics_search": "Automatically search the web for lyrics (synced when available)",
         "lyrics_sync_toggle": "Toggle lyrics synchronization",
         "searching": "Searching…",
