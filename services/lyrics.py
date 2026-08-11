@@ -58,6 +58,10 @@ _cache = OrderedDict()
 _cache_lock = threading.Lock()
 
 
+class ProviderUnavailable(Exception):
+    """A provider could not be reached, as opposed to having no match to give."""
+
+
 def _cache_get(key):
     with _cache_lock:
         entry = _cache.get(key)
@@ -105,7 +109,8 @@ def _provider_lrclib(artist, title, album, duration):
 
     Tries the exact `get` endpoint first (best match when artist/title/album/
     duration line up with their database), then falls back to `search` which is
-    more forgiving about album and duration mismatches.
+    more forgiving about album and duration mismatches. Raises
+    ProviderUnavailable when LRCLIB can't be reached at all.
     """
     headers = {"User-Agent": USER_AGENT}
 
@@ -139,8 +144,8 @@ def _provider_lrclib(artist, title, album, duration):
                     headers=headers,
                     timeout=LRCLIB_TIMEOUT,
                 )
-            except requests.RequestException:
-                return None
+            except requests.RequestException as exc:
+                raise ProviderUnavailable("lrclib") from exc
             if r.status_code == 200:
                 results = r.json()
                 if results:
@@ -175,7 +180,8 @@ def _musixmatch_token():
 
     A token can be supplied via `MUSIXMATCH_TOKEN`; otherwise we fetch the one
     the web desktop app uses. Tokens are valid for hours, so we cache it and
-    refresh lazily.
+    refresh lazily. Returns None when Musixmatch refuses to issue a usable
+    token, and raises ProviderUnavailable when it can't be reached.
     """
     with _mxm_lock:
         if _mxm_token["value"] and _mxm_token["expires_at"] > time.time():
@@ -194,7 +200,9 @@ def _musixmatch_token():
                 timeout=5,
             )
             token = (r.json().get("message", {}).get("body", {}) or {}).get("user_token")
-        except (requests.RequestException, ValueError, AttributeError):
+        except requests.RequestException as exc:
+            raise ProviderUnavailable("musixmatch") from exc
+        except (ValueError, AttributeError):
             return None
 
         # Musixmatch hands out a sentinel token when rate-limiting; reject it.
@@ -230,7 +238,9 @@ def _provider_musixmatch(artist, title, album, duration):
         )
         calls = r.json().get("message", {}).get("body", {})
         calls = calls.get("macro_calls", {}) if isinstance(calls, dict) else {}
-    except (requests.RequestException, ValueError, AttributeError):
+    except requests.RequestException as exc:
+        raise ProviderUnavailable("musixmatch") from exc
+    except (ValueError, AttributeError):
         return None
 
     def _body(call):
@@ -293,7 +303,9 @@ def _provider_genius(artist, title, album, _duration):
             timeout=6,
         )
         sections = r.json().get("response", {}).get("sections", [])
-    except (requests.RequestException, ValueError, AttributeError):
+    except requests.RequestException as exc:
+        raise ProviderUnavailable("genius") from exc
+    except (ValueError, AttributeError):
         return None
 
     url = None
@@ -321,8 +333,8 @@ def _provider_genius(artist, title, album, _duration):
 
     try:
         page = requests.get(url, headers={"User-Agent": BROWSER_UA}, timeout=6)
-    except requests.RequestException:
-        return None
+    except requests.RequestException as exc:
+        raise ProviderUnavailable("genius") from exc
     if page.status_code != 200:
         return None
 
@@ -394,14 +406,49 @@ def _matches_request(meta, artist, title, duration):
     return True
 
 
+def _search_providers(artist, title, album, duration, verify):
+    """Try each enabled provider in order and return the first usable result.
+
+    Same shape as fetch_lyrics' return value, without any caching: "unavailable"
+    means not one provider answered, which the caller must not confuse with a
+    search that ran and came up empty.
+    """
+    rejected = False
+    unreachable = 0
+    providers = _enabled_providers()
+    for name, provider in providers:
+        try:
+            found = provider(artist, title, album, duration)
+        except ProviderUnavailable:
+            unreachable += 1
+            continue
+        except Exception:
+            # A misbehaving provider must not break the chain.
+            found = None
+        if not (found and (found.get("lyrics") or found.get("synced"))):
+            continue
+        if verify and not _matches_request(found.get("meta"), artist, title, duration):
+            # A candidate came back but doesn't match the requested track; skip
+            # it rather than write the wrong lyrics, and try the next provider.
+            rejected = True
+            continue
+        return {"lyrics": found.get("lyrics"), "synced": found.get("synced"), "source": name}
+
+    if unreachable and unreachable == len(providers):
+        return {"lyrics": None, "synced": None, "source": "unavailable"}
+    return {"lyrics": None, "synced": None, "source": "rejected" if rejected else "none"}
+
+
 def fetch_lyrics(track_id, artist, title, album=None, duration=None, force=False, verify=False):
     """Resolve lyrics for the current track from the web, with caching.
 
     Tries each enabled provider in order and keeps the first non-empty result.
     Returns a dict {"lyrics": str|None, "synced": str|None, "source": str}.
     `source` is the winning provider name (kept across cache hits so the UI can
-    show where the lyrics came from), "none" when nothing was found, or
-    "rejected" when a candidate came back but failed verification.
+    show where the lyrics came from), "none" when nothing was found, "rejected"
+    when a candidate came back but failed verification, or "unavailable" when no
+    provider could be reached — the one outcome that is not cached, so a search
+    is retried as soon as they answer again.
 
     With `verify=True` (used by the batch CLI, which writes lyrics permanently
     into tags), a provider's result is only accepted when its own metadata
@@ -425,30 +472,12 @@ def fetch_lyrics(track_id, artist, title, album=None, duration=None, force=False
         if cached is not None:
             return dict(cached)
 
-    result = {"lyrics": None, "synced": None, "source": "none"}
-    rejected = False
-    for name, provider in _enabled_providers():
-        try:
-            found = provider(artist, title, album, duration)
-        except Exception:
-            # A misbehaving provider must not break the chain.
-            found = None
-        if not (found and (found.get("lyrics") or found.get("synced"))):
-            continue
-        if verify and not _matches_request(found.get("meta"), artist, title, duration):
-            # A candidate came back but doesn't match the requested track; skip
-            # it rather than write the wrong lyrics, and try the next provider.
-            rejected = True
-            continue
-        result = {
-            "lyrics": found.get("lyrics"),
-            "synced": found.get("synced"),
-            "source": name,
-        }
-        break
+    result = _search_providers(artist, title, album, duration, verify)
+    if result["source"] == "unavailable":
+        # Nothing was learned about the track, so caching this as a miss would
+        # fuse every search for TTL_MISS over a passing outage.
+        return result
 
     hit = bool(result["lyrics"] or result["synced"])
-    if not hit and rejected:
-        result["source"] = "rejected"
     _cache_set(cache_key, dict(result), TTL_HIT if hit else TTL_MISS)
     return result

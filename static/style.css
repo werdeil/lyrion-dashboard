@@ -693,9 +693,14 @@ hr {
     fill: currentColor;
 }
 
-.np-retry:hover {
+.np-retry:hover:not(:disabled) {
     color: var(--accent-color);
     background: rgba(255, 255, 255, 0.08);
+}
+
+.np-retry:disabled {
+    opacity: 0.35;
+    cursor: default;
 }
 
 /* display:inline-flex above would defeat the hidden attribute without this. */

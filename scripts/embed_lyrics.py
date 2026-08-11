@@ -23,7 +23,8 @@ files too (it must look them up to know whether to clear), so a --clear run
 hits the web for every file; combine with --force to also overwrite when found.
 A result that fails verification counts as "nothing usable found", so --clear
 treats it like a miss and still drops the tag — verification decides what gets
-written, not what gets cleared.
+written, not what gets cleared. A file whose lookup reached no provider at all
+is left untouched instead: that says nothing about what the providers carry.
 
 Several targets are accepted, and shell-style wildcards work even when quoted
 (or when the shell finds no match and passes the pattern through literally):
@@ -164,8 +165,8 @@ def main(argv=None):  # pylint: disable=too-many-branches,too-many-statements
         return 2
 
     counts = {
-        "scanned": 0, "written": 0, "already": 0,
-        "not_found": 0, "rejected": 0, "cleared": 0, "no_meta": 0, "failed": 0,
+        "scanned": 0, "written": 0, "already": 0, "not_found": 0,
+        "rejected": 0, "unavailable": 0, "cleared": 0, "no_meta": 0, "failed": 0,
     }
     dry = " (dry-run)" if args.dry_run else ""
 
@@ -205,11 +206,14 @@ def main(argv=None):  # pylint: disable=too-many-branches,too-many-statements
             plain = tags.lrc_to_plain(result["synced"])
 
         if not plain:
-            # Nothing usable online — either a genuine miss or a candidate that
-            # failed verification. With --clear, drop an existing tag in both
-            # cases so the file reflects what providers actually carry:
-            # verification governs what we *write*, not what we *clear*.
-            if already and args.clear:
+            unavailable = result.get("source") == "unavailable"
+            # Nothing usable online — a genuine miss, a candidate that failed
+            # verification, or no provider reachable at all. With --clear, drop
+            # an existing tag in the first two cases so the file reflects what
+            # providers actually carry: verification governs what we *write*,
+            # not what we *clear*. An unreachable provider carries no such
+            # evidence, so it never clears a tag.
+            if already and args.clear and not unavailable:
                 if args.dry_run:
                     counts["cleared"] += 1
                     print(f"[would-clear] {rel}")
@@ -221,6 +225,9 @@ def main(argv=None):  # pylint: disable=too-many-branches,too-many-statements
                     except tags.LyricsTagError as exc:
                         counts["failed"] += 1
                         print(f"[fail]      {rel}: {exc}")
+            elif unavailable:
+                counts["unavailable"] += 1
+                print(f"[offline]   {rel}  (lyrics services unreachable)")
             elif result.get("source") == "rejected":
                 counts["rejected"] += 1
                 print(f"[reject]    {rel}  (no confident match)")
@@ -260,6 +267,7 @@ def main(argv=None):  # pylint: disable=too-many-branches,too-many-statements
     print(f"already:     {counts['already']}")
     print(f"not found:   {counts['not_found']}")
     print(f"rejected:    {counts['rejected']}")
+    print(f"unreachable: {counts['unavailable']}")
     print(f"no metadata: {counts['no_meta']}")
     print(f"failed:      {counts['failed']}")
 

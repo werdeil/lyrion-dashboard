@@ -22,9 +22,12 @@ COVERID_RE = re.compile(r"[0-9a-fA-F]+")
 # reported, never sent upstream, but keep junk out anyway.
 PLAYER_ID_RE = re.compile(r"[0-9A-Fa-f:.\-]{1,64}")
 
-# Fuses for the outbound lyrics searches: per-IP rate limit, per-track cooldown on refresh=1.
+# Fuses for the outbound lyrics searches: per-IP rate limit, per-track cooldown
+# on refresh=1. The cooldown only has to absorb a double-click — the per-IP
+# limit is what bounds the fan-out to the providers.
 LYRICS_RATE = RateLimiter(limit=10, window=60)
-REFRESH_COOLDOWN = Cooldown(interval=30)
+REFRESH_COOLDOWN = Cooldown(interval=5)
+THROTTLED_RESULT = {"lyrics": None, "synced": None, "source": "none", "throttled": True}
 
 
 @nowplaying_bp.route("/")
@@ -150,15 +153,25 @@ def lyrics_json():
     cached in-memory by services.lyrics, so repeated clicks are cheap. Rate
     limited (see LYRICS_RATE / REFRESH_COOLDOWN above) because every cache
     miss fans out to third-party services from our IP.
+
+    A response carries `"throttled": true` when one of those fuses kept the
+    search from running and nothing came back, so the page can say the retry
+    was held rather than that the track has no lyrics anywhere, and
+    `"retry_after": <seconds>` on any ?refresh=1 so it can hold its retry
+    button for exactly as long as a new search would be refused.
     """
     if not LYRICS_RATE.allow(request.remote_addr or "unknown"):
-        abort(429)
+        return jsonify(THROTTLED_RESULT), 429
     force = request.args.get("refresh") == "1"
+    held = False
+    retry_after = 0.0
     if force:
         track_key = "|".join(
             request.args.get(f) or "" for f in ("track_id", "artist", "title")
         )
         force = REFRESH_COOLDOWN.allow(track_key)
+        held = not force
+        retry_after = REFRESH_COOLDOWN.remaining(track_key)
     result = fetch_lyrics(
         track_id=request.args.get("track_id"),
         artist=request.args.get("artist"),
@@ -167,4 +180,11 @@ def lyrics_json():
         duration=request.args.get("duration"),
         force=force,
     )
-    return jsonify(result)
+    # Copied, not annotated in place: what the service returns is its own, and
+    # a cached entry handed out twice must not collect one request's flags.
+    response = dict(result)
+    if held and not (result["lyrics"] or result["synced"]):
+        response["throttled"] = True
+    if retry_after:
+        response["retry_after"] = round(retry_after, 1)
+    return jsonify(response)
