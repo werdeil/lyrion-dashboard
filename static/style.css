@@ -396,8 +396,12 @@ hr {
     color: var(--text-muted);
 }
 
+.np-player,
+.np-player-switch {
+    margin: 0 0 4px;
+}
+
 .np-player {
-    margin: 0 0 4px 0;
     font-size: var(--fs-xs);
     text-transform: uppercase;
     letter-spacing: 1px;
@@ -438,7 +442,6 @@ hr {
     position: relative;
     display: flex;
     justify-content: flex-start;
-    margin: 0 0 6px;
 }
 
 .np-player-switch > .np-switch-toggle {
