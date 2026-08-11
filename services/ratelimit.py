@@ -52,3 +52,8 @@ class Cooldown:
                 return False
             self._last[key] = now
             return True
+
+    def remaining(self, key):
+        """Seconds before `key` is allowed again, 0.0 when it already is."""
+        with self._lock:
+            return max(0.0, self.interval - (time.time() - self._last.get(key, 0)))

@@ -65,6 +65,21 @@ class CooldownTest(unittest.TestCase):
         cd.allow("new")
         self.assertEqual(set(cd._last), {"new"})
 
+    def test_remaining_counts_down_to_zero(self):
+        cd = Cooldown(interval=30)
+        self.assertEqual(cd.remaining("track1"), 0.0)
+        cd.allow("track1")
+        self.assertAlmostEqual(cd.remaining("track1"), 30, delta=1)
+        cd._last["track1"] -= 20
+        self.assertAlmostEqual(cd.remaining("track1"), 10, delta=1)
+        cd._last["track1"] -= 11
+        self.assertEqual(cd.remaining("track1"), 0.0)
+
+    def test_remaining_does_not_start_a_cooldown(self):
+        cd = Cooldown(interval=30)
+        cd.remaining("track1")
+        self.assertTrue(cd.allow("track1"))
+
 
 if __name__ == "__main__":
     unittest.main()

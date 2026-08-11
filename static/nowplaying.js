@@ -84,11 +84,29 @@ function updateSwitch() {
 }
 
 // The manual retry button sits in the spinner's slot: it only shows in auto
-// mode and while no search is running (the spinner replaces it meanwhile).
+// mode and while no search is running (the spinner replaces it meanwhile). It
+// greys out while the server would refuse a new search for this track, so a
+// click never lands on a fuse instead of a search.
 var searching = false;
+var retryHeld = false;
 function updateRetry() {
     if (!el.retry) { return; }
     el.retry.hidden = searching || lyricsMode !== 'auto';
+    el.retry.disabled = retryHeld;
+}
+
+// Held for exactly as long as the server says its per-track cooldown will run.
+var retryHoldTimer = null;
+function holdRetry(seconds) {
+    clearTimeout(retryHoldTimer);
+    retryHeld = seconds > 0;
+    if (retryHeld) {
+        retryHoldTimer = setTimeout(function() {
+            retryHeld = false;
+            updateRetry();
+        }, seconds * 1000);
+    }
+    updateRetry();
 }
 
 function persistMode() {
@@ -1035,6 +1053,8 @@ function render(data) {
         lyricsTried = false;
         webResult = null;
         setSearching(false);
+        // The cooldown is per track, so a new one starts with a live button.
+        holdRetry(0);
 
         if (el.modeBlock) {
             el.modeBlock.style.display = '';
@@ -1086,6 +1106,7 @@ function fetchLyrics() {
             // render() has already reset the UI for the new one — don't clobber it.
             if (track !== currentTrack) { return; }
             setSearching(false);
+            holdRetry(res.retry_after || 0);
             // Prefer the synced (LRC) version; fall back to plain text.
             var lyrics = res.synced || res.lyrics;
             if (lyrics) {
@@ -1121,6 +1142,7 @@ function trySyncedFromWeb() {
         .then(function(res) {
             if (track !== currentTrack) { return; }
             setSearching(false);
+            holdRetry(res.retry_after || 0);
             // Only replace the local plain lyrics if the web returned synced
             // (LRC) lyrics — otherwise keep what the library already has.
             if (res.synced) {
