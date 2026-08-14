@@ -809,9 +809,14 @@ window.addEventListener('resize', function() {
 var RECENT_COVER_SIZE = 300;
 var RECENT_TOP_RATIO = 0.60;
 var RECENT_SHRINK = 0.10;
-// The shrink ramp (0.60, 0.50, … ) bottoms out here instead of reaching zero,
-// so sleeves past the ramp's floor keep this size instead of vanishing.
-var RECENT_SIZE_FLOOR = 0.20;
+// Past the main ramp (0.60, 0.50, … 0.20 over RECENT_RAMP_STEPS sleeves),
+// sleeves keep shrinking at this gentler rate instead of holding size flat —
+// same-size sleeves at a fixed step stop overlapping and read as a loose
+// staircase, not a cascade.
+var RECENT_SHRINK_TAIL = 0.03;
+var RECENT_RAMP_STEPS = 5;
+// Absolute floor so a very tall column can't shrink sleeves to nothing.
+var RECENT_SIZE_FLOOR = 0.08;
 // Preferred (and maximum) vertical cascade step, as a fraction of the column;
 // the actual step shrinks to fit a short column (see renderRecent). Sleeves
 // are centred, so the freshest (widest) one covers the centre of each older
@@ -822,8 +827,8 @@ var RECENT_STEP_RATIO = 0.26;
 var RECENT_MIN_PEEK = 22;
 // Horizontal nudge off centre, alternating by depth — the pile's "tossed" lean.
 var RECENT_LANE_SHIFT = 0.08;
-// Visual cap on the pile: a tall column keeps adding floor-sized sleeves up
-// to this count instead of stopping at the shrink ramp's five.
+// Visual cap on the pile: a tall column keeps adding tapered sleeves up to
+// this count instead of stopping at the main ramp's five.
 var RECENT_MAX = 9;
 // Fewer sleeves than this doesn't read as a pile; hide the block instead.
 var RECENT_MIN = 3;
@@ -840,10 +845,16 @@ function recentLayoutActive() {
     return !!(window.matchMedia && window.matchMedia(RECENT_MQ).matches);
 }
 
-// Fraction of the column a sleeve at depth i is sized to, clamped to the
-// ramp's floor so the pile can grow past five sleeves without shrinking away.
+// Fraction of the column a sleeve at depth i is sized to: the main ramp for
+// the first RECENT_RAMP_STEPS sleeves, a gentler taper beyond it so the pile
+// can grow past five without every extra sleeve landing at the same size.
 function recentSizeRatio(i) {
-    return Math.max(RECENT_SIZE_FLOOR, RECENT_TOP_RATIO - RECENT_SHRINK * i);
+    if (i < RECENT_RAMP_STEPS) {
+        return RECENT_TOP_RATIO - RECENT_SHRINK * i;
+    }
+    var rampFloor = RECENT_TOP_RATIO - RECENT_SHRINK * (RECENT_RAMP_STEPS - 1);
+    var tailed = rampFloor - RECENT_SHRINK_TAIL * (i - RECENT_RAMP_STEPS + 1);
+    return Math.max(RECENT_SIZE_FLOOR, tailed);
 }
 
 var recentCovers = null;   // last /recent-covers.json payload (cover ids)
