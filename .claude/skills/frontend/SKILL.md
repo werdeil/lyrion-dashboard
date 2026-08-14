@@ -70,8 +70,11 @@ Nothing is hardcoded in the JS that the server already knows:
 The signature visual: the page samples the cover art (served **same-origin**
 via `/cover/...` precisely so the canvas isn't tainted) to derive two colors —
 a **tint** (the average color, `FastAverageColor`) and an **accent** (the
-dominant vibrant swatch, `Vibrant`, normalized in HSV via `rgb2Hsv`/`hsv2Rgb`,
-with `isGrey` guarding dull swatches). `SWATCH_ORDER` sets swatch preference.
+dominant vibrant swatch, `Vibrant`, normalized in HSV via `rgb2Hsv`/`hsv2Rgb`:
+fixed brightness `ACCENT_V`, saturation clamped into
+`[ACCENT_SAT_FLOOR, ACCENT_SAT_MAX]`, and swatches under `ACCENT_SAT_MIN` —
+greyscale covers — falling back to `ACCENT_DEFAULT`). `SWATCH_ORDER` sets
+swatch preference.
 `setTint`/`setAccent`/`resetColors` push them into CSS custom properties. If you
 change how covers are served, keep them same-origin or the tint breaks.
 
