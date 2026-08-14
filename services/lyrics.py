@@ -121,6 +121,48 @@ def _duration_close(candidate, seconds):
     return seconds is None or got is None or abs(got - seconds) <= VERIFY_DURATION_TOLERANCE
 
 
+def _lrclib_search(artist, title, album, seconds, fallback):
+    """Scan LRCLIB's `search` for a synced record of this very recording.
+
+    Returns that record, or `fallback` (the `get` hit, when there was one) if
+    the search turns up nothing better. Raises ProviderUnavailable if LRCLIB
+    can't be reached.
+    """
+    headers = {"User-Agent": USER_AGENT}
+    base = {"artist_name": artist, "track_name": title}
+    # Try an album-filtered search first for precision, then retry without the
+    # album. The search fallback exists precisely to forgive album/duration
+    # mismatches, so we must not let a differing album name (e.g. a "(Deluxe)"
+    # edition) suppress an otherwise valid hit.
+    attempts = [{**base, "album_name": album}, base] if album else [base]
+    for search_params in attempts:
+        try:
+            r = requests.get(
+                f"{LRCLIB_BASE}/search",
+                params=search_params,
+                headers=headers,
+                timeout=LRCLIB_TIMEOUT,
+            )
+        except requests.RequestException as exc:
+            raise ProviderUnavailable("lrclib") from exc
+        if r.status_code != 200:
+            log.info("lrclib: search returned HTTP %s", r.status_code)
+            continue
+        results = r.json() or []
+        close = [c for c in results if _duration_close(c, seconds)]
+        synced = [c for c in close if c.get("syncedLyrics")]
+        log.info(
+            "lrclib: search (album=%r) returned %d candidate(s), %d synced, %d of this length",
+            search_params.get("album_name"),
+            len(results), sum(1 for c in results if c.get("syncedLyrics")), len(close),
+        )
+        if synced:
+            return synced[0]
+        if fallback is None and (close or results):
+            fallback = (close or results)[0]
+    return fallback
+
+
 def _provider_lrclib(artist, title, album, duration):
     """Ask LRCLIB for a track, preferring a synced (LRC) record of that recording.
 
@@ -155,38 +197,7 @@ def _provider_lrclib(artist, title, album, duration):
         payload = None
 
     if payload is None or not payload.get("syncedLyrics"):
-        base = {"artist_name": artist, "track_name": title}
-        # Try an album-filtered search first for precision, then retry without
-        # the album. The search fallback exists precisely to forgive album/
-        # duration mismatches, so we must not let a differing album name (e.g.
-        # a "(Deluxe)" edition) suppress an otherwise valid hit.
-        attempts = [{**base, "album_name": album}, base] if album else [base]
-        for search_params in attempts:
-            try:
-                r = requests.get(
-                    f"{LRCLIB_BASE}/search",
-                    params=search_params,
-                    headers=headers,
-                    timeout=LRCLIB_TIMEOUT,
-                )
-            except requests.RequestException as exc:
-                raise ProviderUnavailable("lrclib") from exc
-            if r.status_code != 200:
-                log.info("lrclib: search returned HTTP %s", r.status_code)
-                continue
-            results = r.json() or []
-            close = [c for c in results if _duration_close(c, seconds)]
-            synced = [c for c in close if c.get("syncedLyrics")]
-            log.info(
-                "lrclib: search (album=%r) returned %d candidate(s), %d synced, %d of this length",
-                search_params.get("album_name"),
-                len(results), sum(1 for c in results if c.get("syncedLyrics")), len(close),
-            )
-            if synced:
-                payload = synced[0]
-                break
-            if payload is None and (close or results):
-                payload = (close or results)[0]
+        payload = _lrclib_search(artist, title, album, seconds, payload)
 
     if not payload:
         return None
