@@ -47,6 +47,11 @@ class GetTrackLyricsTest(unittest.TestCase):
         with self.app.app_context():
             self.assertIsNone(get_track_lyrics("empty"))
 
+    def test_missing_lyrics_is_logged_for_the_operator(self):
+        with self.app.app_context(), self.assertLogs("services.database", level="INFO") as captured:
+            get_track_lyrics("empty")
+        self.assertTrue(any("no lyrics in the library" in line for line in captured.output))
+
     def test_missing_track(self):
         with self.app.app_context():
             self.assertIsNone(get_track_lyrics("nope"))

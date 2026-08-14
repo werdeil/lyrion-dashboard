@@ -1,3 +1,4 @@
+import logging
 import threading
 import time
 
@@ -6,6 +7,8 @@ import urllib3
 from flask import abort, current_app
 
 urllib3.disable_warnings()
+
+log = logging.getLogger(__name__)
 
 # Shared Session so upstream requests reuse their TCP connections.
 _session = requests.Session()
@@ -26,33 +29,52 @@ def _read_image(r):
         # only ever lands in an <img>, so relay it as a generic image.
         content_type = "image/jpeg"
     if not content_type.startswith("image/"):
+        log.warning("cover %s served %s, not an image", r.url, content_type)
         abort(502)
     chunks, total = [], 0
     for chunk in r.iter_content(64 * 1024):
         chunks.append(chunk)
         total += len(chunk)
         if total > COVER_MAX_BYTES:
+            log.warning("cover %s exceeds %d bytes, dropped", r.url, COVER_MAX_BYTES)
             abort(502)
     return b"".join(chunks), content_type
 
 
+def _command(payload):
+    params = payload.get("params") or []
+    args = params[1] if len(params) > 1 else []
+    return " ".join(str(a) for a in args) if args else "?"
+
+
 def lyrion_request(payload):
     host = current_app.config["LYRION_HOST"]
+    started = time.monotonic()
     # TLS verification is off for the self-signed local Lyrion; audit S1
     # (security audit in PR #15) documents this accepted risk.
-    r = _session.post(
-        f"{host}/jsonrpc.js",
-        json=payload,
-        verify=False,
-        timeout=5,
-    )
+    try:
+        r = _session.post(
+            f"{host}/jsonrpc.js",
+            json=payload,
+            verify=False,
+            timeout=5,
+        )
+    except requests.RequestException as exc:
+        log.error("Lyrion unreachable at %s for [%s]: %s", host, _command(payload), exc)
+        raise
+    elapsed = int((time.monotonic() - started) * 1000)
+    if r.status_code != 200:
+        log.warning("Lyrion returned HTTP %s for [%s]", r.status_code, _command(payload))
     # Lyrion replies with an empty (non-JSON) body when asked about an unknown
     # player id — e.g. a vanished ephemeral player still held in _last_player.
     # Return {} instead of letting r.json() raise; callers read `result` safely.
     try:
-        return r.json()
+        data = r.json()
     except ValueError:
+        log.debug("Lyrion answered [%s] with a non-JSON body in %d ms", _command(payload), elapsed)
         return {}
+    log.debug("Lyrion answered [%s] in %d ms", _command(payload), elapsed)
+    return data
 
 
 def fetch_cover(coverid, size=None):
@@ -74,6 +96,7 @@ def fetch_cover(coverid, size=None):
     # verify=False for the self-signed local Lyrion — see audit S1.
     r = _session.get(f"{host}/music/{coverid}/{name}", verify=False, timeout=5, stream=True)
     if size and r.status_code == 404:
+        log.debug("cover %s has no %dx%d thumbnail, falling back to the full artwork", coverid, size, size)
         r.close()
         r = _session.get(f"{host}/music/{coverid}/cover.jpg", verify=False, timeout=5, stream=True)
     return _read_image(r)
@@ -249,8 +272,11 @@ def _query_playing_players():
     ungraceful (power-cut) drop, since Lyrion never saw a clean stop.
     """
     playing = []
+    known = 0
     for player in get_players():
+        known += 1
         if not player.get("connected", 1):
+            log.debug("player %s (%s) is disconnected, skipped", player.get("name"), player.get("playerid"))
             continue
         player_id = player.get("playerid")
         if not player_id:
@@ -260,4 +286,10 @@ def _query_playing_players():
             now["player_id"] = player_id
             now["player_name"] = player.get("name")
             playing.append(now)
+        else:
+            log.debug(
+                "player %s: mode=%s track_id=%s, not shown",
+                player.get("name"), now.get("mode"), now.get("track_id"),
+            )
+    log.debug("now playing: %d of %d player(s) - %s", len(playing), known, [p["player_name"] for p in playing])
     return playing

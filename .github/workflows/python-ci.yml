@@ -100,4 +100,4 @@ jobs:
           pip install -r requirements.txt -r requirements-cli.txt playwright pylint
 
       - name: Run pylint
-        run: pylint app.py config.py i18n.py routes services scripts tests
+        run: pylint app.py config.py i18n.py logsetup.py routes services scripts tests

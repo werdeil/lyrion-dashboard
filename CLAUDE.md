@@ -53,7 +53,7 @@ python -m compileall .
 
 # Lint (pylint) — install both requirements files + playwright so imports resolve
 pip install -r requirements.txt -r requirements-cli.txt playwright pylint
-pylint app.py config.py i18n.py routes services scripts tests
+pylint app.py config.py i18n.py logsetup.py routes services scripts tests
 
 # Security (security job) — accepted findings carry an inline `# nosec`; new ones fail
 pip install pip-audit bandit
@@ -105,6 +105,19 @@ handler grows domain logic, that logic belongs in a service.
 - `config.py` — all configuration from env vars, read once at import (the
   source tree is mounted read-only). `DEV=1` enables template auto-reload and
   disables static caching. `VERSION` is read from the `VERSION` file.
+- `logsetup.py` — `configure_logging()` (called once by `create_app`) points the
+  root logger at stdout, so `docker logs` is the single place to look;
+  `LOG_LEVEL` sets the level (`DEBUG` under `DEV=1`, else `INFO`). Modules log
+  through `logging.getLogger(__name__)` with lazy `%s` formatting. The rule of
+  thumb: **INFO for an outcome the operator would ask about** (a lyrics search
+  and each provider's verdict, a track with no lyrics in the library, a
+  throttled request, a stats recompute), **WARNING/ERROR for a degraded
+  dependency** (a provider down, Lyrion unreachable, a DB that won't open),
+  **DEBUG for detail that only matters once you're already looking** (HTTP
+  statuses, cache internals, per-call timings). The ceiling is repetition, not
+  importance: **anything that repeats on the 2s now-playing poll stays DEBUG**
+  (the Lyrion calls, the player enumeration), while a per-track-change line may
+  be INFO. Never log lyrics or cover bodies, only their size and provenance.
 - `routes/nowplaying.py` (`nowplaying_bp`) — the dashboard page and its JSON
   endpoints. `routes/custom.py` (`custom_bp`) — the sandboxed `/files/` server.
 
@@ -221,6 +234,10 @@ import), then builds a client with `create_app().test_client()`. Patch the
 server or a real DB. This env scaffolding is duplicated per file on purpose
 (`# pylint: disable=duplicate-code`). `tests/test_now_playing_route.py` is the
 reference example. **See the `add-route` skill.**
+
+`tests/__init__.py` pins `LOG_LEVEL=CRITICAL` so the suite's output stays
+readable; a test that asserts on a log line uses `assertLogs`, which raises the
+level of the logger it watches (`tests/test_logging.py`).
 
 ## Versioning & releases
 
