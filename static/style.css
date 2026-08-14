@@ -11,12 +11,12 @@
 @property --accent-color {
     syntax: "<color>";
     inherits: true;
-    initial-value: #548ed2;
+    initial-value: #4f86c6;
 }
 
 :root {
     --tint-color: #8b94a8;
-    --accent-color: #548ed2;
+    --accent-color: #4f86c6;
     /* Lyrion Material's default dark-theme background (--std-background-color). */
     --base-bg: #212121;
     /* Shared type scale: the now-playing card and the stats panel both draw
