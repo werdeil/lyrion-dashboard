@@ -367,11 +367,14 @@ function hsv2Rgb(hsv) {
     return [Math.round(r * 255), Math.round(g * 255), Math.round(b * 255)];
 }
 
-function isGrey(rgb) {
-    return Math.abs(rgb[0] - rgb[1]) < 2 &&
-           Math.abs(rgb[0] - rgb[2]) < 2 &&
-           Math.abs(rgb[1] - rgb[2]) < 2;
-}
+// Accent normalisation in HSV: fixed brightness (Material's V), saturation
+// bounded on both sides.
+var ACCENT_V = 0.8235;
+// Under the floor the accent reads as the lyrics' own off-white; under the
+// minimum the swatch's hue is sampling noise, so ACCENT_DEFAULT stands in.
+var ACCENT_SAT_MIN = 0.15;
+var ACCENT_SAT_FLOOR = 0.45;
+var ACCENT_SAT_MAX = 0.8;
 
 function rgb2Css(rgb) {
     return 'rgb(' + rgb[0] + ',' + rgb[1] + ',' + rgb[2] + ')';
@@ -404,14 +407,12 @@ function sampleCoverTint() {
 
         setTint(rgb2Css(avRgb));
 
-        // Grey covers (or no usable swatch) fall back to the default accent,
-        // exactly like Material does.
-        if (isGrey(avRgb) || !vRgb || isGrey(vRgb)) {
+        var hsv = vRgb && rgb2Hsv(vRgb);
+        if (!hsv || hsv[1] < ACCENT_SAT_MIN) {
             setAccent(ACCENT_DEFAULT);
         } else {
-            var hsv = rgb2Hsv(vRgb);
-            hsv[2] = 0.8235;                 // fixed brightness (Material's V)
-            hsv[1] = Math.min(hsv[1], 0.8);  // cap saturation
+            hsv[1] = Math.min(Math.max(hsv[1], ACCENT_SAT_FLOOR), ACCENT_SAT_MAX);
+            hsv[2] = ACCENT_V;
             setAccent(rgb2Css(hsv2Rgb(hsv)));
         }
     } catch (e) {
