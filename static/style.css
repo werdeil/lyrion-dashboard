@@ -267,9 +267,9 @@ hr {
 .np-cover {
     width: 100%;
     aspect-ratio: 1 / 1;
-    /* Between the resting sleeves (z-index 1..count, at most 5) and a lifted
-       one (z-index 50): the freshest sleeve tucks UNDER the cover at rest, but
-       a hovered/focused sleeve rises in FRONT of it. */
+    /* Between the resting sleeves (z-index 1..count, at most RECENT_MAX) and a
+       lifted one (z-index 50): the freshest sleeve tucks UNDER the cover at
+       rest, but a hovered/focused sleeve rises in FRONT of it. */
     position: relative;
     z-index: 10;
 }

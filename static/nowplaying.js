@@ -809,6 +809,9 @@ window.addEventListener('resize', function() {
 var RECENT_COVER_SIZE = 300;
 var RECENT_TOP_RATIO = 0.60;
 var RECENT_SHRINK = 0.10;
+// The shrink ramp (0.60, 0.50, … ) bottoms out here instead of reaching zero,
+// so sleeves past the ramp's floor keep this size instead of vanishing.
+var RECENT_SIZE_FLOOR = 0.20;
 // Preferred (and maximum) vertical cascade step, as a fraction of the column;
 // the actual step shrinks to fit a short column (see renderRecent). Sleeves
 // are centred, so the freshest (widest) one covers the centre of each older
@@ -819,9 +822,9 @@ var RECENT_STEP_RATIO = 0.26;
 var RECENT_MIN_PEEK = 22;
 // Horizontal nudge off centre, alternating by depth — the pile's "tossed" lean.
 var RECENT_LANE_SHIFT = 0.08;
-// The shrink ramp (0.60, 0.50, … 0.20 of the column) bottoms out at five
-// sleeves; also the visual cap.
-var RECENT_MAX = 5;
+// Visual cap on the pile: a tall column keeps adding floor-sized sleeves up
+// to this count instead of stopping at the shrink ramp's five.
+var RECENT_MAX = 9;
 // Fewer sleeves than this doesn't read as a pile; hide the block instead.
 var RECENT_MIN = 3;
 // Small tilts cycled by depth so the pile looks tossed rather than ruled.
@@ -835,6 +838,12 @@ var recentRetries = 0;
 
 function recentLayoutActive() {
     return !!(window.matchMedia && window.matchMedia(RECENT_MQ).matches);
+}
+
+// Fraction of the column a sleeve at depth i is sized to, clamped to the
+// ramp's floor so the pile can grow past five sleeves without shrinking away.
+function recentSizeRatio(i) {
+    return Math.max(RECENT_SIZE_FLOOR, RECENT_TOP_RATIO - RECENT_SHRINK * i);
 }
 
 var recentCovers = null;   // last /recent-covers.json payload (cover ids)
@@ -884,11 +893,12 @@ function renderRecent() {
     recentRetries = 0;
     el.recentPile.textContent = '';
 
-    // Fit the pile to the column height: try the most sleeves (capped by the
-    // shrink ramp and the album count), shrinking the cascade step down to a
+    // Fit the pile to the column height: try the most sleeves (capped by
+    // RECENT_MAX and the album count), shrinking the cascade step down to a
     // still-hoverable minimum; drop the oldest and retry until it fits, or hide
     // if not even RECENT_MIN sleeves fit. This keeps the pile visible on short
-    // screens (packed tighter) instead of vanishing.
+    // screens (packed tighter) instead of vanishing, and lets a tall column
+    // hold more sleeves instead of the top ones spreading out to fill it.
     var sizeFirst = Math.round(w * RECENT_TOP_RATIO);
     var minStep = w * RECENT_SHRINK + RECENT_MIN_PEEK;
     var prefStep = w * RECENT_STEP_RATIO;
@@ -896,7 +906,7 @@ function renderRecent() {
     var step = 0;
     for (var c = Math.min(covers.length, RECENT_MAX); c >= RECENT_MIN; c--) {
         if (sizeFirst > h) { break; }   // even the freshest sleeve overflows
-        var sizeLast = Math.round(w * (RECENT_TOP_RATIO - RECENT_SHRINK * (c - 1)));
+        var sizeLast = Math.round(w * recentSizeRatio(c - 1));
         var fitStep = (h - sizeLast) / (c - 1);   // c >= RECENT_MIN (3) so c-1 >= 2
         if (fitStep >= minStep) {
             step = Math.round(Math.min(prefStep, fitStep));
@@ -912,7 +922,7 @@ function renderRecent() {
     for (i = 0; i < count; i++) {
         plan.push({
             cover: covers[i],
-            size: Math.round(w * (RECENT_TOP_RATIO - RECENT_SHRINK * i)),
+            size: Math.round(w * recentSizeRatio(i)),
             top: i * step,
         });
     }
