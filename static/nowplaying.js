@@ -316,10 +316,7 @@ function updateScrollReset() {
 }
 
 var TINT_NEUTRAL = '#8b94a8';
-// Same hue/sat as the old default but normalised to ACCENT_V so it reads as
-// clearly as any cover-derived accent — the karaoke active line uses this when
-// the cover can't be sampled.
-var ACCENT_DEFAULT = '#548ed2';
+var ACCENT_DEFAULT = '#4f86c6';
 
 function setTint(color) {
     document.documentElement.style.setProperty('--tint-color', color);
