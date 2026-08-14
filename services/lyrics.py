@@ -164,7 +164,7 @@ def _provider_lrclib(artist, title, album, duration):
                 continue
             results = r.json() or []
             synced = [c for c in results if c.get("syncedLyrics")]
-            log.debug(
+            log.info(
                 "lrclib: search (album=%r) returned %d candidate(s), %d synced",
                 search_params.get("album_name"), len(results), len(synced),
             )

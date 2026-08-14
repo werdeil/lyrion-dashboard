@@ -112,7 +112,7 @@ class LrclibSyncedPreferenceTest(unittest.TestCase):
             get=None,
             searches=[[_record(2, synced=None)], [_record(3, synced=None), _record(4, synced="[00:12.00] la")]],
         )
-        with self.assertLogs("services.lyrics", level="DEBUG") as captured:
+        with self.assertLogs("services.lyrics", level="INFO") as captured:
             self._fetch(fake)
         counts = [line for line in captured.output if "candidate(s)" in line]
         self.assertEqual(len(counts), 2)

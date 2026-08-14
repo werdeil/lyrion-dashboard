@@ -86,12 +86,14 @@ The chain logs its own reasoning (see `logsetup.py`), so `docker logs` answers
   fallback found nothing"), each provider's verdict (`has no match`,
   unreachable, rejected-with-the-candidate), the closing
   `lyrics: <title> by <artist> -> <source> (synced=…, plain=…) in N ms`, a
-  cache hit served instead of a search, and throttling.
+  cache hit served instead of a search, and throttling. A provider whose own
+  shortlist explains the verdict says so here too: each LRCLIB `/search`
+  attempt reports its album filter, how many candidates came back and how many
+  carry an LRC, which is what separates "nothing on LRCLIB" from "a synced
+  upload exists and wasn't picked".
 - `DEBUG` — the HTTP detail behind those verdicts, the lookups that succeeded,
-  and the search inputs (album, duration, verify). For LRCLIB, each `/search`
-  attempt reports how many candidates came back and how many carry an LRC, then
-  the chosen record's id — enough to tell "nothing on LRCLIB" from "synced
-  exists but wasn't picked", and the record opens at `lrclib.net/tracks/<id>`.
+  the search inputs (album, duration, verify), and the LRCLIB record finally
+  chosen, which opens at `lrclib.net/tracks/<id>`.
 
 A new provider raises `ProviderUnavailable` for unreachability —
 `_search_providers` logs the warning with the cause, so don't log it twice —
