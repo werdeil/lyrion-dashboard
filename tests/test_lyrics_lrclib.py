@@ -107,6 +107,18 @@ class LrclibSyncedPreferenceTest(unittest.TestCase):
     def test_nothing_anywhere_returns_none(self):
         self.assertIsNone(self._fetch(_Lrclib(get=None, searches=[[], []])))
 
+    def test_each_search_attempt_logs_its_candidate_counts(self):
+        fake = _Lrclib(
+            get=None,
+            searches=[[_record(2, synced=None)], [_record(3, synced=None), _record(4, synced="[00:12.00] la")]],
+        )
+        with self.assertLogs("services.lyrics", level="DEBUG") as captured:
+            self._fetch(fake)
+        counts = [line for line in captured.output if "candidate(s)" in line]
+        self.assertEqual(len(counts), 2)
+        self.assertIn("returned 1 candidate(s), 0 synced", counts[0])
+        self.assertIn("returned 2 candidate(s), 1 synced", counts[1])
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -163,10 +163,13 @@ def _provider_lrclib(artist, title, album, duration):
                 log.info("lrclib: search returned HTTP %s", r.status_code)
                 continue
             results = r.json() or []
-            log.debug("lrclib: search returned %d candidate(s)", len(results))
-            synced = next((c for c in results if c.get("syncedLyrics")), None)
+            synced = [c for c in results if c.get("syncedLyrics")]
+            log.debug(
+                "lrclib: search (album=%r) returned %d candidate(s), %d synced",
+                search_params.get("album_name"), len(results), len(synced),
+            )
             if synced:
-                payload = synced
+                payload = synced[0]
                 break
             if payload is None and results:
                 payload = results[0]

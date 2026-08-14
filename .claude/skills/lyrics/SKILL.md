@@ -88,7 +88,10 @@ The chain logs its own reasoning (see `logsetup.py`), so `docker logs` answers
   `lyrics: <title> by <artist> -> <source> (synced=…, plain=…) in N ms`, a
   cache hit served instead of a search, and throttling.
 - `DEBUG` — the HTTP detail behind those verdicts, the lookups that succeeded,
-  and the search inputs (album, duration, verify).
+  and the search inputs (album, duration, verify). For LRCLIB, each `/search`
+  attempt reports how many candidates came back and how many carry an LRC, then
+  the chosen record's id — enough to tell "nothing on LRCLIB" from "synced
+  exists but wasn't picked", and the record opens at `lrclib.net/tracks/<id>`.
 
 A new provider raises `ProviderUnavailable` for unreachability —
 `_search_providers` logs the warning with the cause, so don't log it twice —
