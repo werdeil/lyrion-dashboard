@@ -80,6 +80,15 @@ above plus the FR/EN string parity, README lockstep, and no-auth-by-design
 rules). PR titles and descriptions are written in **English**, like commit
 messages — only the user-facing UI and the READMEs are bilingual.
 
+**A PR or issue body is never hard-wrapped: one paragraph is one line, however
+long.** GitHub renders those bodies with GFM line breaks on, so every newline
+inside a paragraph becomes a visible `<br>` and a body wrapped at 80 columns
+comes out ragged. Wrap only *between* blocks — paragraphs, list items (each on
+its own single line), table rows — and keep angle brackets out of prose
+(`{id}`, not `<id>`; the sanitizer eats the latter). This is the opposite of
+the commit-message convention, which stays wrapped at ~72 columns because git
+shows it verbatim. The same applies to review comments and issue comments.
+
 **Never subscribe to / watch a PR for activity** (CI results, review comments)
 on this repo — don't auto-monitor or auto-fix. Report status when asked and let
 the maintainer drive the PR.
