@@ -51,6 +51,14 @@ for one with `syncedLyrics` instead of taking `results[0]`. The chain above it
 can't fix this: `_search_providers` returns the first provider with *anything*,
 so a plain-only answer ends the search (`tests/test_lyrics_lrclib.py`).
 
+**But a synced record only counts if it is the same recording.** An LRC's
+timestamps belong to the upload they were made for, so a live or extended
+version scrolls against the wrong timeline — the karaoke sits idle, then jumps.
+`_duration_close` (the same tolerance `_matches_request` verifies with) filters
+the `/search` candidates before the synced preference applies, and a record of
+another length still serves its `plainLyrics`: right words with no karaoke beat
+a karaoke that's wrong.
+
 **Adding a provider:** write `_provider_<name>(artist, title, album, duration)`
 returning the dict above (set the `meta` fields you can, leave the rest `None`),
 add it to `PROVIDERS`, and — since a provider must never break the chain —
@@ -88,9 +96,9 @@ The chain logs its own reasoning (see `logsetup.py`), so `docker logs` answers
   `lyrics: <title> by <artist> -> <source> (synced=…, plain=…) in N ms`, a
   cache hit served instead of a search, and throttling. A provider whose own
   shortlist explains the verdict says so here too: each LRCLIB `/search`
-  attempt reports its album filter, how many candidates came back and how many
-  carry an LRC, which is what separates "nothing on LRCLIB" from "a synced
-  upload exists and wasn't picked".
+  attempt reports its album filter, how many candidates came back, how many
+  carry an LRC and how many are of this track's length — which separates
+  "nothing on LRCLIB" from "a synced upload exists but for another recording".
 - `DEBUG` — the HTTP detail behind those verdicts, the lookups that succeeded,
   the search inputs (album, duration, verify), and the LRCLIB record finally
   chosen, which opens at `lrclib.net/tracks/<id>`.

@@ -120,5 +120,55 @@ class LrclibSyncedPreferenceTest(unittest.TestCase):
         self.assertIn("returned 2 candidate(s), 1 synced", counts[1])
 
 
+class LrclibDurationMatchTest(unittest.TestCase):
+    """An LRC's timestamps only fit the recording they were made for: a live or
+    extended upload of the same song scrolls against the wrong timeline."""
+
+    def _fetch(self, fake, duration="302"):
+        with patch("services.lyrics.requests.get", side_effect=fake):
+            return L._provider_lrclib("Muse", "Will Of The People", "Will Of The People", duration)
+
+    def test_synced_record_of_another_length_loses_to_a_plain_one_that_fits(self):
+        fake = _Lrclib(get=None, searches=[[
+            _record(2, synced="[01:55.54] la", duration=419),
+            _record(3, synced=None, plain="right recording"),
+        ]])
+        result = self._fetch(fake)
+        self.assertIsNone(result["synced"])
+        self.assertEqual(result["lyrics"], "right recording")
+
+    def test_another_recording_keeps_its_words_but_loses_its_timings(self):
+        fake = _Lrclib(get=None, searches=[[
+            _record(2, synced="[01:55.54] la", plain="same song", duration=419),
+        ]])
+        result = self._fetch(fake)
+        self.assertIsNone(result["synced"])
+        self.assertEqual(result["lyrics"], "same song")
+
+    def test_the_synced_record_of_the_right_length_wins_over_an_earlier_one(self):
+        fake = _Lrclib(get=None, searches=[[
+            _record(2, synced="[01:55.54] wrong", duration=419),
+            _record(3, synced="[00:12.00] right"),
+        ]])
+        self.assertEqual(self._fetch(fake)["synced"], "[00:12.00] right")
+
+    def test_a_few_seconds_apart_is_still_the_same_recording(self):
+        fake = _Lrclib(get=None, searches=[[_record(2, synced="[00:12.00] la", duration=305)]])
+        self.assertEqual(self._fetch(fake)["synced"], "[00:12.00] la")
+
+    def test_an_unknown_track_length_cannot_filter_anything(self):
+        fake = _Lrclib(get=None, searches=[[_record(2, synced="[00:12.00] la", duration=419)]])
+        self.assertEqual(self._fetch(fake, duration=None)["synced"], "[00:12.00] la")
+
+    def test_each_search_attempt_logs_how_many_candidates_fit(self):
+        fake = _Lrclib(get=None, searches=[[
+            _record(2, synced="[01:55.54] la", duration=419),
+            _record(3, synced=None),
+        ]])
+        with self.assertLogs("services.lyrics", level="INFO") as captured:
+            self._fetch(fake)
+        self.assertIn("returned 2 candidate(s), 1 synced, 1 of this length", captured.output[0])
+
+
 if __name__ == "__main__":
     unittest.main()
