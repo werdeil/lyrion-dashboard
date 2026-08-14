@@ -51,7 +51,7 @@ def get_track_lyrics(track_id):
     if row and row["lyrics"]:
         log.debug("track %s: %d chars of lyrics in the library", track_id, len(row["lyrics"]))
         return row["lyrics"]
-    log.debug("track %s: no lyrics in the library%s", track_id, "" if row else " (unknown track id)")
+    log.info("track %s: no lyrics in the library%s", track_id, "" if row else " (unknown track id)")
     return None
 
 

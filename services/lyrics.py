@@ -163,7 +163,7 @@ def _provider_lrclib(artist, title, album, duration):
                     payload = results[0]
                     break
             else:
-                log.debug("lrclib: search returned HTTP %s", r.status_code)
+                log.info("lrclib: search returned HTTP %s", r.status_code)
 
     if not payload:
         return None
@@ -355,7 +355,7 @@ def _provider_genius(artist, title, album, _duration):
     except requests.RequestException as exc:
         raise ProviderUnavailable("genius") from exc
     if page.status_code != 200:
-        log.debug("genius: song page %s returned HTTP %s", url, page.status_code)
+        log.info("genius: song page %s returned HTTP %s", url, page.status_code)
         return None
 
     text = _parse_genius_html(page.text)
@@ -452,7 +452,7 @@ def _search_providers(artist, title, album, duration, verify):
             log.warning("lyrics: %s failed after %d ms (%s: %s)", name, _elapsed_ms(started), type(exc).__name__, exc)
             continue
         if not (found and (found.get("lyrics") or found.get("synced"))):
-            log.debug("lyrics: %s has no match (%d ms)", name, _elapsed_ms(started))
+            log.info("lyrics: %s has no match (%d ms)", name, _elapsed_ms(started))
             continue
         if verify and not _matches_request(found.get("meta"), artist, title, duration):
             # A candidate came back but doesn't match the requested track; skip
@@ -509,7 +509,7 @@ def fetch_lyrics(track_id, artist, title, album=None, duration=None, force=False
     if not force:
         cached = _cache_get(cache_key)
         if cached is not None:
-            log.debug("lyrics: cache hit for %r by %r (source=%s)", title, artist, cached["source"])
+            log.info("lyrics: cache hit for %r by %r (source=%s), no search made", title, artist, cached["source"])
             return dict(cached)
 
     started = time.monotonic()
