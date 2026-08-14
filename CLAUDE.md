@@ -80,6 +80,16 @@ above plus the FR/EN string parity, README lockstep, and no-auth-by-design
 rules). PR titles and descriptions are written in **English**, like commit
 messages — only the user-facing UI and the READMEs are bilingual.
 
+**Keep a PR body short — a few sentences per section, not an essay.** "What &
+why" is one paragraph: what changed and the reason, no re-derivation of the
+analysis. "How it was tested" covers only what the checklist doesn't — the
+verification specific to this change, and anything that stayed unverified —
+never a restatement of the CI gates, which the checklist already ticks. Detail
+that a reviewer can get from the diff, the commit message or the code comments
+does not belong in the body; measurements, tables and alternatives considered
+belong in the commit message. A body that needs scrolling to reach the
+checklist is too long. The same restraint applies to review and issue comments.
+
 **A PR or issue body is never hard-wrapped: one paragraph is one line, however
 long.** GitHub renders those bodies with GFM line breaks on, so every newline
 inside a paragraph becomes a visible `<br>` and a body wrapped at 80 columns
