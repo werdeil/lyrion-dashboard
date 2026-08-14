@@ -830,7 +830,9 @@ var RECENT_LANE_SHIFT = 0.08;
 // Sanity cap on the pile, well above what any real column height needs: the
 // flat tail is really bounded by RECENT_TAIL_STEP against the column height
 // (see renderRecent), this just stops a pathologically tall window from
-// requesting an unbounded number of covers.
+// requesting an unbounded number of covers. Must stay under .np-cover's
+// z-index (30) — a sleeve's own z-index counts up from the pile's depth, so a
+// higher cap would stack the freshest sleeves in front of the cover.
 var RECENT_MAX = 20;
 // Fewer sleeves than this doesn't read as a pile; hide the block instead.
 var RECENT_MIN = 3;
