@@ -807,32 +807,24 @@ window.addEventListener('resize', function() {
 // Recent plays as a pile of sleeves under the cover (desktop only): freshest
 // on top, older ones smaller and dimmer. Ratios are fractions of the column.
 var RECENT_COVER_SIZE = 300;
-var RECENT_TOP_RATIO = 0.60;
-var RECENT_SHRINK = 0.10;
-// The main ramp (0.60, 0.50, … ) shrinks the first RECENT_RAMP_MAX sleeves;
-// past it, sleeves hold that last size flat instead of continuing to shrink.
-var RECENT_RAMP_MAX = 5;
-// Preferred (and maximum) vertical cascade step for the ramp, as a fraction
-// of the column; the actual step shrinks to fit a short column (see
-// renderRecent). Sleeves are centred, so the freshest (widest) one covers the
-// centre of each older one — this keeps a band of each peeking out below the
-// one in front.
-var RECENT_STEP_RATIO = 0.26;
-// Minimum px of an older sleeve that must stay uncovered below the fresher
-// one on top of it, so it can still be hovered.
-var RECENT_MIN_PEEK = 22;
-// Fixed vertical step for the flat tail past the ramp: same-size sleeves at a
-// constant offset keep peeking out from behind one another (the peek is
-// exactly this many px) — the ramp's wider step would space them out instead.
-var RECENT_TAIL_STEP = 42;
+// The pile is anchored at both ends — freshest sleeve at RECENT_TOP_RATIO of
+// the column, oldest at RECENT_BOTTOM_RATIO, sizes stepping linearly between
+// them — so how many sleeves it takes falls out of the column height rather
+// than being set here.
+var RECENT_TOP_RATIO = 0.70;
+var RECENT_BOTTOM_RATIO = 0.20;
+// How much of a sleeve the one above it covers, as a fraction of that upper
+// sleeve's height: the cascade step scales with the sleeves instead of being
+// a fixed offset, so the pile stays as tightly overlapped at any size.
+var RECENT_OVERLAP = 0.30;
 // Horizontal nudge off centre, alternating by depth — the pile's "tossed" lean.
 var RECENT_LANE_SHIFT = 0.08;
-// Sanity cap on the pile, well above what any real column height needs: the
-// flat tail is really bounded by RECENT_TAIL_STEP against the column height
-// (see renderRecent), this just stops a pathologically tall window from
-// requesting an unbounded number of covers. Must stay under .np-cover's
-// z-index (30) — a sleeve's own z-index counts up from the pile's depth, so a
-// higher cap would stack the freshest sleeves in front of the cover.
+// Sanity cap on the pile, well above what any real column height needs (the
+// fit loop in renderRecent is the real bound): this just stops a
+// pathologically tall window from requesting an unbounded number of covers.
+// Must stay under .np-cover's z-index (30) — a sleeve's own z-index counts up
+// from the pile's depth, so a higher cap would stack the freshest sleeves in
+// front of the cover.
 var RECENT_MAX = 20;
 // Fewer sleeves than this doesn't read as a pile; hide the block instead.
 var RECENT_MIN = 3;
@@ -849,10 +841,21 @@ function recentLayoutActive() {
     return !!(window.matchMedia && window.matchMedia(RECENT_MQ).matches);
 }
 
-// Fraction of the column a ramp sleeve at depth i is sized to; depths past
-// RECENT_RAMP_MAX clamp to the ramp's last ratio (see renderRecent's flat tail).
-function recentSizeRatio(i) {
-    return RECENT_TOP_RATIO - RECENT_SHRINK * Math.min(i, RECENT_RAMP_MAX - 1);
+// Sizes and offsets for a pile of `n` sleeves in a `w`-wide column: sizes
+// interpolate between the two anchors, and each sleeve sits RECENT_OVERLAP of
+// the previous one's height up into it. Total span is the last entry's
+// top + size, which grows with n — renderRecent relies on that to pick n.
+function recentPlan(n, w) {
+    var top = w * RECENT_TOP_RATIO;
+    var bottom = w * RECENT_BOTTOM_RATIO;
+    var plan = [];
+    var y = 0;
+    for (var i = 0; i < n; i++) {
+        var size = n > 1 ? top + (bottom - top) * i / (n - 1) : top;
+        plan.push({ size: Math.round(size), top: Math.round(y) });
+        y += size * (1 - RECENT_OVERLAP);
+    }
+    return plan;
 }
 
 var recentCovers = null;   // last /recent-covers.json payload (cover ids)
@@ -902,50 +905,22 @@ function renderRecent() {
     recentRetries = 0;
     el.recentPile.textContent = '';
 
-    // Fit the ramp to the column height: try the most sleeves (capped by
-    // RECENT_RAMP_MAX and the album count), shrinking the cascade step down
-    // to a still-hoverable minimum; drop the oldest and retry until it fits,
-    // or hide if not even RECENT_MIN sleeves fit. This keeps the pile visible
-    // on short screens (packed tighter) instead of vanishing.
-    var sizeFirst = Math.round(w * RECENT_TOP_RATIO);
-    var minStep = w * RECENT_SHRINK + RECENT_MIN_PEEK;
-    var prefStep = w * RECENT_STEP_RATIO;
-    var count = 0;
-    var step = 0;
-    for (var c = Math.min(covers.length, RECENT_RAMP_MAX); c >= RECENT_MIN; c--) {
-        if (sizeFirst > h) { break; }   // even the freshest sleeve overflows
-        var sizeLast = Math.round(w * recentSizeRatio(c - 1));
-        var fitStep = (h - sizeLast) / (c - 1);   // c >= RECENT_MIN (3) so c-1 >= 2
-        if (fitStep >= minStep) {
-            step = Math.round(Math.min(prefStep, fitStep));
-            count = c;
-            break;
-        }
+    // Add sleeves while the pile still fits the column. The size anchors stay
+    // put, so a taller column takes more sleeves stepping between them rather
+    // than the same few spaced further apart; below RECENT_MIN it hides.
+    var plan = null;
+    var maxCount = Math.min(covers.length, RECENT_MAX);
+    for (var c = RECENT_MIN; c <= maxCount; c++) {
+        var candidate = recentPlan(c, w);
+        var last = candidate[c - 1];
+        if (last.top + last.size > h) { break; }
+        plan = candidate;
     }
-    if (!count) {
+    if (!plan) {
         el.recent.hidden = true;
         return;
     }
-    var plan = [];
-    for (i = 0; i < count; i++) {
-        plan.push({
-            cover: covers[i],
-            size: Math.round(w * recentSizeRatio(i)),
-            top: i * step,
-        });
-    }
-
-    // Past the ramp, keep appending sleeves at the same (last ramp) size and
-    // a tight fixed step, as long as there's history, room in the column and
-    // room under the visual cap — more history on a tall column without
-    // spacing the pile out.
-    var tailSize = plan[plan.length - 1].size;
-    while (plan.length < Math.min(covers.length, RECENT_MAX)) {
-        var nextTop = plan[plan.length - 1].top + RECENT_TAIL_STEP;
-        if (nextTop + tailSize > h) { break; }
-        plan.push({ cover: covers[plan.length], size: tailSize, top: nextTop });
-    }
-    count = plan.length;
+    var count = plan.length;
 
     for (i = 0; i < count; i++) {
         var size = plan[i].size;
@@ -973,7 +948,7 @@ function renderRecent() {
         sleeve.style.setProperty('--np-recent-sat', (1 - 0.25 * age).toFixed(3));
 
         var img = document.createElement('img');
-        img.src = '/cover/' + encodeURIComponent(plan[i].cover) +
+        img.src = '/cover/' + encodeURIComponent(covers[i]) +
             '.jpg?size=' + RECENT_COVER_SIZE;
         img.alt = '';
         img.decoding = 'async';
