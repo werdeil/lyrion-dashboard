@@ -1,3 +1,4 @@
+import logging
 import re
 
 from flask import Blueprint, render_template, current_app, jsonify, request, Response, abort
@@ -14,6 +15,8 @@ from services.ratelimit import RateLimiter, Cooldown
 from i18n import pick_lang, TRANSLATIONS
 
 nowplaying_bp = Blueprint("nowplaying", __name__)
+
+log = logging.getLogger(__name__)
 
 # Coverids are numeric ids or hex hashes; anything else must not reach the upstream URL.
 COVERID_RE = re.compile(r"[0-9a-fA-F]+")
@@ -161,6 +164,7 @@ def lyrics_json():
     button for exactly as long as a new search would be refused.
     """
     if not LYRICS_RATE.allow(request.remote_addr or "unknown"):
+        log.warning("lyrics: rate limit hit by %s, search refused", request.remote_addr)
         return jsonify(THROTTLED_RESULT), 429
     force = request.args.get("refresh") == "1"
     held = False
@@ -172,6 +176,8 @@ def lyrics_json():
         force = REFRESH_COOLDOWN.allow(track_key)
         held = not force
         retry_after = REFRESH_COOLDOWN.remaining(track_key)
+        if held:
+            log.info("lyrics: refresh held by the cooldown for %.1fs (%s)", retry_after, track_key)
     result = fetch_lyrics(
         track_id=request.args.get("track_id"),
         artist=request.args.get("artist"),

@@ -26,6 +26,7 @@ Application web Flask pour [Lyrion Music Server](https://github.com/LMS-Communit
 ├── app.py                                 # Point d'entrée Flask (factory)
 ├── config.py                              # Configuration centralisée (env vars)
 ├── i18n.py                                # Traductions FR/EN de l'interface
+├── logsetup.py                            # Format et niveau des logs (LOG_LEVEL)
 ├── requirements.txt                       # Dépendances Python (application web)
 ├── requirements-cli.txt                   # Dépendances Python (scripts/ uniquement)
 ├── docker-compose.yml                     # Déploiement via Docker
@@ -107,7 +108,43 @@ L'application est accessible sur `http://localhost:1111`.
 | `LRCLIB_TIMEOUT` | Délai d'expiration des requêtes LRCLIB, en secondes | `15` |
 | `LYRICS_VERIFY_DURATION_TOLERANCE` | Écart max (secondes) toléré par `--verify` dans `embed_lyrics.py` | `3` |
 | `TZ` | Fuseau horaire utilisé pour aligner les fenêtres d'écoutes récentes sur minuit local (ex: `Europe/Paris`) | `UTC` |
+| `LOG_LEVEL` | Verbosité des logs applicatifs (`DEBUG`, `INFO`, `WARNING`, `ERROR`, `CRITICAL`) | `INFO` (`DEBUG` si `DEV=1`) |
 | `DEV` | Mettre à `1` pour recharger les templates à la volée et désactiver le cache statique (développement) | -- |
+
+## Logs
+
+Tout ce que l'application a à dire part sur la sortie standard du conteneur :
+
+```bash
+docker logs -f lyrion-dashboard
+```
+
+Au démarrage, elle indique la version, le `LYRION_HOST` résolu, l'ordre des
+fournisseurs de paroles et si `library.db` / `persist.db` ont bien été trouvés
+— la première chose à vérifier quand la page reste vide.
+
+En `INFO` (le défaut), chaque recherche de paroles écrit une ligne disant d'où
+viennent les paroles et combien de temps ça a pris :
+
+```
+lyrics: 'Space Debris' by 'Deep Purple' -> lrclib (synced=True, plain=True) in 412 ms
+lyrics: 'Hocus Pocus' by 'Focus' -> none (synced=False, plain=False) in 1287 ms
+lyrics: musixmatch unreachable after 5003 ms (Read timed out)
+lyrics: rate limit hit by 192.168.1.42, search refused
+```
+
+`source` distingue les cas : un nom de fournisseur (trouvé), `none` (recherche
+faite, aucune correspondance), `rejected` (un candidat est revenu mais
+correspondait à un autre enregistrement), `unavailable` (aucun fournisseur n'a
+répondu — la recherche n'est pas mise en cache et sera réessayée).
+
+Avec `LOG_LEVEL=DEBUG` (puis un redémarrage du conteneur), s'ajoutent, pour
+chaque recherche, le résultat HTTP et le temps de chaque fournisseur, la
+consultation de la bibliothèque locale (`track 12345: no lyrics in the
+library`), les hits de cache, l'énumération des lecteurs et chaque appel
+JSON-RPC à Lyrion avec sa durée. C'est verbeux — le sondage now-playing tourne
+toutes les 2 s — donc à activer le temps de reproduire un problème, puis à
+remettre comme avant.
 
 ## Sécurité
 

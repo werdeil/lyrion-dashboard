@@ -67,6 +67,22 @@ from raising too. Use a browser-like UA where a service blocks default agents
   sources reuse one playlist track_id while the song changes underneath, which
   would otherwise serve the first song's lyrics for all of them.
 
+## Diagnosing a track without lyrics
+
+The chain logs its own reasoning (see `logsetup.py`), so `docker logs` answers
+"why no lyrics" without a debugger:
+
+- `INFO` — one line per search: `lyrics: <title> by <artist> -> <source>
+  (synced=…, plain=…) in N ms`, plus rejections (with the candidate that came
+  back), throttling, and a provider that is down or crashed.
+- `DEBUG` — per provider HTTP outcome and timing, cache hits, and the local
+  library lookup in `get_track_lyrics` (which tells "the library has no lyrics"
+  apart from "the web fallback found nothing").
+
+A new provider should log its own dead ends at DEBUG (no hit, non-200) and
+raise `ProviderUnavailable` for unreachability — `_search_providers` logs the
+warning with the cause, so don't log it twice.
+
 ## Verification (`verify=True`)
 
 The batch CLI writes lyrics **permanently** into tags, so it opts into

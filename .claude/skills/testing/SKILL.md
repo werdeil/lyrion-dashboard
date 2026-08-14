@@ -81,6 +81,21 @@ class NowPlayingKnownTest(unittest.TestCase):
   (`test_lyrics_cache.py`), verification (`test_lyrics_verify.py`), the
   rate limiter/cooldown (`test_ratelimit.py`), the now-playing snapshot cache.
 
+## Asserting on logs
+
+`tests/__init__.py` pins `LOG_LEVEL=CRITICAL` so the suite's output stays
+readable. A diagnostic log line worth guarding is asserted with `assertLogs`,
+which raises the level of the logger it names, so it works despite that pin:
+
+```python
+with self.assertLogs("services.lyrics", level="INFO") as captured:
+    L.fetch_lyrics("1", "A", "T")
+self.assertTrue(any("-> lrclib" in line for line in captured.output))
+```
+
+Match a stable fragment of the message, not the whole formatted line
+(`tests/test_logging.py`).
+
 ## Testing caches and the clock
 
 Several services cache behind a lock and age values by wall-clock time

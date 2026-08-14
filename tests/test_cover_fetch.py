@@ -25,6 +25,7 @@ class FakeResponse:
     def __init__(self, content=b"IMG", content_type="image/jpeg"):
         self.content = content
         self.headers = {"Content-Type": content_type} if content_type else {}
+        self.url = "https://lyrion.test/music/abc/cover.jpg"
 
     def raise_for_status(self):
         pass

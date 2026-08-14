@@ -23,6 +23,8 @@ class _EmptyBody:
     """Stands in for the empty (non-JSON) response Lyrion returns for an
     unknown player id — r.json() raises ValueError, like requests does."""
 
+    status_code = 200
+
     def json(self):
         raise ValueError("Expecting value: line 1 column 1 (char 0)")
 

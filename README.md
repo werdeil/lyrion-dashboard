@@ -26,6 +26,7 @@ A Flask web app for [Lyrion Music Server](https://github.com/LMS-Community/slims
 ├── app.py                                 # Flask entry point (factory)
 ├── config.py                              # Centralized configuration (env vars)
 ├── i18n.py                                # FR/EN UI translations
+├── logsetup.py                            # Log formatting and level (LOG_LEVEL)
 ├── requirements.txt                       # Python dependencies (web app)
 ├── requirements-cli.txt                   # Python dependencies (scripts/ only)
 ├── docker-compose.yml                     # Docker deployment
@@ -107,7 +108,41 @@ The app is available at `http://localhost:1111`.
 | `LRCLIB_TIMEOUT` | LRCLIB request timeout, in seconds | `15` |
 | `LYRICS_VERIFY_DURATION_TOLERANCE` | Max drift (seconds) tolerated by `--verify` in `embed_lyrics.py` | `3` |
 | `TZ` | Timezone used to align the listening-velocity windows on local midnight (e.g. `Europe/Paris`) | `UTC` |
+| `LOG_LEVEL` | Verbosity of the application logs (`DEBUG`, `INFO`, `WARNING`, `ERROR`, `CRITICAL`) | `INFO` (`DEBUG` when `DEV=1`) |
 | `DEV` | Set to `1` to live-reload templates and disable static caching (development) | -- |
+
+## Logs
+
+Everything the app has to say goes to the container's standard output:
+
+```bash
+docker logs -f lyrion-dashboard
+```
+
+At start-up it reports the version, the resolved `LYRION_HOST`, the provider
+order and whether `library.db` / `persist.db` were actually found — the first
+thing to check when the page stays empty.
+
+At `INFO` (the default), every lyrics search prints one line saying where the
+lyrics came from and how long it took:
+
+```
+lyrics: 'Space Debris' by 'Deep Purple' -> lrclib (synced=True, plain=True) in 412 ms
+lyrics: 'Hocus Pocus' by 'Focus' -> none (synced=False, plain=False) in 1287 ms
+lyrics: musixmatch unreachable after 5003 ms (Read timed out)
+lyrics: rate limit hit by 192.168.1.42, search refused
+```
+
+`source` tells the outcomes apart: a provider name (found), `none` (searched,
+nothing matched), `rejected` (a candidate came back but was another
+recording), `unavailable` (no provider answered — the search is not cached and
+will be retried).
+
+Set `LOG_LEVEL=DEBUG` and restart the container to also get, per search, each
+provider's HTTP outcome and timing, the local-library lookup (`track 12345: no
+lyrics in the library`), the cache hits, the player enumeration and every
+Lyrion JSON-RPC call with its duration. It is verbose — the now-playing poll
+runs every 2s — so use it while reproducing a problem, then set it back.
 
 ## Security
 
