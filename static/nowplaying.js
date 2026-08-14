@@ -821,15 +821,17 @@ var RECENT_STEP_RATIO = 0.26;
 // Minimum px of an older sleeve that must stay uncovered below the fresher
 // one on top of it, so it can still be hovered.
 var RECENT_MIN_PEEK = 22;
-// Fixed vertical step for the flat tail past the ramp: same-size sleeves need
-// a small, constant offset to keep peeking out from behind one another —
-// the ramp's wider step would space them apart instead of overlapping.
-var RECENT_TAIL_STEP = 28;
+// Fixed vertical step for the flat tail past the ramp: same-size sleeves at a
+// constant offset keep peeking out from behind one another (the peek is
+// exactly this many px) — the ramp's wider step would space them out instead.
+var RECENT_TAIL_STEP = 42;
 // Horizontal nudge off centre, alternating by depth — the pile's "tossed" lean.
 var RECENT_LANE_SHIFT = 0.08;
-// Visual cap on the pile: the flat tail keeps adding same-size sleeves up to
-// this count instead of stopping at the ramp's five.
-var RECENT_MAX = 9;
+// Sanity cap on the pile, well above what any real column height needs: the
+// flat tail is really bounded by RECENT_TAIL_STEP against the column height
+// (see renderRecent), this just stops a pathologically tall window from
+// requesting an unbounded number of covers.
+var RECENT_MAX = 20;
 // Fewer sleeves than this doesn't read as a pile; hide the block instead.
 var RECENT_MIN = 3;
 // Small tilts cycled by depth so the pile looks tossed rather than ruled.
