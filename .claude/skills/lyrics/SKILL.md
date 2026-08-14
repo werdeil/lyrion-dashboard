@@ -42,6 +42,15 @@ over plain — Genius is plain-only, so it comes last. Unknown names in the env
 list are silently ignored, so an operator can disable a flaky provider by
 dropping it.
 
+**A provider that can return either form must prefer the synced one, inside
+itself.** LRCLIB stores lyrics per upload: the record `/get` matches on the
+exact artist/title/album/duration signature may be plain-only while another
+upload of the same track carries an LRC, so `_provider_lrclib` keeps a
+plain-only hit as a fallback and still runs `/search`, scanning the candidates
+for one with `syncedLyrics` instead of taking `results[0]`. The chain above it
+can't fix this: `_search_providers` returns the first provider with *anything*,
+so a plain-only answer ends the search (`tests/test_lyrics_lrclib.py`).
+
 **Adding a provider:** write `_provider_<name>(artist, title, album, duration)`
 returning the dict above (set the `meta` fields you can, leave the rest `None`),
 add it to `PROVIDERS`, and — since a provider must never break the chain —
