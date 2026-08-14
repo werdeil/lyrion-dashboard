@@ -112,12 +112,15 @@ def _int_duration(duration):
 
 
 def _provider_lrclib(artist, title, album, duration):
-    """Ask LRCLIB for a track.
+    """Ask LRCLIB for a track, preferring a synced (LRC) record.
 
     Tries the exact `get` endpoint first (best match when artist/title/album/
     duration line up with their database), then falls back to `search` which is
-    more forgiving about album and duration mismatches. Raises
-    ProviderUnavailable when LRCLIB can't be reached at all.
+    more forgiving about album and duration mismatches. LRCLIB stores lyrics per
+    upload, so the signature `get` matches can hold plain text while another
+    upload of the same track carries an LRC: a plain-only hit is kept only as a
+    fallback while the search looks for a synced one. Raises ProviderUnavailable
+    when LRCLIB can't be reached at all.
     """
     headers = {"User-Agent": USER_AGENT}
 
@@ -139,7 +142,7 @@ def _provider_lrclib(artist, title, album, duration):
         log.debug("lrclib: get failed (%s), falling back to search", exc)
         payload = None
 
-    if payload is None:
+    if payload is None or not payload.get("syncedLyrics"):
         base = {"artist_name": artist, "track_name": title}
         # Try an album-filtered search first for precision, then retry without
         # the album. The search fallback exists precisely to forgive album/
@@ -156,17 +159,25 @@ def _provider_lrclib(artist, title, album, duration):
                 )
             except requests.RequestException as exc:
                 raise ProviderUnavailable("lrclib") from exc
-            if r.status_code == 200:
-                results = r.json()
-                log.debug("lrclib: search returned %d candidate(s)", len(results or []))
-                if results:
-                    payload = results[0]
-                    break
-            else:
+            if r.status_code != 200:
                 log.info("lrclib: search returned HTTP %s", r.status_code)
+                continue
+            results = r.json() or []
+            log.debug("lrclib: search returned %d candidate(s)", len(results))
+            synced = next((c for c in results if c.get("syncedLyrics")), None)
+            if synced:
+                payload = synced
+                break
+            if payload is None and results:
+                payload = results[0]
 
     if not payload:
         return None
+    log.debug(
+        "lrclib: record %s (%r, %ss), synced=%s",
+        payload.get("id"), payload.get("albumName"), payload.get("duration"),
+        bool(payload.get("syncedLyrics")),
+    )
     return {
         "lyrics": payload.get("plainLyrics"),
         "synced": payload.get("syncedLyrics"),
