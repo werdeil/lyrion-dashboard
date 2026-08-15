@@ -119,12 +119,9 @@ Everything the app has to say goes to the container's standard output:
 docker logs -f lyrion-dashboard
 ```
 
-At start-up it reports the version, the resolved `LYRION_HOST`, the provider
-order and whether `library.db` / `persist.db` were actually found — the first
-thing to check when the page stays empty.
+At start-up it reports the version, the resolved `LYRION_HOST`, the provider order and whether `library.db` / `persist.db` were actually found — the first thing to check when the page stays empty.
 
-At `INFO` (the default), a track that ends up without lyrics tells its whole
-story: the library lookup, then each provider, then the verdict.
+At `INFO` (the default), a track that ends up without lyrics tells its whole story: the library lookup, then each provider, then the verdict.
 
 ```
 track 12345: no lyrics in the library
@@ -134,34 +131,17 @@ lyrics: genius has no match (486 ms)
 lyrics: 'Hocus Pocus' by 'Focus' -> none (synced=False, plain=False) in 5801 ms
 ```
 
-A healthy search is a single line, `lyrics: 'Space Debris' by 'Deep Purple' ->
-lrclib (synced=True, plain=True) in 412 ms`. `source` tells the outcomes apart:
-a provider name (found), `none` (searched, nothing matched), `rejected` (a
-candidate came back but was another recording), `unavailable` (no provider
-answered — the search is not cached and will be retried). Also at `INFO`: a
-result served from the cache instead of a new search, a search refused by the
-rate limit or the refresh cooldown, and a stats recompute with its duration.
+A healthy search is a single line, `lyrics: 'Space Debris' by 'Deep Purple' -> lrclib (synced=True, plain=True) in 412 ms`. `source` tells the outcomes apart: a provider name (found), `none` (searched, nothing matched), `rejected` (a candidate came back but was another recording), `unavailable` (no provider answered — the search is not cached and will be retried). Also at `INFO`: a result served from the cache instead of a new search, a search refused by the rate limit or the refresh cooldown, and a stats recompute with its duration.
 
-Set `LOG_LEVEL=DEBUG` and restart the container to also get each provider's
-HTTP detail, the lookups that succeeded, the player enumeration and every
-Lyrion JSON-RPC call with its duration. It is verbose — the now-playing poll
-runs every 2s — so use it while reproducing a problem, then set it back.
+Set `LOG_LEVEL=DEBUG` and restart the container to also get each provider's HTTP detail, the lookups that succeeded, the player enumeration and every Lyrion JSON-RPC call with its duration. It is verbose — the now-playing poll runs every 2s — so use it while reproducing a problem, then set it back.
 
 ## Security
 
-The dashboard has **no authentication, by design**: it is a glanceable,
-always-on display meant for a **trusted home LAN**. Anyone who can reach the
-port can see what is playing in real time (presence information), read the
-library statistics and download everything under `CUSTOM_DATA_DIR`
-(`/files/`).
+The dashboard has **no authentication, by design**: it is a glanceable, always-on display meant for a **trusted home LAN**. Anyone who can reach the port can see what is playing in real time (presence information), read the library statistics and download everything under `CUSTOM_DATA_DIR` (`/files/`).
 
-- Never expose the port directly to the Internet (no port forwarding, no
-  public reverse proxy).
-- For remote access, join the LAN instead of opening the dashboard up: a VPN
-  such as WireGuard or Tailscale keeps it LAN-only while your devices connect
-  from anywhere.
-- The full security & performance review lives in
-  [PR #15](https://github.com/werdeil/lyrion-dashboard/pull/15).
+- Never expose the port directly to the Internet (no port forwarding, no public reverse proxy).
+- For remote access, join the LAN instead of opening the dashboard up: a VPN such as WireGuard or Tailscale keeps it LAN-only while your devices connect from anywhere.
+- The full security & performance review lives in [PR #15](https://github.com/werdeil/lyrion-dashboard/pull/15).
 
 ## Endpoints
 

@@ -119,13 +119,9 @@ Tout ce que l'application a à dire part sur la sortie standard du conteneur :
 docker logs -f lyrion-dashboard
 ```
 
-Au démarrage, elle indique la version, le `LYRION_HOST` résolu, l'ordre des
-fournisseurs de paroles et si `library.db` / `persist.db` ont bien été trouvés
-— la première chose à vérifier quand la page reste vide.
+Au démarrage, elle indique la version, le `LYRION_HOST` résolu, l'ordre des fournisseurs de paroles et si `library.db` / `persist.db` ont bien été trouvés — la première chose à vérifier quand la page reste vide.
 
-En `INFO` (le défaut), une piste qui finit sans paroles raconte toute son
-histoire : la consultation de la bibliothèque, puis chaque fournisseur, puis le
-verdict.
+En `INFO` (le défaut), une piste qui finit sans paroles raconte toute son histoire : la consultation de la bibliothèque, puis chaque fournisseur, puis le verdict.
 
 ```
 track 12345: no lyrics in the library
@@ -135,38 +131,17 @@ lyrics: genius has no match (486 ms)
 lyrics: 'Hocus Pocus' by 'Focus' -> none (synced=False, plain=False) in 5801 ms
 ```
 
-Une recherche qui aboutit tient en une ligne, `lyrics: 'Space Debris' by 'Deep
-Purple' -> lrclib (synced=True, plain=True) in 412 ms`. `source` distingue les
-cas : un nom de fournisseur (trouvé), `none` (recherche faite, aucune
-correspondance), `rejected` (un candidat est revenu mais correspondait à un
-autre enregistrement), `unavailable` (aucun fournisseur n'a répondu — la
-recherche n'est pas mise en cache et sera réessayée). Également en `INFO` : un
-résultat servi depuis le cache au lieu d'une nouvelle recherche, une recherche
-refusée par le rate limit ou le cooldown de rafraîchissement, et un recalcul
-des statistiques avec sa durée.
+Une recherche qui aboutit tient en une ligne, `lyrics: 'Space Debris' by 'Deep Purple' -> lrclib (synced=True, plain=True) in 412 ms`. `source` distingue les cas : un nom de fournisseur (trouvé), `none` (recherche faite, aucune correspondance), `rejected` (un candidat est revenu mais correspondait à un autre enregistrement), `unavailable` (aucun fournisseur n'a répondu — la recherche n'est pas mise en cache et sera réessayée). Également en `INFO` : un résultat servi depuis le cache au lieu d'une nouvelle recherche, une recherche refusée par le rate limit ou le cooldown de rafraîchissement, et un recalcul des statistiques avec sa durée.
 
-Avec `LOG_LEVEL=DEBUG` (puis un redémarrage du conteneur), s'ajoutent le détail
-HTTP de chaque fournisseur, les consultations qui ont abouti, l'énumération des
-lecteurs et chaque appel JSON-RPC à Lyrion avec sa durée. C'est verbeux — le
-sondage now-playing tourne toutes les 2 s — donc à activer le temps de
-reproduire un problème, puis à remettre comme avant.
+Avec `LOG_LEVEL=DEBUG` (puis un redémarrage du conteneur), s'ajoutent le détail HTTP de chaque fournisseur, les consultations qui ont abouti, l'énumération des lecteurs et chaque appel JSON-RPC à Lyrion avec sa durée. C'est verbeux — le sondage now-playing tourne toutes les 2 s — donc à activer le temps de reproduire un problème, puis à remettre comme avant.
 
 ## Sécurité
 
-Le dashboard n'a **pas d'authentification, par conception** : c'est un
-affichage permanent consultable d'un coup d'œil, pensé pour un **LAN
-domestique de confiance**. Quiconque peut joindre le port peut voir ce qui
-joue en temps réel (information de présence), lire les statistiques de la
-bibliothèque et télécharger tout le contenu de `CUSTOM_DATA_DIR`
-(`/files/`).
+Le dashboard n'a **pas d'authentification, par conception** : c'est un affichage permanent consultable d'un coup d'œil, pensé pour un **LAN domestique de confiance**. Quiconque peut joindre le port peut voir ce qui joue en temps réel (information de présence), lire les statistiques de la bibliothèque et télécharger tout le contenu de `CUSTOM_DATA_DIR` (`/files/`).
 
-- Ne jamais exposer le port directement sur Internet (pas de redirection de
-  port, pas de reverse proxy public).
-- Pour l'accès distant, rejoignez le LAN plutôt que d'ouvrir le dashboard :
-  un VPN type WireGuard ou Tailscale le garde "LAN only" pendant que vos
-  appareils s'y connectent d'où vous voulez.
-- La revue complète sécurité & performance est dans la
-  [PR #15](https://github.com/werdeil/lyrion-dashboard/pull/15).
+- Ne jamais exposer le port directement sur Internet (pas de redirection de port, pas de reverse proxy public).
+- Pour l'accès distant, rejoignez le LAN plutôt que d'ouvrir le dashboard : un VPN type WireGuard ou Tailscale le garde "LAN only" pendant que vos appareils s'y connectent d'où vous voulez.
+- La revue complète sécurité & performance est dans la [PR #15](https://github.com/werdeil/lyrion-dashboard/pull/15).
 
 ## Endpoints
 
