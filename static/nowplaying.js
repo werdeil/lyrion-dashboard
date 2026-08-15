@@ -618,13 +618,9 @@ var MOSAIC_MIN_ROWS = 3;
 var MOSAIC_MAX_ROWS = 4;
 // Gap between covers on the belt, both along a row and between rows.
 var MOSAIC_GAP = 10;
-// How long the belt rests between advances. It moves one cover at a time
-// rather than flowing: a backdrop in constant motion has to be recomposited
-// every frame and costs a whole core, while one that rests costs nothing
-// between steps, and every cover still crosses the card over an evening.
-// The glide itself is the tiles' CSS transform transition, which has to stay
-// well under this.
-var MOSAIC_STEP_MS = 12000;
+// How long the belt rests between advances, which is what it costs: a backdrop
+// in constant motion is recomposited every frame and takes a whole core.
+var MOSAIC_STEP_MS = 6000;
 
 // The covers ride one serpentine belt: laid end to end, they cross row 0
 // left→right, drop to row 1 and cross it right→left, and so on down the card,
