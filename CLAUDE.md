@@ -97,8 +97,11 @@ verification specific to this change, and anything that stayed unverified —
 never a restatement of the CI gates, which the checklist already ticks. Detail
 that a reviewer can get from the diff, the commit message or the code comments
 does not belong in the body; measurements, tables and alternatives considered
-belong in the commit message. A body that needs scrolling to reach the
-checklist is too long. The same restraint applies to review and issue comments.
+belong in the commit message. **The two sections together stay under 200
+words** — count them, because "short" left to judgement drifts into an essay
+one honest sentence at a time, and a body that needs scrolling to reach the
+checklist is already too long. The same restraint applies to review and issue
+comments.
 
 **A PR or issue body is never hard-wrapped: one paragraph is one line, however
 long.** GitHub renders those bodies with GFM line breaks on, so every newline

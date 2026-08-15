@@ -14,7 +14,7 @@ See CLAUDE.md for the project's conventions and how to reproduce each CI gate.
 
 ## Checklist
 
-- [ ] Title and body re-read against `git diff origin/master...HEAD`: they describe the branch as it now stands, not a first attempt
+- [ ] Title and body re-read against `git diff origin/master...HEAD`: they describe the branch as it now stands, not a first attempt, and the two sections are under 200 words
 - [ ] `python -m unittest discover` passes, with tests added/updated for the change
 - [ ] `python -m compileall .` and `pylint app.py config.py i18n.py routes services scripts tests` are clean
 - [ ] Security still clean: `pip-audit` and `bandit -r . -x ./tests` (any accepted finding carries an inline `# nosec` with justification)
