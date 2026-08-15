@@ -74,11 +74,12 @@ a project `.venv` at session start (put first on `PATH`), so tests, pylint,
 pip-audit and bandit run without manual setup. Locally it's a no-op — manage
 your own venv.
 
-When opening a PR, follow `.github/pull_request_template.md`: fill in what/why
-and how it was tested, and work through its checklist (it mirrors the CI gates
-above plus the FR/EN string parity, README lockstep, and no-auth-by-design
-rules). PR titles and descriptions are written in **English**, like commit
-messages — only the user-facing UI and the READMEs are bilingual.
+When opening a PR, follow `.github/pull_request_template.md`: fill in the
+problem, the solution and how it was tested, and work through its checklist
+(it mirrors the CI gates above plus the FR/EN string parity, README and skill
+lockstep, and no-auth-by-design rules). PR titles and descriptions are written
+in **English**, like commit messages — only the user-facing UI and the READMEs
+are bilingual.
 
 **A PR title is a commit subject, so it follows Conventional Commits:
 `type(scope): summary`.** The squash merge turns it into the commit title on
@@ -90,18 +91,21 @@ change is repo-wide. Lowercase after the colon, imperative, no trailing period,
 short enough to read in `git log --oneline`. Commit subjects on the branch
 follow the same form.
 
-**Keep a PR body short — a few sentences per section, not an essay.** "What &
-why" is one paragraph: what changed and the reason, no re-derivation of the
-analysis. "How it was tested" covers only what the checklist doesn't — the
-verification specific to this change, and anything that stayed unverified —
-never a restatement of the CI gates, which the checklist already ticks. Detail
-that a reviewer can get from the diff, the commit message or the code comments
-does not belong in the body; measurements, tables and alternatives considered
-belong in the commit message. **The two sections together stay under 200
-words** — count them, because "short" left to judgement drifts into an essay
-one honest sentence at a time, and a body that needs scrolling to reach the
-checklist is already too long. The same restraint applies to review and issue
-comments.
+**Keep a PR body short — a few sentences per section, not an essay.**
+"Problem" is the state of things without the PR — what is broken, missing or
+needed, in a paragraph, never the investigation that found it. "Solution" is
+what the branch does about it, no re-derivation of the analysis. They stay
+apart because a reviewer reads them for different questions: whether the change
+is worth making, then whether it is the right one. "How it was tested" covers
+only what the checklist doesn't — the verification specific to this change, and
+anything that stayed unverified — never a restatement of the CI gates, which
+the checklist already ticks. Detail that a reviewer can get from the diff, the
+commit message or the code comments does not belong in the body; measurements,
+tables and alternatives considered belong in the commit message. **The three
+sections together stay under 200 words** — count them, because "short" left to
+judgement drifts into an essay one honest sentence at a time, and a body that
+needs scrolling to reach the checklist is already too long. The same restraint
+applies to review and issue comments.
 
 **A PR or issue body is never hard-wrapped: one paragraph is one line, however
 long.** GitHub renders those bodies with GFM line breaks on, so every newline
