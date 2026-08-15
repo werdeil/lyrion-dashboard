@@ -877,13 +877,10 @@ hr {
        corners. The margin the tilt needs is mostly an absolute distance
        (≈ half the card width × sin3°), so a pure percentage collapses to
        nothing on a short phone card and leaves gaps: pair a small percentage
-       (which keeps up on very large screens) with a fixed floor. Far less waste
-       than the old inset:-8% + scale:1.15, which pushed a third of every row
-       off-card for nothing. */
+       (which keeps up on very large screens) with a fixed floor. */
     inset: calc(-3% - 16px);
     overflow: hidden;
     transform: rotate(-3deg);
-    filter: blur(1px) saturate(0.7) brightness(0.4);
     pointer-events: none;
 }
 
@@ -899,9 +896,14 @@ hr {
     height: var(--mosaic-tile, 130px);
     object-fit: cover;
     border-radius: 8px;
+    /* Graded per tile, not on the moving container: a filter there would force
+       the whole collage to be re-rendered on every frame of the belt. */
+    filter: saturate(0.7) brightness(0.4);
     will-change: transform;
     opacity: 0;
-    transition: opacity 450ms ease;
+    /* The transform transition is the belt's glide; it must stay well under
+       MOSAIC_STEP_MS, the rest between two steps. */
+    transition: opacity 450ms ease, transform 1400ms ease-in-out;
 }
 
 .np-mosaic-tile.is-shown {

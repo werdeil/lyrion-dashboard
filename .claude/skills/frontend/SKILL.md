@@ -90,10 +90,31 @@ choice.
 
 ## Mosaic and recent-plays pile
 
-The empty-state background mosaic (`loadMosaic`/`layoutMosaic`/`stepMosaic`,
-animated via `requestAnimationFrame`) and the recent-plays sleeve pile
-(`loadRecent`/`renderRecent`) are decorative, desktop-driven layouts. They pull
-cover ids from `/mosaic-covers.json` and `/recent-covers.json`.
+The empty-state background mosaic (`loadMosaic`/`layoutMosaic`/`stepMosaic`)
+and the recent-plays sleeve pile (`loadRecent`/`renderRecent`) are decorative,
+desktop-driven layouts. They pull cover ids from `/mosaic-covers.json` and
+`/recent-covers.json`.
+
+The mosaic's belt **steps rather than flows**: one cover every
+`MOSAIC_STEP_MS`, glided by the tiles' CSS transform transition, and nothing
+scheduled in between. Continuous motion is what costs — every frame
+recomposites the whole backdrop, a full core against 2.7% for a still collage —
+and the cost scales with the step rate, so that constant is the only knob worth
+turning. A cover only ever glides one slot along its row; anywhere the belt is
+discontinuous it is placed outright, which stays invisible because those breaks
+are all off the card.
+
+## Measuring the page
+
+Two traps, both of which quietly yield wrong numbers rather than an error:
+
+- The app's `CSP default-src 'self'` blocks a `<style>` injected at runtime, so
+  a probe that overrides CSS that way measures nothing at all — the override
+  never applies. CSSOM writes (`el.style.foo = …`) and the Web Animations API
+  are unaffected.
+- `getBoundingClientRect()` on a mosaic tile returns the bounding box of the
+  3°-rotated square, ~10px wider than the cover itself. Read the CSS width when
+  the number matters.
 
 ## Android bridge
 
