@@ -78,7 +78,7 @@ def cover(coverid):
     sample its colours on a canvas. Cached client-side since covers are stable.
 
     ?size=N asks Lyrion for an NxN thumbnail instead of the full artwork; the
-    mosaic uses it to load its many blurred covers cheaply."""
+    mosaic uses it to load its many covers cheaply."""
     if not COVERID_RE.fullmatch(coverid):
         abort(404)
     size = request.args.get("size", type=int)

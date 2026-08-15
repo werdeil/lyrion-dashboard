@@ -23,6 +23,7 @@ export default [
                 Image: "readonly",
                 getComputedStyle: "readonly",
                 requestAnimationFrame: "readonly",
+                cancelAnimationFrame: "readonly",
                 URLSearchParams: "readonly",
                 // Vendored libraries from static/lib/
                 Vibrant: "readonly",

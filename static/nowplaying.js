@@ -614,10 +614,10 @@ function setSearching(on) {
 // dense enough that its wrap seam is never a visible gap, even on short phone
 // cards with few rows.
 var MOSAIC_TILE = 130;
-// Thumbnail size requested for mosaic covers. They're blurred and downscaled,
-// so a small thumbnail is indistinguishable from full art but loads far
-// faster (dozens fetch at once) — a bit above the tile size for DPR headroom.
-var MOSAIC_COVER_SIZE = 200;
+// Thumbnail size requested for mosaic covers. Sized to the tile rather than to
+// the device pixel ratio: dozens are decoded and held at once, and the upscale
+// on a HiDPI screen only softens a backdrop that is dimmed to 40% anyway.
+var MOSAIC_COVER_SIZE = 120;
 // Gap between covers on the belt (both between covers in a row and between
 // rows), and how fast the belt travels (px/s).
 var MOSAIC_GAP = 10;
@@ -630,7 +630,16 @@ var MOSAIC_SPEED = 26;
 // (phase) to an (x, y) on screen, and stepMosaic() advances the phase.
 var mosaicGeom = null;
 var mosaicIds = null;
-var mosaicRAFStarted = false;
+var mosaicRAF = 0;
+// The belt travels 26px/s, so a 60Hz update advances it under half a pixel:
+// stepping it 30 times a second looks the same and halves the work of moving
+// (and re-compositing) every tile.
+var MOSAIC_FRAME_MS = 1000 / 30;
+
+function prefersReducedMotion() {
+    return !!(window.matchMedia &&
+        window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+}
 
 function positionMosaic(phase) {
     var g = mosaicGeom;
@@ -655,20 +664,32 @@ function positionMosaic(phase) {
 }
 
 function stepMosaic(ts) {
+    mosaicRAF = requestAnimationFrame(stepMosaic);
     var g = mosaicGeom;
-    // Only advance while the empty state is actually on screen (offsetParent is
-    // null when a parent is display:none, i.e. something is playing).
-    if (g && el.emptyMosaic.offsetParent !== null) {
-        if (!g.last) { g.last = ts; }
-        // Clamp dt so a background tab (rAF paused) doesn't lurch on return.
-        var dt = Math.min(ts - g.last, 100);
-        g.last = ts;
-        g.phase = (g.phase + MOSAIC_SPEED * dt / 1000) % g.length;
-        positionMosaic(g.phase);
-    } else if (g) {
-        g.last = 0;
-    }
-    requestAnimationFrame(stepMosaic);
+    if (!g) { return; }
+    if (!g.last) { g.last = ts; }
+    var dt = ts - g.last;
+    if (dt < MOSAIC_FRAME_MS) { return; }
+    g.last = ts;
+    // Clamp dt so a throttled tab (rAF paused) doesn't lurch on return.
+    g.phase = (g.phase + MOSAIC_SPEED * Math.min(dt, 100) / 1000) % g.length;
+    positionMosaic(g.phase);
+}
+
+// The belt only runs while the empty state is the card on screen and the page
+// is visible; the rest of the time no frame is scheduled at all. Safe to call
+// from anywhere — it checks those conditions itself.
+function startMosaic() {
+    if (mosaicRAF || !mosaicGeom || document.hidden) { return; }
+    if (!nowPlaying.classList.contains('is-empty') || prefersReducedMotion()) { return; }
+    mosaicGeom.last = 0;
+    mosaicRAF = requestAnimationFrame(stepMosaic);
+}
+
+function stopMosaic() {
+    if (!mosaicRAF) { return; }
+    cancelAnimationFrame(mosaicRAF);
+    mosaicRAF = 0;
 }
 
 // Covers are fetched in parallel (fast) but revealed strictly in belt order —
@@ -700,8 +721,7 @@ function layoutMosaic(ids) {
     el.emptyMosaic.textContent = '';
     if (mosaicRevealTimer) { clearTimeout(mosaicRevealTimer); mosaicRevealTimer = null; }
     mosaicRevealCursor = 0;
-    var reduce = window.matchMedia &&
-        window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    var reduce = prefersReducedMotion();
     var W = el.emptyMosaic.offsetWidth || 900;
     var H = el.emptyMosaic.offsetHeight || 500;
     var rows = Math.max(3, Math.round(H / MOSAIC_TILE));
@@ -762,6 +782,8 @@ function layoutMosaic(ids) {
 // empty state simply stays as plain text, same as before.
 var mosaicLoading = false;
 var mosaicLoaded = false;
+// Set when a resize landed while the belt was off screen and unmeasurable.
+var mosaicDirty = false;
 function loadMosaic() {
     if (mosaicLoaded || mosaicLoading || !el.emptyMosaic) { return; }
     mosaicLoading = true;
@@ -778,18 +800,14 @@ function loadMosaic() {
             mosaicLoading = false;
             mosaicLoaded = true;
             if (!ids || !ids.length) { return; }
-            if (!mosaicIds || mosaicIds.join('|') !== ids.join('|')) {
+            if (mosaicDirty || !mosaicIds || mosaicIds.join('|') !== ids.join('|')) {
                 mosaicIds = ids;
+                mosaicDirty = false;
                 layoutMosaic(ids);
             }
             if (el.empty) { el.empty.classList.add('has-mosaic'); }
-            // Honour reduced-motion: lay the belt out but leave it still.
-            var reduce = window.matchMedia &&
-                window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-            if (!reduce && !mosaicRAFStarted) {
-                mosaicRAFStarted = true;
-                requestAnimationFrame(stepMosaic);
-            }
+            // Reduced-motion leaves the belt laid out but still (startMosaic).
+            startMosaic();
         })
         .catch(function() { mosaicLoading = false; });
 }
@@ -801,7 +819,13 @@ var mosaicResizeTimer = null;
 window.addEventListener('resize', function() {
     if (!mosaicIds) { return; }
     if (mosaicResizeTimer) { clearTimeout(mosaicResizeTimer); }
-    mosaicResizeTimer = setTimeout(function() { layoutMosaic(mosaicIds); }, 300);
+    mosaicResizeTimer = setTimeout(function() {
+        // A hidden card measures nothing usable, so a resize during playback
+        // only marks the belt stale for the next time the empty state shows.
+        if (!nowPlaying.classList.contains('is-empty')) { mosaicDirty = true; return; }
+        mosaicDirty = false;
+        layoutMosaic(mosaicIds);
+    }, 300);
 });
 
 // Recent plays as a pile of sleeves under the cover (desktop only): freshest
@@ -978,6 +1002,7 @@ function render(data) {
     if (!data || !data.track_id) {
         nowPlaying.classList.add('is-empty');
         loadMosaic();
+        startMosaic();
         // Drop the pile's cache: the listens that just ended will reorder it,
         // so the next playback refetches instead of showing a stale pile.
         recentCovers = null;
@@ -1002,6 +1027,7 @@ function render(data) {
 
     nowPlaying.classList.remove('is-empty');
     mosaicLoaded = false;
+    stopMosaic();
 
     progress = {
         time: data.time || 0,
@@ -1385,7 +1411,8 @@ function pollStats() {
 // A backgrounded page has its timers throttled and any in-flight poll may
 // never settle (the OS can suspend the socket), so on return: abort it, poll again.
 function catchUp() {
-    if (document.visibilityState === 'hidden') { return; }
+    if (document.visibilityState === 'hidden') { stopMosaic(); return; }
+    startMosaic();
     restartPoll();
 }
 document.addEventListener('visibilitychange', catchUp);
