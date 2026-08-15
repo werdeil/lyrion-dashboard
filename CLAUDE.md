@@ -118,7 +118,9 @@ leaves the PR with a rewritten description, not a trail of replies.
 
 **A PR describes the branch as it now stands, not how it got there.** Before
 calling a PR ready — every time, not just when opening it — re-read the title
-and body against the actual diff (`git diff master...HEAD`). Iteration
+and body against the actual diff (`git diff origin/master...HEAD`, with the
+`origin/`: a fresh clone's local `master` can lag and fold other people's
+commits into the comparison). Iteration
 routinely leaves them describing a first attempt whose constants, mechanism,
 even approach no longer exist; a stale body is worse than none, because a
 reviewer trusts it. The title is the squash-merge commit subject, so it has to
