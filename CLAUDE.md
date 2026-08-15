@@ -109,6 +109,21 @@ its own single line), table rows — and keep angle brackets out of prose
 the commit-message convention, which stays wrapped at ~72 columns because git
 shows it verbatim. The same applies to review comments and issue comments.
 
+**Never post progress commentary on a PR.** A comment is for something the
+maintainer has to act on or could not get from the branch — not "pushed a
+follow-up", "fixed the regression", "sorry, I misread". Pushing more commits is
+how progress is reported; the commit messages carry the reasoning, and the
+description carries the current state. A review round that reshapes the branch
+leaves the PR with a rewritten description, not a trail of replies.
+
+**A PR describes the branch as it now stands, not how it got there.** Before
+calling a PR ready — every time, not just when opening it — re-read the title
+and body against the actual diff (`git diff master...HEAD`). Iteration
+routinely leaves them describing a first attempt whose constants, mechanism,
+even approach no longer exist; a stale body is worse than none, because a
+reviewer trusts it. The title is the squash-merge commit subject, so it has to
+name what finally landed.
+
 **Never subscribe to / watch a PR for activity** (CI results, review comments)
 on this repo — don't auto-monitor or auto-fix. Report status when asked and let
 the maintainer drive the PR.
