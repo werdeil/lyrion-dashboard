@@ -316,3 +316,8 @@ contributors). Consult them when a task matches:
   Release → publish → `android.yml` chain).
 - **`android`** — the WebView wrapper (shell-only principle, signing split,
   static F-Droid versioning, discovery, the JS↔native bridge).
+
+**A skill that describes what a PR changes moves with it, in the same PR.** The
+trigger is the code, not the user: a refactor nobody can see — an rAF loop
+becoming a timer — leaves the skill confidently wrong, and unlike a stale README
+nobody reads it again until the next task has already trusted it.
