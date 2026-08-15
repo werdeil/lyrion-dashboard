@@ -807,21 +807,16 @@ window.addEventListener('resize', function() {
 // Recent plays as a pile of sleeves under the cover (desktop only): freshest
 // on top, older ones smaller and dimmer. Ratios are fractions of the column.
 var RECENT_COVER_SIZE = 300;
-var RECENT_TOP_RATIO = 0.60;
-var RECENT_SHRINK = 0.10;
-// Preferred (and maximum) vertical cascade step, as a fraction of the column;
-// the actual step shrinks to fit a short column (see renderRecent). Sleeves
-// are centred, so the freshest (widest) one covers the centre of each older
-// one — this keeps a band of each peeking out below the one in front.
-var RECENT_STEP_RATIO = 0.26;
-// Minimum px of an older sleeve that must stay uncovered below the fresher
-// one on top of it, so it can still be hovered.
-var RECENT_MIN_PEEK = 22;
+// Sizes of the freshest and oldest sleeves; the ones between interpolate.
+var RECENT_TOP_RATIO = 0.70;
+var RECENT_BOTTOM_RATIO = 0.20;
+// Overlap between two sleeves, as a fraction of the upper one's height.
+var RECENT_OVERLAP = 0.30;
 // Horizontal nudge off centre, alternating by depth — the pile's "tossed" lean.
 var RECENT_LANE_SHIFT = 0.08;
-// The shrink ramp (0.60, 0.50, … 0.20 of the column) bottoms out at five
-// sleeves; also the visual cap.
-var RECENT_MAX = 5;
+// Sanity cap only — renderRecent's fit loop is the real bound. Must stay under
+// .np-cover's z-index (30), which a sleeve's own z-index counts up towards.
+var RECENT_MAX = 20;
 // Fewer sleeves than this doesn't read as a pile; hide the block instead.
 var RECENT_MIN = 3;
 // Small tilts cycled by depth so the pile looks tossed rather than ruled.
@@ -835,6 +830,21 @@ var recentRetries = 0;
 
 function recentLayoutActive() {
     return !!(window.matchMedia && window.matchMedia(RECENT_MQ).matches);
+}
+
+// Sizes and offsets for a pile of n sleeves in a w-wide column. Its span
+// (last top + size) grows with n, which is what lets renderRecent pick n.
+function recentPlan(n, w) {
+    var top = w * RECENT_TOP_RATIO;
+    var bottom = w * RECENT_BOTTOM_RATIO;
+    var plan = [];
+    var y = 0;
+    for (var i = 0; i < n; i++) {
+        var size = n > 1 ? top + (bottom - top) * i / (n - 1) : top;
+        plan.push({ size: Math.round(size), top: Math.round(y) });
+        y += size * (1 - RECENT_OVERLAP);
+    }
+    return plan;
 }
 
 var recentCovers = null;   // last /recent-covers.json payload (cover ids)
@@ -884,38 +894,20 @@ function renderRecent() {
     recentRetries = 0;
     el.recentPile.textContent = '';
 
-    // Fit the pile to the column height: try the most sleeves (capped by the
-    // shrink ramp and the album count), shrinking the cascade step down to a
-    // still-hoverable minimum; drop the oldest and retry until it fits, or hide
-    // if not even RECENT_MIN sleeves fit. This keeps the pile visible on short
-    // screens (packed tighter) instead of vanishing.
-    var sizeFirst = Math.round(w * RECENT_TOP_RATIO);
-    var minStep = w * RECENT_SHRINK + RECENT_MIN_PEEK;
-    var prefStep = w * RECENT_STEP_RATIO;
-    var count = 0;
-    var step = 0;
-    for (var c = Math.min(covers.length, RECENT_MAX); c >= RECENT_MIN; c--) {
-        if (sizeFirst > h) { break; }   // even the freshest sleeve overflows
-        var sizeLast = Math.round(w * (RECENT_TOP_RATIO - RECENT_SHRINK * (c - 1)));
-        var fitStep = (h - sizeLast) / (c - 1);   // c >= RECENT_MIN (3) so c-1 >= 2
-        if (fitStep >= minStep) {
-            step = Math.round(Math.min(prefStep, fitStep));
-            count = c;
-            break;
-        }
+    // Largest pile that still fits the column; under RECENT_MIN it hides.
+    var plan = null;
+    var maxCount = Math.min(covers.length, RECENT_MAX);
+    for (var c = RECENT_MIN; c <= maxCount; c++) {
+        var candidate = recentPlan(c, w);
+        var last = candidate[c - 1];
+        if (last.top + last.size > h) { break; }
+        plan = candidate;
     }
-    if (!count) {
+    if (!plan) {
         el.recent.hidden = true;
         return;
     }
-    var plan = [];
-    for (i = 0; i < count; i++) {
-        plan.push({
-            cover: covers[i],
-            size: Math.round(w * (RECENT_TOP_RATIO - RECENT_SHRINK * i)),
-            top: i * step,
-        });
-    }
+    var count = plan.length;
 
     for (i = 0; i < count; i++) {
         var size = plan[i].size;
@@ -943,7 +935,7 @@ function renderRecent() {
         sleeve.style.setProperty('--np-recent-sat', (1 - 0.25 * age).toFixed(3));
 
         var img = document.createElement('img');
-        img.src = '/cover/' + encodeURIComponent(plan[i].cover) +
+        img.src = '/cover/' + encodeURIComponent(covers[i]) +
             '.jpg?size=' + RECENT_COVER_SIZE;
         img.alt = '';
         img.decoding = 'async';
