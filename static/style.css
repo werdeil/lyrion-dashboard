@@ -901,7 +901,9 @@ hr {
     filter: saturate(0.7) brightness(0.4);
     will-change: transform;
     opacity: 0;
-    transition: opacity 450ms ease;
+    /* The transform transition is the belt's glide from one cover to the next
+       (see MOSAIC_STEP_MS); it must stay well under the rest between steps. */
+    transition: opacity 450ms ease, transform 1400ms ease-in-out;
 }
 
 .np-mosaic-tile.is-shown {

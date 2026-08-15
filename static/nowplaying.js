@@ -616,23 +616,24 @@ function setSearching(on) {
 var MOSAIC_TILE = 130;
 var MOSAIC_MIN_ROWS = 3;
 var MOSAIC_MAX_ROWS = 4;
-// Gap between covers on the belt (both between covers in a row and between
-// rows), and how fast the belt travels (px/s).
+// Gap between covers on the belt, both along a row and between rows.
 var MOSAIC_GAP = 10;
-var MOSAIC_SPEED = 26;
+// How long the belt rests between advances. It moves one cover at a time
+// rather than flowing: a backdrop in constant motion has to be recomposited
+// every frame and costs a whole core, while one that rests costs nothing
+// between steps, and every cover still crosses the card over an evening.
+// The glide itself is the tiles' CSS transform transition, which has to stay
+// well under this.
+var MOSAIC_STEP_MS = 12000;
 
-// The covers ride one continuous serpentine belt: laid end to end, they cross
-// row 0 left→right, drop to row 1 and cross it right→left, and so on down the
-// card, then wrap from the bottom back to the top. `mosaicGeom` holds the
-// measured geometry; positionMosaic() maps each tile's position along the belt
-// (phase) to an (x, y) on screen, and stepMosaic() advances the phase.
+// The covers ride one serpentine belt: laid end to end, they cross row 0
+// left→right, drop to row 1 and cross it right→left, and so on down the card,
+// then wrap from the bottom back to the top. `mosaicGeom` holds the measured
+// geometry; positionMosaic() maps each tile's position along the belt (phase)
+// to an (x, y) on screen, and stepMosaic() advances the phase by one cover.
 var mosaicGeom = null;
 var mosaicIds = null;
-var mosaicRAF = 0;
-// The belt travels 26px/s, so a 60Hz update advances it under half a pixel:
-// stepping it 30 times a second looks the same and halves the work of moving
-// (and re-compositing) every tile.
-var MOSAIC_FRAME_MS = 1000 / 30;
+var mosaicTimer = 0;
 
 function prefersReducedMotion() {
     return !!(window.matchMedia &&
@@ -663,6 +664,21 @@ function mosaicCoverSize(tile) {
     return Math.min(256, Math.max(96, Math.ceil(tile / 32) * 32));
 }
 
+function placeTile(tile, x, y, instant) {
+    if (instant) {
+        tile.style.transition = 'none';
+    }
+    tile.style.transform = 'translate3d(' + x + 'px,' + y + 'px,0)';
+    if (instant) {
+        void tile.offsetWidth;   // flush, so the next write transitions from here
+        tile.style.transition = '';
+    }
+}
+
+// A step always lands a row-changing tile off the card (the spare slot per row
+// in mosaicGrid puts both row ends past the edge), never the position it comes
+// from. So its glide stays horizontal, on the row it is leaving, and the drop
+// onto the next row waits for the step after — by then it is out of sight.
 function positionMosaic(phase) {
     var g = mosaicGeom;
     if (!g) { return; }
@@ -674,44 +690,52 @@ function positionMosaic(phase) {
         var within = p - row * g.rowLen;
         // Even rows travel right, odd rows left (so a cover leaving one row's
         // edge continues from the row below): boustrophedon.
-        var x = (row % 2 === 0) ? within : (g.rowLen - within);
+        var along = (row % 2 === 0) ? within : (g.rowLen - within);
         // Shift left by one step so tiles enter from just off the left/right
         // edge rather than popping in at x=0. The tile is MOSAIC_GAP shorter
         // than its row band, so half a gap of top padding centres it and leaves
         // a gap between rows.
+        var x = along - g.step;
         var y = row * g.rowH + MOSAIC_GAP / 2;
-        g.tiles[i].style.transform =
-            'translate3d(' + (x - g.step) + 'px,' + y + 'px,0)';
+        var tile = g.tiles[i];
+        if (g.dropY[i] !== undefined) {
+            placeTile(tile, g.drawnX[i], g.dropY[i], true);
+            g.drawnY[i] = g.dropY[i];
+            g.dropY[i] = undefined;
+        }
+        if (g.drawnY[i] === undefined || g.drawnY[i] === y) {
+            placeTile(tile, x, y, false);
+            g.drawnY[i] = y;
+        } else {
+            placeTile(tile, x, g.drawnY[i], false);
+            g.dropY[i] = y;
+        }
+        g.drawnX[i] = x;
     }
 }
 
-function stepMosaic(ts) {
-    mosaicRAF = requestAnimationFrame(stepMosaic);
+// Advance every tile by one cover along the belt; the CSS transition glides
+// them there.
+function stepMosaic() {
     var g = mosaicGeom;
     if (!g) { return; }
-    if (!g.last) { g.last = ts; }
-    var dt = ts - g.last;
-    if (dt < MOSAIC_FRAME_MS) { return; }
-    g.last = ts;
-    // Clamp dt so a throttled tab (rAF paused) doesn't lurch on return.
-    g.phase = (g.phase + MOSAIC_SPEED * Math.min(dt, 100) / 1000) % g.length;
+    g.phase = (g.phase + g.step) % g.length;
     positionMosaic(g.phase);
 }
 
-// The belt only runs while the empty state is the card on screen and the page
-// is visible; the rest of the time no frame is scheduled at all. Safe to call
+// The belt only steps while the empty state is the card on screen and the page
+// is visible; the rest of the time nothing is scheduled at all. Safe to call
 // from anywhere — it checks those conditions itself.
 function startMosaic() {
-    if (mosaicRAF || !mosaicGeom || document.hidden) { return; }
+    if (mosaicTimer || !mosaicGeom || !mosaicGeom.stepped || document.hidden) { return; }
     if (!nowPlaying.classList.contains('is-empty') || prefersReducedMotion()) { return; }
-    mosaicGeom.last = 0;
-    mosaicRAF = requestAnimationFrame(stepMosaic);
+    mosaicTimer = setInterval(stepMosaic, MOSAIC_STEP_MS);
 }
 
 function stopMosaic() {
-    if (!mosaicRAF) { return; }
-    cancelAnimationFrame(mosaicRAF);
-    mosaicRAF = 0;
+    if (!mosaicTimer) { return; }
+    clearInterval(mosaicTimer);
+    mosaicTimer = 0;
 }
 
 // Covers are fetched in parallel (fast) but revealed strictly in belt order —
@@ -749,8 +773,11 @@ function layoutMosaic(ids) {
     var rows = grid.rows;
     var perRow = grid.perRow;
     // With fewer covers than a full grid, drop rows so each surviving row stays
-    // full of distinct covers rather than repeating them across the card.
-    if (ids.length >= perRow) {
+    // full of distinct covers rather than repeating them across the card. Such
+    // a belt is shorter than the card, which puts its wrap on screen, so it is
+    // laid out but never stepped — a step would drag a cover back across it.
+    var full = ids.length >= perRow;
+    if (full) {
         rows = Math.min(rows, Math.floor(ids.length / perRow));
     } else {
         rows = 1;
@@ -760,6 +787,7 @@ function layoutMosaic(ids) {
     var size = mosaicCoverSize(grid.tile);
 
     el.emptyMosaic.style.setProperty('--mosaic-tile', grid.tile + 'px');
+    var frag = document.createDocumentFragment();
     var tiles = [];
     for (var i = 0; i < count; i++) {
         var img = document.createElement('img');
@@ -773,15 +801,21 @@ function layoutMosaic(ids) {
         img.alt = '';
         img.decoding = 'async';
         if (reduce) { img.classList.add('is-shown'); }
-        el.emptyMosaic.appendChild(img);
+        frag.appendChild(img);
         tiles.push(img);
     }
     mosaicGeom = {
         tiles: tiles, step: grid.step, rowH: grid.rowH,
         rowLen: perRow * grid.step, length: rows * perRow * grid.step,
-        phase: 0, last: 0,
+        phase: 0, stepped: full,
+        // Where each tile is actually drawn, and the row drop owed to it.
+        drawnX: [], drawnY: [], dropY: [],
     };
+    // Place the tiles before they enter the document: an element first rendered
+    // already at its position has no earlier transform to transition from, so
+    // the belt's glide can't fire on the initial layout.
     positionMosaic(0);
+    el.emptyMosaic.appendChild(frag);
     // Reduced motion: no caterpillar fill, show everything at once (tiles were
     // already marked shown above); otherwise start the ordered reveal.
     if (reduce) {
