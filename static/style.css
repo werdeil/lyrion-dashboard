@@ -1152,9 +1152,6 @@ body.in-app .page-header {
         max-height: none;
         min-height: 0;
     }
-    .np-lyrics.empty {
-        flex: 0 0 auto;
-    }
     .stats-panel {
         min-height: 0;
         overflow-y: auto;
