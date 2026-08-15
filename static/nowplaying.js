@@ -691,42 +691,54 @@ function placeTile(tile, x, y, instant) {
     }
 }
 
-// A step always lands a row-changing tile off the card (the spare slot per row
-// in mosaicGrid puts both row ends past the edge), never the position it comes
-// from. So its glide stays horizontal, on the row it is leaving, and the drop
-// onto the next row waits for the step after — by then it is out of sight.
+// Where slot s sits. Slots run along the serpentine, row after row, and the
+// last one is a step past the end of the final row — off the card, whichever
+// way that row travels. An odd row count leaves the belt's two ends on
+// opposite sides of the card, so that slot is where it closes onto row 0, out
+// of sight; an even count doesn't need it and simply parks a cover there.
+function mosaicSlot(g, s) {
+    var closing = s === g.slots - 1;
+    var row = closing ? g.rows - 1 : Math.floor(s / g.perRow);
+    var k = closing ? g.perRow : (s % g.perRow);
+    // Even rows travel right, odd rows left, so a cover leaving one row's edge
+    // continues from the row below: boustrophedon. The whole thing sits a step
+    // to the left, so covers enter from just off the edge instead of popping in
+    // at x=0. The tile is MOSAIC_GAP shorter than its row band, so half a gap
+    // of top padding centres it and leaves a gap between rows.
+    return {
+        x: ((row % 2 === 0) ? k : (g.perRow - k)) * g.step - g.step,
+        y: row * g.rowH + MOSAIC_GAP / 2,
+    };
+}
+
+// A cover glides only where the belt is continuous — one step along its row.
+// Everywhere else it is placed outright, which is invisible because the belt
+// is only ever discontinuous off the card. Changing row is the in-between
+// case: the move is one step, so it glides, but on the row being left, and
+// the drop onto the next waits for the step after, by when it has gone.
 function positionMosaic(phase) {
     var g = mosaicGeom;
     if (!g) { return; }
     for (var i = 0; i < g.tiles.length; i++) {
-        // Distance of this tile along the belt, wrapped into [0, total length).
-        var p = (i * g.step + phase) % g.length;
-        if (p < 0) { p += g.length; }
-        var row = Math.floor(p / g.rowLen);
-        var within = p - row * g.rowLen;
-        // Even rows travel right, odd rows left (so a cover leaving one row's
-        // edge continues from the row below): boustrophedon.
-        var along = (row % 2 === 0) ? within : (g.rowLen - within);
-        // Shift left by one step so tiles enter from just off the left/right
-        // edge rather than popping in at x=0. The tile is MOSAIC_GAP shorter
-        // than its row band, so half a gap of top padding centres it and leaves
-        // a gap between rows.
-        var x = along - g.step;
-        var y = row * g.rowH + MOSAIC_GAP / 2;
+        var s = (i + Math.round(phase / g.step)) % g.slots;
+        var at = mosaicSlot(g, s);
         var tile = g.tiles[i];
         if (g.dropY[i] !== undefined) {
             placeTile(tile, g.drawnX[i], g.dropY[i], true);
             g.drawnY[i] = g.dropY[i];
             g.dropY[i] = undefined;
         }
-        if (g.drawnY[i] === undefined || g.drawnY[i] === y) {
-            placeTile(tile, x, y, false);
-            g.drawnY[i] = y;
+        if (g.drawnX[i] === undefined ||
+                Math.abs(at.x - g.drawnX[i]) > g.step * 1.5) {
+            placeTile(tile, at.x, at.y, true);
+            g.drawnY[i] = at.y;
+        } else if (g.drawnY[i] === at.y) {
+            placeTile(tile, at.x, at.y, false);
         } else {
-            placeTile(tile, x, g.drawnY[i], false);
-            g.dropY[i] = y;
+            placeTile(tile, at.x, g.drawnY[i], false);
+            g.dropY[i] = at.y;
         }
-        g.drawnX[i] = x;
+        g.drawnX[i] = at.x;
     }
 }
 
@@ -789,10 +801,11 @@ function layoutMosaic(ids) {
     var grid = mosaicGrid(W, H);
     // Too few covers for that many rows: use fewer, taller ones. Dropping a row
     // without regrowing the rest would leave a band of bare card at the bottom.
-    while (grid.rows > 1 && ids.length < grid.rows * grid.perRow) {
+    while (grid.rows > 1 && ids.length < grid.rows * grid.perRow + 1) {
         grid = mosaicGridRows(W, H, grid.rows - 1);
     }
-    var count = grid.rows * grid.perRow;
+    // One slot past the last row closes the belt off the card (mosaicSlot).
+    var count = grid.rows * grid.perRow + 1;
     var size = mosaicCoverSize(grid.tile);
 
     el.emptyMosaic.style.setProperty('--mosaic-tile', grid.tile + 'px');
@@ -815,8 +828,8 @@ function layoutMosaic(ids) {
     }
     mosaicGeom = {
         tiles: tiles, step: grid.step, rowH: grid.rowH,
-        rowLen: grid.perRow * grid.step, length: count * grid.step,
-        phase: 0,
+        rows: grid.rows, perRow: grid.perRow, slots: count,
+        length: count * grid.step, phase: 0,
         // Where each tile is actually drawn, and the row drop owed to it.
         drawnX: [], drawnY: [], dropY: [],
     };
