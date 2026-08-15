@@ -609,15 +609,13 @@ function setSearching(on) {
     updateRetry();
 }
 
-// Square cover tile (px) the mosaic layout is sized around: sets how many
-// rows and columns of covers fit the card. Kept fairly small so the belt stays
-// dense enough that its wrap seam is never a visible gap, even on short phone
-// cards with few rows.
+// Square cover tile (px) the row count is sized around, and the band it is
+// held to. A tall card grows the covers rather than stacking more of them:
+// every extra row is another rowful of tiles to move, fetch and composite,
+// and past four the covers are too small to recognise anyway.
 var MOSAIC_TILE = 130;
-// Thumbnail size requested for mosaic covers. Sized to the tile rather than to
-// the device pixel ratio: dozens are decoded and held at once, and the upscale
-// on a HiDPI screen only softens a backdrop that is dimmed to 40% anyway.
-var MOSAIC_COVER_SIZE = 120;
+var MOSAIC_MIN_ROWS = 3;
+var MOSAIC_MAX_ROWS = 4;
 // Gap between covers on the belt (both between covers in a row and between
 // rows), and how fast the belt travels (px/s).
 var MOSAIC_GAP = 10;
@@ -639,6 +637,30 @@ var MOSAIC_FRAME_MS = 1000 / 30;
 function prefersReducedMotion() {
     return !!(window.matchMedia &&
         window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+}
+
+// The belt's shape for a WxH card: how many rows, how big a cover, and how
+// many fit a row (one spare, so one is always entering as another leaves).
+// Both the layout and the cover request derive from this, so they can't drift.
+function mosaicGrid(W, H) {
+    var rows = Math.min(MOSAIC_MAX_ROWS,
+        Math.max(MOSAIC_MIN_ROWS, Math.round(H / MOSAIC_TILE)));
+    // Tile is a gap shorter than its row band so rows don't touch vertically;
+    // the horizontal step keeps that same gap between covers along the row.
+    var rowH = H / rows;
+    return {
+        rows: rows, rowH: rowH, step: rowH, tile: rowH - MOSAIC_GAP,
+        perRow: Math.ceil(W / rowH) + 1,
+    };
+}
+
+// Thumbnail to request for a tile that size: sized to the tile rather than to
+// the device pixel ratio, since dozens are decoded and held at once and the
+// upscale on a HiDPI screen only softens a backdrop dimmed to 40% anyway.
+// Bucketed so a resize reuses cached thumbnails instead of making Lyrion
+// render a new size for every pixel width the card passes through.
+function mosaicCoverSize(tile) {
+    return Math.min(256, Math.max(96, Math.ceil(tile / 32) * 32));
 }
 
 function positionMosaic(phase) {
@@ -722,16 +744,10 @@ function layoutMosaic(ids) {
     if (mosaicRevealTimer) { clearTimeout(mosaicRevealTimer); mosaicRevealTimer = null; }
     mosaicRevealCursor = 0;
     var reduce = prefersReducedMotion();
-    var W = el.emptyMosaic.offsetWidth || 900;
-    var H = el.emptyMosaic.offsetHeight || 500;
-    var rows = Math.max(3, Math.round(H / MOSAIC_TILE));
-    var rowH = H / rows;
-    // Tile is a gap shorter than the row band so rows don't touch vertically;
-    // the horizontal step keeps the same gap between covers along the row.
-    var tile = rowH - MOSAIC_GAP;
-    var step = tile + MOSAIC_GAP;
-    // One extra slot per row so a cover is always entering as another leaves.
-    var perRow = Math.ceil(W / step) + 1;
+    var grid = mosaicGrid(el.emptyMosaic.offsetWidth || 900,
+        el.emptyMosaic.offsetHeight || 500);
+    var rows = grid.rows;
+    var perRow = grid.perRow;
     // With fewer covers than a full grid, drop rows so each surviving row stays
     // full of distinct covers rather than repeating them across the card.
     if (ids.length >= perRow) {
@@ -741,8 +757,9 @@ function layoutMosaic(ids) {
         perRow = ids.length;
     }
     var count = rows * perRow;
+    var size = mosaicCoverSize(grid.tile);
 
-    el.emptyMosaic.style.setProperty('--mosaic-tile', tile + 'px');
+    el.emptyMosaic.style.setProperty('--mosaic-tile', grid.tile + 'px');
     var tiles = [];
     for (var i = 0; i < count; i++) {
         var img = document.createElement('img');
@@ -752,7 +769,7 @@ function layoutMosaic(ids) {
         img.onload = img.onerror = function() {
             if (mosaicRevealTimer === null) { advanceMosaicReveal(); }
         };
-        img.src = '/cover/' + encodeURIComponent(ids[i % ids.length]) + '.jpg?size=' + MOSAIC_COVER_SIZE;
+        img.src = '/cover/' + encodeURIComponent(ids[i % ids.length]) + '.jpg?size=' + size;
         img.alt = '';
         img.decoding = 'async';
         if (reduce) { img.classList.add('is-shown'); }
@@ -760,8 +777,8 @@ function layoutMosaic(ids) {
         tiles.push(img);
     }
     mosaicGeom = {
-        tiles: tiles, step: step, rowH: rowH,
-        rowLen: perRow * step, length: rows * perRow * step,
+        tiles: tiles, step: grid.step, rowH: grid.rowH,
+        rowLen: perRow * grid.step, length: rows * perRow * grid.step,
         phase: 0, last: 0,
     };
     positionMosaic(0);
@@ -787,13 +804,13 @@ var mosaicDirty = false;
 function loadMosaic() {
     if (mosaicLoaded || mosaicLoading || !el.emptyMosaic) { return; }
     mosaicLoading = true;
-    // Ask for about as many covers as the belt has slots: rows that fill the
-    // card height times a row a little wider than the card. The endpoint
+    // Ask for a spare cover per row on top of the belt's slots, so a card that
+    // grows on resize has covers to fill it without repeating. The endpoint
     // returns the most recently played albums (newest first), so the belt's
     // ordered reveal draws the latest listens first.
-    var cols = Math.ceil(el.emptyMosaic.offsetWidth / MOSAIC_TILE) || 6;
-    var rows = Math.max(3, Math.round(el.emptyMosaic.offsetHeight / MOSAIC_TILE));
-    var wanted = Math.min(rows * (cols + 2), 200);
+    var grid = mosaicGrid(el.emptyMosaic.offsetWidth || 900,
+        el.emptyMosaic.offsetHeight || 500);
+    var wanted = Math.min(grid.rows * (grid.perRow + 1), 200);
     fetch('/mosaic-covers.json?limit=' + wanted)
         .then(function(r) { return r.json(); })
         .then(function(ids) {
