@@ -807,24 +807,15 @@ window.addEventListener('resize', function() {
 // Recent plays as a pile of sleeves under the cover (desktop only): freshest
 // on top, older ones smaller and dimmer. Ratios are fractions of the column.
 var RECENT_COVER_SIZE = 300;
-// The pile is anchored at both ends — freshest sleeve at RECENT_TOP_RATIO of
-// the column, oldest at RECENT_BOTTOM_RATIO, sizes stepping linearly between
-// them — so how many sleeves it takes falls out of the column height rather
-// than being set here.
+// Sizes of the freshest and oldest sleeves; the ones between interpolate.
 var RECENT_TOP_RATIO = 0.70;
 var RECENT_BOTTOM_RATIO = 0.20;
-// How much of a sleeve the one above it covers, as a fraction of that upper
-// sleeve's height: the cascade step scales with the sleeves instead of being
-// a fixed offset, so the pile stays as tightly overlapped at any size.
+// Overlap between two sleeves, as a fraction of the upper one's height.
 var RECENT_OVERLAP = 0.30;
 // Horizontal nudge off centre, alternating by depth — the pile's "tossed" lean.
 var RECENT_LANE_SHIFT = 0.08;
-// Sanity cap on the pile, well above what any real column height needs (the
-// fit loop in renderRecent is the real bound): this just stops a
-// pathologically tall window from requesting an unbounded number of covers.
-// Must stay under .np-cover's z-index (30) — a sleeve's own z-index counts up
-// from the pile's depth, so a higher cap would stack the freshest sleeves in
-// front of the cover.
+// Sanity cap only — renderRecent's fit loop is the real bound. Must stay under
+// .np-cover's z-index (30), which a sleeve's own z-index counts up towards.
 var RECENT_MAX = 20;
 // Fewer sleeves than this doesn't read as a pile; hide the block instead.
 var RECENT_MIN = 3;
@@ -841,10 +832,8 @@ function recentLayoutActive() {
     return !!(window.matchMedia && window.matchMedia(RECENT_MQ).matches);
 }
 
-// Sizes and offsets for a pile of `n` sleeves in a `w`-wide column: sizes
-// interpolate between the two anchors, and each sleeve sits RECENT_OVERLAP of
-// the previous one's height up into it. Total span is the last entry's
-// top + size, which grows with n — renderRecent relies on that to pick n.
+// Sizes and offsets for a pile of n sleeves in a w-wide column. Its span
+// (last top + size) grows with n, which is what lets renderRecent pick n.
 function recentPlan(n, w) {
     var top = w * RECENT_TOP_RATIO;
     var bottom = w * RECENT_BOTTOM_RATIO;
@@ -905,9 +894,7 @@ function renderRecent() {
     recentRetries = 0;
     el.recentPile.textContent = '';
 
-    // Add sleeves while the pile still fits the column. The size anchors stay
-    // put, so a taller column takes more sleeves stepping between them rather
-    // than the same few spaced further apart; below RECENT_MIN it hides.
+    // Largest pile that still fits the column; under RECENT_MIN it hides.
     var plan = null;
     var maxCount = Math.min(covers.length, RECENT_MAX);
     for (var c = RECENT_MIN; c <= maxCount; c++) {
