@@ -636,12 +636,10 @@ function prefersReducedMotion() {
         window.matchMedia('(prefers-reduced-motion: reduce)').matches);
 }
 
-// The belt's shape for a WxH card: how many rows, how big a cover, and how
-// many fit a row (one spare, so one is always entering as another leaves).
-// Both the layout and the cover request derive from this, so they can't drift.
-function mosaicGrid(W, H) {
-    var rows = Math.min(MOSAIC_MAX_ROWS,
-        Math.max(MOSAIC_MIN_ROWS, Math.round(H / MOSAIC_TILE)));
+// The belt's shape for a WxH card in that many rows: how big a cover is, and
+// how many fit a row (one spare, so one is always entering as another leaves,
+// which also keeps both row ends off the card).
+function mosaicGridRows(W, H, rows) {
     // Tile is a gap shorter than its row band so rows don't touch vertically;
     // the horizontal step keeps that same gap between covers along the row.
     var rowH = H / rows;
@@ -649,6 +647,28 @@ function mosaicGrid(W, H) {
         rows: rows, rowH: rowH, step: rowH, tile: rowH - MOSAIC_GAP,
         perRow: Math.ceil(W / rowH) + 1,
     };
+}
+
+// The shape a WxH card wants. Both the layout and the cover request derive
+// from this, so they can't drift.
+function mosaicGrid(W, H) {
+    return mosaicGridRows(W, H, Math.min(MOSAIC_MAX_ROWS,
+        Math.max(MOSAIC_MIN_ROWS, Math.round(H / MOSAIC_TILE))));
+}
+
+function mosaicCardW() {
+    return el.emptyMosaic.offsetWidth || 900;
+}
+
+function mosaicCardH() {
+    return el.emptyMosaic.offsetHeight || 500;
+}
+
+// Covers to ask for: the belt's slots plus a spare per row, so a card that
+// grows a little still has distinct covers to fill it.
+function mosaicCoversWanted() {
+    var grid = mosaicGrid(mosaicCardW(), mosaicCardH());
+    return Math.min(grid.rows * (grid.perRow + 1), 200);
 }
 
 // Thumbnail to request for a tile that size: sized to the tile rather than to
@@ -723,7 +743,7 @@ function stepMosaic() {
 // is visible; the rest of the time nothing is scheduled at all. Safe to call
 // from anywhere — it checks those conditions itself.
 function startMosaic() {
-    if (mosaicTimer || !mosaicGeom || !mosaicGeom.stepped || document.hidden) { return; }
+    if (mosaicTimer || !mosaicGeom || document.hidden) { return; }
     if (!nowPlaying.classList.contains('is-empty') || prefersReducedMotion()) { return; }
     mosaicTimer = setInterval(stepMosaic, MOSAIC_STEP_MS);
 }
@@ -764,22 +784,15 @@ function layoutMosaic(ids) {
     if (mosaicRevealTimer) { clearTimeout(mosaicRevealTimer); mosaicRevealTimer = null; }
     mosaicRevealCursor = 0;
     var reduce = prefersReducedMotion();
-    var grid = mosaicGrid(el.emptyMosaic.offsetWidth || 900,
-        el.emptyMosaic.offsetHeight || 500);
-    var rows = grid.rows;
-    var perRow = grid.perRow;
-    // With fewer covers than a full grid, drop rows so each surviving row stays
-    // full of distinct covers rather than repeating them across the card. Such
-    // a belt is shorter than the card, which puts its wrap on screen, so it is
-    // laid out but never stepped — a step would drag a cover back across it.
-    var full = ids.length >= perRow;
-    if (full) {
-        rows = Math.min(rows, Math.floor(ids.length / perRow));
-    } else {
-        rows = 1;
-        perRow = ids.length;
+    var W = mosaicCardW();
+    var H = mosaicCardH();
+    var grid = mosaicGrid(W, H);
+    // Too few covers for that many rows: use fewer, taller ones. Dropping a row
+    // without regrowing the rest would leave a band of bare card at the bottom.
+    while (grid.rows > 1 && ids.length < grid.rows * grid.perRow) {
+        grid = mosaicGridRows(W, H, grid.rows - 1);
     }
-    var count = rows * perRow;
+    var count = grid.rows * grid.perRow;
     var size = mosaicCoverSize(grid.tile);
 
     el.emptyMosaic.style.setProperty('--mosaic-tile', grid.tile + 'px');
@@ -802,8 +815,8 @@ function layoutMosaic(ids) {
     }
     mosaicGeom = {
         tiles: tiles, step: grid.step, rowH: grid.rowH,
-        rowLen: perRow * grid.step, length: rows * perRow * grid.step,
-        phase: 0, stepped: full,
+        rowLen: grid.perRow * grid.step, length: count * grid.step,
+        phase: 0,
         // Where each tile is actually drawn, and the row drop owed to it.
         drawnX: [], drawnY: [], dropY: [],
     };
@@ -829,18 +842,19 @@ function layoutMosaic(ids) {
 // empty state simply stays as plain text, same as before.
 var mosaicLoading = false;
 var mosaicLoaded = false;
-// Set when a resize landed while the belt was off screen and unmeasurable.
+// Forces the next load to re-lay the belt even when the cover list came back
+// unchanged: set when a resize could not be honoured at the time.
 var mosaicDirty = false;
+// Covers the last request asked for, so a resize only re-asks when the card
+// now wants more than was ever requested.
+var mosaicAsked = 0;
 function loadMosaic() {
     if (mosaicLoaded || mosaicLoading || !el.emptyMosaic) { return; }
     mosaicLoading = true;
-    // Ask for a spare cover per row on top of the belt's slots, so a card that
-    // grows on resize has covers to fill it without repeating. The endpoint
-    // returns the most recently played albums (newest first), so the belt's
-    // ordered reveal draws the latest listens first.
-    var grid = mosaicGrid(el.emptyMosaic.offsetWidth || 900,
-        el.emptyMosaic.offsetHeight || 500);
-    var wanted = Math.min(grid.rows * (grid.perRow + 1), 200);
+    // The endpoint returns the most recently played albums (newest first), so
+    // the belt's ordered reveal draws the latest listens first.
+    var wanted = mosaicCoversWanted();
+    mosaicAsked = Math.max(mosaicAsked, wanted);
     fetch('/mosaic-covers.json?limit=' + wanted)
         .then(function(r) { return r.json(); })
         .then(function(ids) {
@@ -859,17 +873,22 @@ function loadMosaic() {
         .catch(function() { mosaicLoading = false; });
 }
 
-// Re-lay the belt to the new size on resize (debounced); reuses the covers
-// already fetched, so no extra network. The running rAF picks up the new
-// geometry automatically.
+// Re-lay the belt to the new size on resize (debounced), re-asking for covers
+// only when the card grew past what was fetched for the old one.
 var mosaicResizeTimer = null;
 window.addEventListener('resize', function() {
     if (!mosaicIds) { return; }
     if (mosaicResizeTimer) { clearTimeout(mosaicResizeTimer); }
     mosaicResizeTimer = setTimeout(function() {
+        mosaicDirty = true;
         // A hidden card measures nothing usable, so a resize during playback
         // only marks the belt stale for the next time the empty state shows.
-        if (!nowPlaying.classList.contains('is-empty')) { mosaicDirty = true; return; }
+        if (!nowPlaying.classList.contains('is-empty')) { return; }
+        if (mosaicCoversWanted() > mosaicAsked) {
+            mosaicLoaded = false;
+            loadMosaic();
+            return;
+        }
         mosaicDirty = false;
         layoutMosaic(mosaicIds);
     }, 300);
