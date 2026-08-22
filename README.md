@@ -18,7 +18,7 @@ A Flask web app for [Lyrion Music Server](https://github.com/LMS-Community/slims
 - **Web lyrics fallback** -- An auto-search switch queries the web (LRCLIB, Musixmatch, Genius) for every playing track: it fills in lyrics the library is missing, and upgrades the library's plain text to a synced (karaoke) version when one is found. While it's on, a retry button re-runs the search for the current track, bypassing the cache; it greys out for a few seconds between two searches of the same track.
 - **Library statistics** -- Albums, artists, played/unplayed tracks, genres, ratings, lyrics, 30-day listening velocity.
 - **File server** -- Serves files from a configurable directory.
-- **Android app** -- A thin WebView wrapper (same principle as [lms-material-app](https://github.com/CDrummond/lms-material-app)) with LMS auto-discovery, see [`android/`](android/README.md).
+- **Android app** -- A thin WebView wrapper (same principle as [lms-material-app](https://github.com/CDrummond/lms-material-app)) with LMS auto-discovery, published on [F-Droid](https://f-droid.org/packages/com.werdeil.lyriondashboard/), see [`android/`](android/README.md).
 
 ## Project structure
 
@@ -94,6 +94,14 @@ python app.py
 ```
 
 The app is available at `http://localhost:1111`.
+
+### Android app
+
+The companion app is published on F-Droid:
+
+[<img src="https://fdroid.gitlab.io/artwork/badge/get-it-on.png" alt="Get it on F-Droid" height="70">](https://f-droid.org/packages/com.werdeil.lyriondashboard/)
+
+A signed APK is also attached to each [GitHub release](https://github.com/werdeil/lyrion-dashboard/releases). On first launch, let it discover the Lyrion server on the local network or enter the dashboard URL yourself — see [`android/`](android/README.md).
 
 ## Configuration
 
