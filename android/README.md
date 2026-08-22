@@ -4,6 +4,12 @@ A thin Android WebView wrapper around the Lyrion Dashboard app, following the sa
 
 <img src="../docs/screenshots/dashboard-app.png" alt="Android app" width="240">
 
+## Install
+
+[<img src="https://fdroid.gitlab.io/artwork/badge/get-it-on.png" alt="Get it on F-Droid" height="70">](https://f-droid.org/packages/com.werdeil.lyriondashboard/)
+
+Or install the signed APK attached to a [GitHub release](https://github.com/werdeil/lyrion-dashboard/releases).
+
 ## Features
 
 - Full screen WebView loading the dashboard
@@ -43,7 +49,7 @@ Versioning: bump `versionCode` and `versionName` in `app/build.gradle.kts` befor
 
 ## F-Droid
 
-The repo is F-Droid-ready: MIT license, FOSS dependencies only, static versions parseable at each tag, and app-store texts under `fastlane/metadata/android/`. To get listed, submit a packaging request (https://gitlab.com/fdroid/rfp) or a merge request to https://gitlab.com/fdroid/fdroiddata with a recipe using `Repo: https://github.com/werdeil/lyrion-dashboard`, gradle subdir `android/app`, `UpdateCheckMode: Tags` and `AutoUpdateMode: Version` — the same setup as lms-material-app. New tags are then picked up and built by F-Droid automatically.
+The app is published on F-Droid: https://f-droid.org/packages/com.werdeil.lyriondashboard/. F-Droid builds it itself from the tagged source of this repo (gradle subdir `android/app`, `UpdateCheckMode: Tags`, `AutoUpdateMode: Version`), so a new `vX.Y.Z` tag is picked up and built automatically — which is why `versionCode`/`versionName` stay static literals in the gradle file. The store listing texts live under [`fastlane/metadata/android/`](../fastlane/metadata/android), in English and French.
 
 To create a keystore and export it for CI:
 

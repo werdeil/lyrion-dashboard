@@ -18,7 +18,7 @@ Application web Flask pour [Lyrion Music Server](https://github.com/LMS-Communit
 - **Recherche web de paroles** -- Un interrupteur de recherche automatique interroge le web (LRCLIB, Musixmatch, Genius) pour chaque morceau joué : il complète les paroles absentes de la bibliothèque et convertit son texte simple en version synchronisée (karaoké) lorsqu'il en trouve une. Tant qu'il est activé, un bouton permet de relancer la recherche pour le morceau en cours, en contournant le cache ; il se grise quelques secondes entre deux recherches sur le même morceau.
 - **Statistiques de la bibliothèque** -- Albums, artistes, morceaux joués/non joués, genres, notes, paroles, vélocité d'écoute sur 30 jours.
 - **Serveur de fichiers** -- Sert les fichiers depuis un répertoire configurable.
-- **Application Android** -- Une fine surcouche WebView (même principe que [lms-material-app](https://github.com/CDrummond/lms-material-app)) avec découverte automatique du serveur LMS, voir [`android/`](android/README.md).
+- **Application Android** -- Une fine surcouche WebView (même principe que [lms-material-app](https://github.com/CDrummond/lms-material-app)) avec découverte automatique du serveur LMS, publiée sur [F-Droid](https://f-droid.org/packages/com.werdeil.lyriondashboard/), voir [`android/`](android/README.md).
 
 ## Structure du projet
 
@@ -94,6 +94,14 @@ python app.py
 ```
 
 L'application est accessible sur `http://localhost:1111`.
+
+### Application Android
+
+L'application compagnon est publiée sur F-Droid :
+
+[<img src="https://fdroid.gitlab.io/artwork/badge/get-it-on.png" alt="Disponible sur F-Droid" height="70">](https://f-droid.org/packages/com.werdeil.lyriondashboard/)
+
+Un APK signé est aussi attaché à chaque [release GitHub](https://github.com/werdeil/lyrion-dashboard/releases). Au premier lancement, laissez-la découvrir le serveur Lyrion sur le réseau local ou saisissez vous-même l'URL du dashboard — voir [`android/`](android/README.md).
 
 ## Configuration
 
