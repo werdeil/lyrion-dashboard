@@ -1,16 +1,11 @@
-Application compagnon de l'application web Lyrion Dashboard, une vue
-« lecture en cours » auto-hébergée pour Lyrion Music Server (anciennement
-Logitech Media Server / Squeezebox).
+Application compagnon de l'application web Lyrion Dashboard, une vue « lecture en cours » auto-hébergée pour Lyrion Music Server (anciennement Logitech Media Server / Squeezebox).
 
 Fonctionnalités :
 
-* Lecture en cours : pochette, titre, artiste et album du lecteur actif,
-  rafraîchis en direct, avec une couleur d'accent dérivée de la pochette
-* Paroles synchronisées façon karaoké, avec défilement manuel et bouton
-  de reprise du suivi automatique
+* Lecture en cours : pochette, titre, artiste et album du lecteur actif, rafraîchis en direct, avec une couleur d'accent dérivée de la pochette
+* Paroles synchronisées façon karaoké, avec défilement manuel et bouton de reprise du suivi automatique
 * Statistiques de la bibliothèque (albums, artistes, écoutes, genres…)
 * Découverte automatique du serveur Lyrion sur le réseau local
 * Écran maintenu allumé pendant l'affichage (configurable)
 
-Cette application nécessite une instance du serveur Lyrion Dashboard
-sur votre réseau — voir la page du projet pour l'installation.
+Cette application nécessite une instance du serveur Lyrion Dashboard sur votre réseau — voir la page du projet pour l'installation.
