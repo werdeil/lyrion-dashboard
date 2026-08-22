@@ -58,7 +58,7 @@ CI is `.github/workflows/android.yml`: on every push touching `android/**` it ru
 
 ## Strings / i18n
 
-App strings are bilingual like the web app: `res/values/strings.xml` (EN) and `res/values-fr/strings.xml` (FR) must carry the same keys. Store-listing texts live under `fastlane/metadata/android/{en-US,fr-FR}/`. Add a new string to both locales — never one only. The same tree holds `images/icon.png`, the 512x512 render of `static/favicon.svg` that F-Droid shows on the app page: its indexer cannot render the adaptive-icon XML, so without that bitmap the listing has no icon.
+App strings are bilingual like the web app: `res/values/strings.xml` (EN) and `res/values-fr/strings.xml` (FR) must carry the same keys. Store-listing texts live under `fastlane/metadata/android/{en-US,fr-FR}/`. Add a new string to both locales — never one only. The same tree holds `images/icon.png`, the 512x512 render of `static/favicon.svg` that F-Droid shows on the app page: its indexer cannot render the adaptive-icon XML, so without that bitmap the listing has no icon. `full_description.txt` is never hard-wrapped — F-Droid clients keep every newline, so a paragraph wrapped at 70 columns renders ragged; one paragraph (and one bullet) is one line, however long.
 
 ## Checklist
 
