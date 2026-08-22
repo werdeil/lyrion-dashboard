@@ -49,7 +49,7 @@ Versioning: bump `versionCode` and `versionName` in `app/build.gradle.kts` befor
 
 ## F-Droid
 
-The app is published on F-Droid: https://f-droid.org/packages/com.werdeil.lyriondashboard/. F-Droid builds it itself from the tagged source of this repo (gradle subdir `android/app`, `UpdateCheckMode: Tags`, `AutoUpdateMode: Version`), so a new `vX.Y.Z` tag is picked up and built automatically — which is why `versionCode`/`versionName` stay static literals in the gradle file. The store listing texts live under [`fastlane/metadata/android/`](../fastlane/metadata/android), in English and French.
+The app is published on F-Droid: https://f-droid.org/packages/com.werdeil.lyriondashboard/. F-Droid builds it itself from the tagged source of this repo (gradle subdir `android/app`, `UpdateCheckMode: Tags`, `AutoUpdateMode: Version`), so a new `vX.Y.Z` tag is picked up and built automatically — which is why `versionCode`/`versionName` stay static literals in the gradle file. The store listing texts live under [`fastlane/metadata/android/`](../fastlane/metadata/android), in English and French, next to the `images/icon.png` F-Droid shows on the app page — it needs a bitmap there because its indexer cannot render the adaptive-icon XML the APK ships as its launcher icon. Regenerate it by rendering `static/favicon.svg` at 512x512.
 
 To create a keystore and export it for CI:
 
