@@ -237,6 +237,10 @@ playwright install chromium   # une seule fois
 python scripts/generate_screenshots.py
 ```
 
+## Sponsor
+
+Si ce tableau de bord vous est utile, vous pouvez soutenir son développement via [GitHub Sponsors](https://github.com/sponsors/werdeil). C'est entièrement facultatif : le projet reste gratuit et sous licence MIT dans tous les cas.
+
 ## Licence
 
 Ce projet est distribué sous licence MIT — voir le fichier [LICENSE](LICENSE).
