@@ -1447,6 +1447,18 @@ function animateCard(from, to, closing) {
         [{ height: from + 'px' }, { height: to + 'px' }], zoomOpts(closing)));
 }
 
+// The card's content clears out under the enlarged cover, on the same beat as
+// the picture, so the panel keeps its own background rather than gaining a veil.
+function animateCardContent(closing) {
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) { return; }
+    var frames = closing
+        ? [{ opacity: 0 }, { opacity: 1 }]
+        : [{ opacity: 1 }, { opacity: 0 }];
+    for (var i = 0; i < nowPlaying.children.length; i++) {
+        zoomAnims.push(nowPlaying.children[i].animate(frames, zoomOpts(closing)));
+    }
+}
+
 function openCoverZoom() {
     if (!coverZoom.root || !el.cover.getAttribute('src')) { return; }
     var from = el.cover.getBoundingClientRect();
@@ -1457,6 +1469,7 @@ function openCoverZoom() {
     coverZoom.button.setAttribute('aria-expanded', 'true');
     syncCoverZoom();
     animateZoom(from, false);
+    animateCardContent(false);
     animateCard(cardHeight, nowPlaying.getBoundingClientRect().height, false);
 }
 
@@ -1477,6 +1490,7 @@ function closeCoverZoom() {
     var natural = nowPlaying.getBoundingClientRect().height;
     coverZoom.panel.classList.add('is-zoomed');
     var shrink = animateZoom(el.cover.getBoundingClientRect(), true);
+    animateCardContent(true);
     animateCard(squared, natural, true);
     if (shrink) {
         shrink.onfinish = endCoverZoom;

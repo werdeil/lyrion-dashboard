@@ -1121,21 +1121,23 @@ body.in-app .page-header {
     color: #ffb7c0;
 }
 
-/* Enlarged cover, covering the now-playing panel only. */
+/* Enlarged cover, covering the now-playing panel only. It has no surface of
+   its own: the card's content clears out under it (see is-zoomed below). */
 .cover-zoom {
+    --cover-zoom-radius: 10px;
     position: absolute;
     inset: 0;
     display: flex;
     align-items: center;
     justify-content: center;
     padding: clamp(12px, 3%, 32px);
-    border-radius: 12px;
-    background: color-mix(in srgb, var(--tint-color) 20%, rgba(12, 12, 12, 0.93));
-    backdrop-filter: blur(24px);
-    -webkit-backdrop-filter: blur(24px);
     cursor: zoom-out;
     /* Query container: the artwork's box is sized off the panel's height. */
     container-type: size;
+}
+
+.left-panel.is-zoomed .now-playing > * {
+    opacity: 0;
 }
 
 /* display:flex above would defeat the hidden attribute without this. */
@@ -1161,7 +1163,7 @@ body.in-app .page-header {
     width: 100%;
     height: 100%;
     object-fit: contain;
-    border-radius: 10px;
+    border-radius: var(--cover-zoom-radius);
     box-shadow: 0 18px 44px rgba(0, 0, 0, 0.5);
 }
 
@@ -1170,7 +1172,7 @@ body.in-app .page-header {
     position: absolute;
     inset: auto 0 0 0;
     padding: 28px 16px 14px;
-    border-radius: 0 0 10px 10px;
+    border-radius: 0 0 var(--cover-zoom-radius) var(--cover-zoom-radius);
     text-align: center;
     background: linear-gradient(to top, rgba(0, 0, 0, 0.78), rgba(0, 0, 0, 0.45) 55%, transparent);
 }
@@ -1180,7 +1182,7 @@ body.in-app .page-header {
     position: absolute;
     inset: auto 0 0 0;
     height: 4px;
-    border-radius: 0 0 10px 10px;
+    border-radius: 0 0 var(--cover-zoom-radius) var(--cover-zoom-radius);
     background: rgba(255, 255, 255, 0.22);
     overflow: hidden;
 }
@@ -1212,13 +1214,21 @@ body.in-app .page-header {
 }
 
 /* Stacked layouts grow the card with the lyrics far past its own width, so
-   the enlarged cover squares the panel off. */
+   the enlarged cover squares the panel off and takes it edge to edge — the
+   same width as the stats panel under it. */
 @media (max-width: 860px) and (min-height: 601px) {
     .left-panel.is-zoomed .now-playing {
         aspect-ratio: 1 / 1;
         height: auto;
         min-height: 0;
         overflow: hidden;
+    }
+    .cover-zoom {
+        --cover-zoom-radius: 12px;
+        padding: 0;
+    }
+    .cover-zoom-img {
+        box-shadow: none;
     }
 }
 
@@ -1355,10 +1365,12 @@ body.in-app .page-header {
         max-height: 240px;
     }
     /* The card outgrows the screen here, so a cover anchored to it would open
-       below the fold: it takes the viewport instead. */
+       below the fold: it takes the viewport, over a backdrop of its own. */
     .cover-zoom {
         position: fixed;
-        border-radius: 0;
+        background: color-mix(in srgb, var(--tint-color) 20%, rgba(12, 12, 12, 0.93));
+        backdrop-filter: blur(24px);
+        -webkit-backdrop-filter: blur(24px);
     }
 }
 
