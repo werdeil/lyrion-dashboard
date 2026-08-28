@@ -57,9 +57,15 @@ The signature visual: the page samples the cover art (served **same-origin** via
 
 ## Enlarged cover
 
-The card's artwork is a button (`#np-cover-button`) opening `#cover-zoom`, an overlay holding the artwork and the track's title/artist/album. It covers `.left-panel` — the now-playing card only, leaving the stats panel readable — and is a sibling of the card rather than a child of it, because the card's `backdrop-filter` would make it the containing block of any `position: fixed` descendant. Narrow landscape is the one configuration where the card outgrows the screen, so there the overlay switches to `position: fixed` and takes the viewport.
+The card's artwork is a button (`#np-cover-button`) opening `#cover-zoom`, an overlay holding the artwork with the track's title/artist/album over its lower edge. It covers `.left-panel` — the now-playing card only, leaving the stats panel readable — and is a sibling of the card rather than a child, because the card's `backdrop-filter` would make it the containing block of any `position: fixed` descendant. Narrow landscape is the one configuration where the card outgrows the screen, so there the overlay switches to `position: fixed` and takes the viewport.
 
-It closes on a click anywhere on it (the close button included, by bubbling) or on Escape, and `render()` closes it when playback stops; the trigger carries `aria-expanded`. The card shows a 512px thumbnail; the overlay paints that cached thumbnail first and swaps in the original artwork (the same `/cover/` URL without `?size=`) once it has loaded, so it never shows a blank frame. The artwork is never upscaled past its own resolution — its border and shadow hug the image, which only holds while the element box is the artwork's box.
+There is no close button: a click anywhere on the overlay closes it, as does Escape, and `render()` closes it when playback stops. Focus never leaves the trigger, which carries `aria-expanded`.
+
+`.cover-zoom-figure` is sized as the largest box of the artwork's ratio that fits the panel — `--cover-r` (set from the card image's `naturalWidth/naturalHeight`, which is already decoded) plus a `100cqh` width off the overlay's container query. The picture fills that box, upscaled when the panel is bigger than the artwork, and the rounded edge, shadow and caption hug the picture rather than a letterboxed box. On the stacked layouts the card grows with the lyrics far past its own width, so `.left-panel.is-zoomed` squares it off.
+
+Opening is a FLIP: `animateZoom` measures the card cover's box and the enlarged figure's box at run time — the panel's height follows the lyrics, so neither is fixed — and animates the figure from one to the other while the backdrop fades in and the caption arrives late; `animateCard` animates the card's height over the same beat so the stats below slide rather than jump. Closing plays it backwards and only then sets `hidden`. Everything is skipped under `prefers-reduced-motion`.
+
+The card shows a 512px thumbnail; the overlay paints that cached thumbnail first and swaps in the original artwork (the same `/cover/` URL without `?size=`) once it has loaded, so it never shows a blank frame.
 
 ## Mosaic and recent-plays pile
 

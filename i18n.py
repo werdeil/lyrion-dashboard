@@ -29,7 +29,6 @@ TRANSLATIONS = {
         "app_menu": "Menu de l'application",
         "cover_alt": "Pochette",
         "cover_zoom": "Agrandir la pochette",
-        "cover_zoom_close": "Fermer la pochette",
         "source_prefix": "Source :",
         "source_library": "Bibliothèque",
         # Stats
@@ -73,7 +72,6 @@ TRANSLATIONS = {
         "app_menu": "App menu",
         "cover_alt": "Cover",
         "cover_zoom": "Enlarge the cover",
-        "cover_zoom_close": "Close the cover",
         "source_prefix": "Source:",
         "source_library": "Library",
         # Stats

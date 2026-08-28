@@ -107,15 +107,9 @@
                 </div>
             </div>
             {# Enlarged cover, opened by clicking the one in the card: it
-               covers the card only, so the stats panel stays readable. #}
+               covers this panel only, so the stats panel stays readable. #}
             <div class="cover-zoom" id="cover-zoom" aria-label="{{ t.cover_zoom }}" hidden>
-                <button type="button" class="cover-zoom-close" id="cover-zoom-close"
-                        title="{{ t.cover_zoom_close }}" aria-label="{{ t.cover_zoom_close }}">
-                    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                        <path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
-                    </svg>
-                </button>
-                <figure class="cover-zoom-figure">
+                <figure class="cover-zoom-figure" id="cover-zoom-figure">
                     <img class="cover-zoom-img" id="cover-zoom-img" alt="{{ t.cover_alt }}">
                     <figcaption class="cover-zoom-meta">
                         <p class="cover-zoom-title" id="cover-zoom-title"></p>

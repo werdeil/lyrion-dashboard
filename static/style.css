@@ -1124,7 +1124,8 @@ body.in-app .page-header {
 
 /* Enlarged cover: it covers the now-playing panel only, so the stats panel
    next to it stays readable. The backdrop carries the page tint and blurs the
-   card behind it. */
+   card behind it. It sits beside the card rather than inside it, whose
+   backdrop-filter would trap a fixed-position descendant. */
 .cover-zoom {
     position: absolute;
     inset: 0;
@@ -1133,11 +1134,13 @@ body.in-app .page-header {
     justify-content: center;
     padding: clamp(12px, 3%, 32px);
     border-radius: 12px;
-    background: color-mix(in srgb, var(--tint-color) 20%, rgba(12, 12, 12, 0.9));
+    background: color-mix(in srgb, var(--tint-color) 20%, rgba(12, 12, 12, 0.93));
     backdrop-filter: blur(24px);
     -webkit-backdrop-filter: blur(24px);
     cursor: zoom-out;
-    animation: cover-zoom-in 180ms ease both;
+    /* Query container, so the artwork's box can be sized off the panel's
+       height (cqh) as well as its width. */
+    container-type: size;
 }
 
 /* display:flex above would defeat the hidden attribute without this. */
@@ -1145,38 +1148,39 @@ body.in-app .page-header {
     display: none;
 }
 
-@keyframes cover-zoom-in {
-    from { opacity: 0; transform: scale(0.98); }
-}
-
+/* The largest box of the artwork's ratio (--cover-r, set from JS) that fits
+   the panel: the picture fills it, upscaled past its stored resolution when
+   the panel is bigger, and the rounded edge and the caption hug the picture
+   rather than a letterboxed box. The plain width is the fallback where
+   container units are missing. */
 .cover-zoom-figure {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: clamp(10px, 2vmin, 20px);
-    margin: 0;
-    max-width: 100%;
+    position: relative;
+    width: 100%;
+    width: min(100%, calc(100cqh * var(--cover-r, 1)));
     max-height: 100%;
-    min-height: 0;
-    text-align: center;
+    aspect-ratio: var(--cover-r, 1);
+    margin: 0;
+    /* The opening animation grows this box out of the card cover's box. */
+    transform-origin: top left;
 }
 
 .cover-zoom-img {
-    /* shrink-only in a column that also holds the caption, so the artwork
-       gives room back to the text instead of pushing it out of the card. */
-    flex: 0 1 auto;
-    min-height: 0;
-    max-width: 100%;
-    max-height: 100%;
+    display: block;
+    width: 100%;
+    height: 100%;
     object-fit: contain;
     border-radius: 10px;
-    border: 1px solid color-mix(in srgb, var(--tint-color) 30%, var(--border-color));
     box-shadow: 0 18px 44px rgba(0, 0, 0, 0.5);
 }
 
+/* On the artwork rather than under it: the picture keeps the whole panel. */
 .cover-zoom-meta {
-    min-width: 0;
-    max-width: 100%;
+    position: absolute;
+    inset: auto 0 0 0;
+    padding: 28px 16px 14px;
+    border-radius: 0 0 10px 10px;
+    text-align: center;
+    background: linear-gradient(to top, rgba(0, 0, 0, 0.78), rgba(0, 0, 0, 0.45) 55%, transparent);
 }
 
 .cover-zoom-title {
@@ -1187,7 +1191,7 @@ body.in-app .page-header {
 }
 
 .cover-zoom-artist {
-    margin: 6px 0 0 0;
+    margin: 4px 0 0 0;
     font-size: var(--fs-lg);
     color: var(--accent-color);
 }
@@ -1195,48 +1199,17 @@ body.in-app .page-header {
 .cover-zoom-album {
     margin: 2px 0 0 0;
     font-size: var(--fs-sm);
-    color: var(--text-muted);
+    color: var(--text);
 }
 
-.cover-zoom-close {
-    position: absolute;
-    top: 12px;
-    right: 12px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 36px;
-    height: 36px;
-    padding: 0;
-    border-radius: 50%;
-    background: color-mix(in srgb, var(--tint-color) 22%, rgba(48, 48, 48, 0.7));
-    color: var(--text-bright);
-    cursor: pointer;
-}
-
-.cover-zoom-close svg {
-    width: 20px;
-    height: 20px;
-    fill: currentColor;
-}
-
-@media (prefers-reduced-motion: reduce) {
-    .cover-zoom {
-        animation: none;
-    }
-}
-
-/* Short viewports: the caption moves beside the artwork so the cover still
-   gets the card's full height. A definite height, so the artwork's max-height
-   resolves against it: in a row the flex shrink works on the width only. */
-@media (max-height: 600px) and (orientation: landscape) {
-    .cover-zoom-figure {
-        flex-direction: row;
-        height: 100%;
-        text-align: left;
-    }
-    .cover-zoom-img {
-        min-width: 0;
+/* Stacked layouts grow the card with the lyrics, far past its own width; the
+   enlarged cover squares the panel off instead of floating in that column. */
+@media (max-width: 860px) and (min-height: 601px) {
+    .left-panel.is-zoomed .now-playing {
+        aspect-ratio: 1 / 1;
+        height: auto;
+        min-height: 0;
+        overflow: hidden;
     }
 }
 

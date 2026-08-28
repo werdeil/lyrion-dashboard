@@ -1345,16 +1345,21 @@ if (el.scrollReset) {
 }
 
 // Enlarged cover: the card's artwork is a button that blows it up over the
-// card itself, dismissed by a click anywhere on it or by Escape.
+// panel, dismissed by a click anywhere on it or by Escape.
 var coverZoom = {
     root: document.getElementById('cover-zoom'),
+    figure: document.getElementById('cover-zoom-figure'),
     img: document.getElementById('cover-zoom-img'),
+    meta: document.querySelector('.cover-zoom-meta'),
     title: document.getElementById('cover-zoom-title'),
     artist: document.getElementById('cover-zoom-artist'),
     album: document.getElementById('cover-zoom-album'),
-    close: document.getElementById('cover-zoom-close'),
     button: document.getElementById('np-cover-button'),
+    panel: document.querySelector('.left-panel'),
 };
+
+var ZOOM_MS = 260;
+var zoomAnims = [];
 
 // The card shows a 512px thumbnail; dropping ?size= asks the same route for
 // the original artwork, which is what the enlarged view deserves. The
@@ -1377,24 +1382,100 @@ function syncCoverZoom() {
         };
         preload.src = full;
     }
+    // Read off the card's copy, which is already decoded: the enlarged one may
+    // still be loading when the opening animation measures its box.
+    if (el.cover.naturalWidth && el.cover.naturalHeight) {
+        coverZoom.figure.style.setProperty(
+            '--cover-r', el.cover.naturalWidth / el.cover.naturalHeight);
+    }
     coverZoom.title.textContent = el.title.textContent;
     coverZoom.artist.textContent = el.artist.textContent;
     coverZoom.album.textContent = el.album.textContent;
 }
 
+function stopZoomAnims() {
+    for (var i = 0; i < zoomAnims.length; i++) { zoomAnims[i].cancel(); }
+    zoomAnims = [];
+}
+
+// The picture grows out of the card cover's own box (and shrinks back into
+// it), so the zoom reads as the artwork expanding rather than a panel opening
+// over it. Both boxes are measured per run: the panel's height follows the
+// lyrics, and the enlarged picture is laid out from the artwork's ratio.
+function animateZoom(from, closing) {
+    var big = coverZoom.figure.getBoundingClientRect();
+    if (!from.width || !big.width ||
+        window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        return null;
+    }
+    var small = {
+        transform: 'translate(' + (from.left - big.left) + 'px, ' + (from.top - big.top) +
+            'px) scale(' + (from.width / big.width) + ')',
+    };
+    var grown = { transform: 'none' };
+    // The caption only fades in once the picture is nearly in place, and
+    // leaves first on the way out: shrunk to the card cover's size it would
+    // be illegible anyway.
+    var caption = closing
+        ? [{ opacity: 1, offset: 0 }, { opacity: 0, offset: 0.45 }, { opacity: 0, offset: 1 }]
+        : [{ opacity: 0, offset: 0 }, { opacity: 0, offset: 0.55 }, { opacity: 1, offset: 1 }];
+    var opts = { duration: ZOOM_MS, easing: 'cubic-bezier(0.2, 0, 0.2, 1)', fill: 'both' };
+    zoomAnims = [
+        coverZoom.figure.animate(closing ? [grown, small] : [small, grown], opts),
+        coverZoom.meta.animate(caption, opts),
+        coverZoom.root.animate({ opacity: closing ? [1, 0] : [0, 1] }, opts),
+    ];
+    return zoomAnims[0];
+}
+
+// Squaring the panel off moves everything below it, so the height is animated
+// alongside the picture instead of jumping under it.
+function animateCard(from, to) {
+    if (Math.abs(from - to) < 1 ||
+        window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        return;
+    }
+    zoomAnims.push(nowPlaying.animate(
+        [{ height: from + 'px' }, { height: to + 'px' }],
+        { duration: ZOOM_MS, easing: 'cubic-bezier(0.2, 0, 0.2, 1)', fill: 'both' }));
+}
+
 function openCoverZoom() {
     if (!coverZoom.root || !el.cover.getAttribute('src')) { return; }
+    var from = el.cover.getBoundingClientRect();
+    var cardHeight = nowPlaying.getBoundingClientRect().height;
+    stopZoomAnims();
     coverZoom.root.hidden = false;
+    coverZoom.panel.classList.add('is-zoomed');
     coverZoom.button.setAttribute('aria-expanded', 'true');
     syncCoverZoom();
-    coverZoom.close.focus();
+    animateZoom(from, false);
+    animateCard(cardHeight, nowPlaying.getBoundingClientRect().height);
+}
+
+function endCoverZoom() {
+    stopZoomAnims();
+    coverZoom.root.hidden = true;
+    coverZoom.panel.classList.remove('is-zoomed');
 }
 
 function closeCoverZoom() {
     if (!coverZoom.root || coverZoom.root.hidden) { return; }
-    coverZoom.root.hidden = true;
     coverZoom.button.setAttribute('aria-expanded', 'false');
-    coverZoom.button.focus();
+    stopZoomAnims();
+    var squared = nowPlaying.getBoundingClientRect().height;
+    // Measured with the class off and put back at once, in the same frame:
+    // the panel keeps clipping its content while it grows back.
+    coverZoom.panel.classList.remove('is-zoomed');
+    var natural = nowPlaying.getBoundingClientRect().height;
+    coverZoom.panel.classList.add('is-zoomed');
+    var shrink = animateZoom(el.cover.getBoundingClientRect(), true);
+    animateCard(squared, natural);
+    if (shrink) {
+        shrink.onfinish = endCoverZoom;
+    } else {
+        endCoverZoom();
+    }
 }
 
 if (coverZoom.button && coverZoom.root) {
