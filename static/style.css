@@ -133,9 +133,8 @@ hr {
 .left-panel {
     flex: 1 1 0;
     min-width: 0;
-    /* Containing block of the enlarged cover, which covers this panel only.
-       It sits here rather than in the card, whose backdrop-filter would trap
-       a fixed-position descendant. */
+    /* Containing block of the enlarged cover: not the card, whose
+       backdrop-filter would trap a fixed-position descendant. */
     position: relative;
 }
 
@@ -277,8 +276,8 @@ hr {
     z-index: 30;
 }
 
-/* The cover doubles as the button opening the full-screen view; it must add
-   no box of its own so the image keeps filling the square. */
+/* The cover doubles as the button enlarging it; it must add no box of its
+   own so the image keeps filling the square. */
 .np-cover-button {
     display: block;
     width: 100%;
@@ -1122,10 +1121,7 @@ body.in-app .page-header {
     color: #ffb7c0;
 }
 
-/* Enlarged cover: it covers the now-playing panel only, so the stats panel
-   next to it stays readable. The backdrop carries the page tint and blurs the
-   card behind it. It sits beside the card rather than inside it, whose
-   backdrop-filter would trap a fixed-position descendant. */
+/* Enlarged cover, covering the now-playing panel only. */
 .cover-zoom {
     position: absolute;
     inset: 0;
@@ -1138,8 +1134,7 @@ body.in-app .page-header {
     backdrop-filter: blur(24px);
     -webkit-backdrop-filter: blur(24px);
     cursor: zoom-out;
-    /* Query container, so the artwork's box can be sized off the panel's
-       height (cqh) as well as its width. */
+    /* Query container: the artwork's box is sized off the panel's height. */
     container-type: size;
 }
 
@@ -1149,10 +1144,7 @@ body.in-app .page-header {
 }
 
 /* The largest box of the artwork's ratio (--cover-r, set from JS) that fits
-   the panel: the picture fills it, upscaled past its stored resolution when
-   the panel is bigger, and the rounded edge and the caption hug the picture
-   rather than a letterboxed box. The plain width is the fallback where
-   container units are missing. */
+   the panel; the plain width is the fallback without container units. */
 .cover-zoom-figure {
     position: relative;
     width: 100%;
@@ -1219,8 +1211,8 @@ body.in-app .page-header {
     color: var(--text);
 }
 
-/* Stacked layouts grow the card with the lyrics, far past its own width; the
-   enlarged cover squares the panel off instead of floating in that column. */
+/* Stacked layouts grow the card with the lyrics far past its own width, so
+   the enlarged cover squares the panel off. */
 @media (max-width: 860px) and (min-height: 601px) {
     .left-panel.is-zoomed .now-playing {
         aspect-ratio: 1 / 1;

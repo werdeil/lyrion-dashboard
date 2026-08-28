@@ -1371,9 +1371,8 @@ function zoomOpts(closing) {
     };
 }
 
-// The card shows a 512px thumbnail; dropping ?size= asks the same route for
-// the original artwork, which is what the enlarged view deserves. The
-// remote-artwork URL carries a per-track cache buster instead, so it stays.
+// Dropping ?size= asks the same route for the original artwork; the remote
+// URL carries a per-track cache buster instead, so it keeps its query.
 function fullCoverSrc(src) {
     return src.indexOf('/cover/remote.jpg') === 0 ? src : src.split('?')[0];
 }
@@ -1408,10 +1407,8 @@ function stopZoomAnims() {
     zoomAnims = [];
 }
 
-// The picture grows out of the card cover's own box (and shrinks back into
-// it), so the zoom reads as the artwork expanding rather than a panel opening
-// over it. Both boxes are measured per run: the panel's height follows the
-// lyrics, and the enlarged picture is laid out from the artwork's ratio.
+// Both boxes are measured per run: the panel's height follows the lyrics, and
+// the enlarged picture is laid out from the artwork's ratio.
 function animateZoom(from, closing) {
     var big = coverZoom.figure.getBoundingClientRect();
     if (!from.width || !big.width ||
@@ -1423,9 +1420,8 @@ function animateZoom(from, closing) {
             'px) scale(' + (from.width / big.width) + ')',
     };
     var grown = { transform: 'none' };
-    // The caption only fades in once the picture is nearly in place, and
-    // leaves first on the way out: shrunk to the card cover's size it would
-    // be illegible anyway.
+    // The caption arrives once the picture is nearly in place and leaves
+    // first: shrunk to the card cover's size it would be illegible.
     var caption = closing
         ? [{ opacity: 1, offset: 0 }, { opacity: 0, offset: 0.45 }, { opacity: 0, offset: 1 }]
         : [{ opacity: 0, offset: 0 }, { opacity: 0, offset: 0.55 }, { opacity: 1, offset: 1 }];
@@ -1440,8 +1436,8 @@ function animateZoom(from, closing) {
     return zoomAnims[0];
 }
 
-// Squaring the panel off moves everything below it, so the height is animated
-// alongside the picture instead of jumping under it.
+// Squaring the panel off moves everything below it, so its height is animated
+// alongside the picture.
 function animateCard(from, to, closing) {
     if (Math.abs(from - to) < 1 ||
         window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
