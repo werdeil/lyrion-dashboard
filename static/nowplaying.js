@@ -433,6 +433,7 @@ function paintProgress() {
         ? Math.max(0, Math.min(100, (t / progress.duration) * 100))
         : 0;
     el.progressBar.style.width = pct + '%';
+    if (coverZoom && coverZoom.progressBar) { coverZoom.progressBar.style.width = pct + '%'; }
     if (lrcLines) { syncLyrics(); }
 }
 
@@ -1351,6 +1352,7 @@ var coverZoom = {
     figure: document.getElementById('cover-zoom-figure'),
     img: document.getElementById('cover-zoom-img'),
     meta: document.querySelector('.cover-zoom-meta'),
+    progressBar: document.getElementById('cover-zoom-progress-bar'),
     title: document.getElementById('cover-zoom-title'),
     artist: document.getElementById('cover-zoom-artist'),
     album: document.getElementById('cover-zoom-album'),
@@ -1360,6 +1362,14 @@ var coverZoom = {
 
 var ZOOM_MS = 260;
 var zoomAnims = [];
+
+function zoomOpts(closing) {
+    return {
+        duration: ZOOM_MS,
+        easing: 'cubic-bezier(0.2, 0, 0.2, 1)',
+        fill: closing ? 'both' : 'backwards',
+    };
+}
 
 // The card shows a 512px thumbnail; dropping ?size= asks the same route for
 // the original artwork, which is what the enlarged view deserves. The
@@ -1419,7 +1429,9 @@ function animateZoom(from, closing) {
     var caption = closing
         ? [{ opacity: 1, offset: 0 }, { opacity: 0, offset: 0.45 }, { opacity: 0, offset: 1 }]
         : [{ opacity: 0, offset: 0 }, { opacity: 0, offset: 0.55 }, { opacity: 1, offset: 1 }];
-    var opts = { duration: ZOOM_MS, easing: 'cubic-bezier(0.2, 0, 0.2, 1)', fill: 'both' };
+    // Opening fills backwards only: once it ends the enlarged state comes from
+    // the stylesheet, never from an animation left holding its last frame.
+    var opts = zoomOpts(closing);
     zoomAnims = [
         coverZoom.figure.animate(closing ? [grown, small] : [small, grown], opts),
         coverZoom.meta.animate(caption, opts),
@@ -1430,14 +1442,13 @@ function animateZoom(from, closing) {
 
 // Squaring the panel off moves everything below it, so the height is animated
 // alongside the picture instead of jumping under it.
-function animateCard(from, to) {
+function animateCard(from, to, closing) {
     if (Math.abs(from - to) < 1 ||
         window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
         return;
     }
     zoomAnims.push(nowPlaying.animate(
-        [{ height: from + 'px' }, { height: to + 'px' }],
-        { duration: ZOOM_MS, easing: 'cubic-bezier(0.2, 0, 0.2, 1)', fill: 'both' }));
+        [{ height: from + 'px' }, { height: to + 'px' }], zoomOpts(closing)));
 }
 
 function openCoverZoom() {
@@ -1450,7 +1461,7 @@ function openCoverZoom() {
     coverZoom.button.setAttribute('aria-expanded', 'true');
     syncCoverZoom();
     animateZoom(from, false);
-    animateCard(cardHeight, nowPlaying.getBoundingClientRect().height);
+    animateCard(cardHeight, nowPlaying.getBoundingClientRect().height, false);
 }
 
 function endCoverZoom() {
@@ -1470,7 +1481,7 @@ function closeCoverZoom() {
     var natural = nowPlaying.getBoundingClientRect().height;
     coverZoom.panel.classList.add('is-zoomed');
     var shrink = animateZoom(el.cover.getBoundingClientRect(), true);
-    animateCard(squared, natural);
+    animateCard(squared, natural, true);
     if (shrink) {
         shrink.onfinish = endCoverZoom;
     } else {
