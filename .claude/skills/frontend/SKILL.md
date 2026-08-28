@@ -55,9 +55,11 @@ The signature visual: the page samples the cover art (served **same-origin** via
 
 `parseLRC` turns timestamped LRC into `[{time, text}]`; `syncLyrics` (driven off the aged playback `time` from the poll) highlights the current line via `paintLine` and auto-scrolls, unless the user scrolled away (`setAutoFollow`, `updateScrollReset`, the resume-scroll button). Plain (un-timed) lyrics render as static text. The web-search switch (`setAuto`) is `off`/`auto`, persisted in `localStorage`; display always prefers synced over plain — it's never a user choice.
 
-## Full-screen cover
+## Enlarged cover
 
-The card's artwork is a button (`#np-cover-button`) opening `#cover-zoom`, a fixed overlay holding the artwork and the track's title/artist/album. It closes on a click anywhere on it (the close button included, by bubbling) or on Escape, and `render()` closes it when playback stops. The card shows a 512px thumbnail; the overlay paints that cached thumbnail first and swaps in the original artwork (the same `/cover/` URL without `?size=`) once it has loaded, so it never shows a blank frame. The artwork is never upscaled past its own resolution — its border and shadow hug the image, which only holds while the element box is the artwork's box.
+The card's artwork is a button (`#np-cover-button`) opening `#cover-zoom`, an overlay holding the artwork and the track's title/artist/album. It covers `.left-panel` — the now-playing card only, leaving the stats panel readable — and is a sibling of the card rather than a child of it, because the card's `backdrop-filter` would make it the containing block of any `position: fixed` descendant. Narrow landscape is the one configuration where the card outgrows the screen, so there the overlay switches to `position: fixed` and takes the viewport.
+
+It closes on a click anywhere on it (the close button included, by bubbling) or on Escape, and `render()` closes it when playback stops; the trigger carries `aria-expanded`. The card shows a 512px thumbnail; the overlay paints that cached thumbnail first and swaps in the original artwork (the same `/cover/` URL without `?size=`) once it has loaded, so it never shows a blank frame. The artwork is never upscaled past its own resolution — its border and shadow hug the image, which only holds while the element box is the artwork's box.
 
 ## Mosaic and recent-plays pile
 

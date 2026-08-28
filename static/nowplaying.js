@@ -1344,8 +1344,8 @@ if (el.scrollReset) {
     });
 }
 
-// Full-screen cover: the card's artwork is a button that blows it up over the
-// whole viewport, dismissed by a click anywhere on it or by Escape.
+// Enlarged cover: the card's artwork is a button that blows it up over the
+// card itself, dismissed by a click anywhere on it or by Escape.
 var coverZoom = {
     root: document.getElementById('cover-zoom'),
     img: document.getElementById('cover-zoom-img'),
@@ -1357,7 +1357,7 @@ var coverZoom = {
 };
 
 // The card shows a 512px thumbnail; dropping ?size= asks the same route for
-// the original artwork, which is what the full-screen view deserves. The
+// the original artwork, which is what the enlarged view deserves. The
 // remote-artwork URL carries a per-track cache buster instead, so it stays.
 function fullCoverSrc(src) {
     return src.indexOf('/cover/remote.jpg') === 0 ? src : src.split('?')[0];
@@ -1385,7 +1385,7 @@ function syncCoverZoom() {
 function openCoverZoom() {
     if (!coverZoom.root || !el.cover.getAttribute('src')) { return; }
     coverZoom.root.hidden = false;
-    document.body.classList.add('cover-zoom-open');
+    coverZoom.button.setAttribute('aria-expanded', 'true');
     syncCoverZoom();
     coverZoom.close.focus();
 }
@@ -1393,8 +1393,8 @@ function openCoverZoom() {
 function closeCoverZoom() {
     if (!coverZoom.root || coverZoom.root.hidden) { return; }
     coverZoom.root.hidden = true;
-    document.body.classList.remove('cover-zoom-open');
-    if (coverZoom.button) { coverZoom.button.focus(); }
+    coverZoom.button.setAttribute('aria-expanded', 'false');
+    coverZoom.button.focus();
 }
 
 if (coverZoom.button && coverZoom.root) {

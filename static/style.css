@@ -133,6 +133,10 @@ hr {
 .left-panel {
     flex: 1 1 0;
     min-width: 0;
+    /* Containing block of the enlarged cover, which covers this panel only.
+       It sits here rather than in the card, whose backdrop-filter would trap
+       a fixed-position descendant. */
+    position: relative;
 }
 
 .stats-panel {
@@ -1118,20 +1122,20 @@ body.in-app .page-header {
     color: #ffb7c0;
 }
 
-/* Full-screen cover, opened from the card. The backdrop carries the page tint
-   over near-black and blurs the dashboard behind it, so the zoom reads as the
-   same surface rather than a foreign modal. */
+/* Enlarged cover: it covers the now-playing panel only, so the stats panel
+   next to it stays readable. The backdrop carries the page tint and blurs the
+   card behind it. */
 .cover-zoom {
-    position: fixed;
+    position: absolute;
     inset: 0;
-    z-index: 100;
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: clamp(16px, 4vmin, 48px);
+    padding: clamp(12px, 3%, 32px);
+    border-radius: 12px;
     background: color-mix(in srgb, var(--tint-color) 20%, rgba(12, 12, 12, 0.9));
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
     cursor: zoom-out;
     animation: cover-zoom-in 180ms ease both;
 }
@@ -1142,14 +1146,14 @@ body.in-app .page-header {
 }
 
 @keyframes cover-zoom-in {
-    from { opacity: 0; transform: scale(0.97); }
+    from { opacity: 0; transform: scale(0.98); }
 }
 
 .cover-zoom-figure {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: clamp(12px, 3vmin, 24px);
+    gap: clamp(10px, 2vmin, 20px);
     margin: 0;
     max-width: 100%;
     max-height: 100%;
@@ -1159,15 +1163,15 @@ body.in-app .page-header {
 
 .cover-zoom-img {
     /* shrink-only in a column that also holds the caption, so the artwork
-       gives room back to the text instead of pushing it off screen. */
+       gives room back to the text instead of pushing it out of the card. */
     flex: 0 1 auto;
     min-height: 0;
     max-width: 100%;
     max-height: 100%;
     object-fit: contain;
-    border-radius: 12px;
+    border-radius: 10px;
     border: 1px solid color-mix(in srgb, var(--tint-color) 30%, var(--border-color));
-    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.55);
+    box-shadow: 0 18px 44px rgba(0, 0, 0, 0.5);
 }
 
 .cover-zoom-meta {
@@ -1196,13 +1200,13 @@ body.in-app .page-header {
 
 .cover-zoom-close {
     position: absolute;
-    top: clamp(12px, 3vmin, 24px);
-    right: clamp(12px, 3vmin, 24px);
+    top: 12px;
+    right: 12px;
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 40px;
-    height: 40px;
+    width: 36px;
+    height: 36px;
     padding: 0;
     border-radius: 50%;
     background: color-mix(in srgb, var(--tint-color) 22%, rgba(48, 48, 48, 0.7));
@@ -1211,14 +1215,9 @@ body.in-app .page-header {
 }
 
 .cover-zoom-close svg {
-    width: 22px;
-    height: 22px;
+    width: 20px;
+    height: 20px;
     fill: currentColor;
-}
-
-/* The page under the overlay must not scroll behind it. */
-body.cover-zoom-open {
-    overflow: hidden;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -1228,10 +1227,9 @@ body.cover-zoom-open {
 }
 
 /* Short viewports: the caption moves beside the artwork so the cover still
-   gets the full height. */
+   gets the card's full height. A definite height, so the artwork's max-height
+   resolves against it: in a row the flex shrink works on the width only. */
 @media (max-height: 600px) and (orientation: landscape) {
-    /* A definite height, so the artwork's max-height resolves against it:
-       in a row the flex shrink works on the width only. */
     .cover-zoom-figure {
         flex-direction: row;
         height: 100%;
@@ -1373,6 +1371,12 @@ body.cover-zoom-open {
 @media (max-height: 600px) and (orientation: landscape) and (max-width: 860px) {
     .np-lyrics {
         max-height: 240px;
+    }
+    /* The card outgrows the screen here, so a cover anchored to it would open
+       below the fold: it takes the viewport instead. */
+    .cover-zoom {
+        position: fixed;
+        border-radius: 0;
     }
 }
 
