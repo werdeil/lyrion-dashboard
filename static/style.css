@@ -273,6 +273,24 @@ hr {
     z-index: 30;
 }
 
+/* The cover doubles as the button opening the full-screen view; it must add
+   no box of its own so the image keeps filling the square. */
+.np-cover-button {
+    display: block;
+    width: 100%;
+    height: 100%;
+    padding: 0;
+    border: none;
+    border-radius: 10px;
+    background: none;
+    cursor: zoom-in;
+}
+
+.np-cover-button:focus-visible {
+    outline: 2px solid var(--accent-color);
+    outline-offset: 3px;
+}
+
 .np-cover img {
     width: 100%;
     height: 100%;
@@ -1098,6 +1116,130 @@ body.in-app .page-header {
 .status.error {
     background: rgba(255, 125, 135, 0.12);
     color: #ffb7c0;
+}
+
+/* Full-screen cover, opened from the card. The backdrop carries the page tint
+   over near-black and blurs the dashboard behind it, so the zoom reads as the
+   same surface rather than a foreign modal. */
+.cover-zoom {
+    position: fixed;
+    inset: 0;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: clamp(16px, 4vmin, 48px);
+    background: color-mix(in srgb, var(--tint-color) 20%, rgba(12, 12, 12, 0.9));
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    cursor: zoom-out;
+    animation: cover-zoom-in 180ms ease both;
+}
+
+/* display:flex above would defeat the hidden attribute without this. */
+.cover-zoom[hidden] {
+    display: none;
+}
+
+@keyframes cover-zoom-in {
+    from { opacity: 0; transform: scale(0.97); }
+}
+
+.cover-zoom-figure {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: clamp(12px, 3vmin, 24px);
+    margin: 0;
+    max-width: 100%;
+    max-height: 100%;
+    min-height: 0;
+    text-align: center;
+}
+
+.cover-zoom-img {
+    /* shrink-only in a column that also holds the caption, so the artwork
+       gives room back to the text instead of pushing it off screen. */
+    flex: 0 1 auto;
+    min-height: 0;
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+    border-radius: 12px;
+    border: 1px solid color-mix(in srgb, var(--tint-color) 30%, var(--border-color));
+    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.55);
+}
+
+.cover-zoom-meta {
+    min-width: 0;
+    max-width: 100%;
+}
+
+.cover-zoom-title {
+    margin: 0;
+    font-size: var(--fs-xl);
+    font-weight: bold;
+    color: var(--text-bright);
+}
+
+.cover-zoom-artist {
+    margin: 6px 0 0 0;
+    font-size: var(--fs-lg);
+    color: var(--accent-color);
+}
+
+.cover-zoom-album {
+    margin: 2px 0 0 0;
+    font-size: var(--fs-sm);
+    color: var(--text-muted);
+}
+
+.cover-zoom-close {
+    position: absolute;
+    top: clamp(12px, 3vmin, 24px);
+    right: clamp(12px, 3vmin, 24px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    padding: 0;
+    border-radius: 50%;
+    background: color-mix(in srgb, var(--tint-color) 22%, rgba(48, 48, 48, 0.7));
+    color: var(--text-bright);
+    cursor: pointer;
+}
+
+.cover-zoom-close svg {
+    width: 22px;
+    height: 22px;
+    fill: currentColor;
+}
+
+/* The page under the overlay must not scroll behind it. */
+body.cover-zoom-open {
+    overflow: hidden;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .cover-zoom {
+        animation: none;
+    }
+}
+
+/* Short viewports: the caption moves beside the artwork so the cover still
+   gets the full height. */
+@media (max-height: 600px) and (orientation: landscape) {
+    /* A definite height, so the artwork's max-height resolves against it:
+       in a row the flex shrink works on the width only. */
+    .cover-zoom-figure {
+        flex-direction: row;
+        height: 100%;
+        text-align: left;
+    }
+    .cover-zoom-img {
+        min-width: 0;
+    }
 }
 
 /* Fixed, non-scrolling viewport layout — wide screens, tall or in landscape.

@@ -1060,6 +1060,7 @@ function render(data) {
         if (el.playerSwitch) { el.playerSwitch.hidden = true; el.playerSwitch.textContent = ''; }
         lastSwitchKey = null;
         el.cover.removeAttribute('src');
+        closeCoverZoom();
         setLyrionLink(null);
         resetColors();
         lastTrackKey = null;
@@ -1115,6 +1116,7 @@ function render(data) {
         // belongs on top of it now — and the new track's own album, if it was
         // in the pile, must come out (renderRecent drops it).
         loadRecent();
+        syncCoverZoom();
         setLyrics(data.lyrics || I18N.no_lyrics_library, !data.lyrics);
         setLyricsSource(data.lyrics ? 'library' : null);
         lyricsTried = false;
@@ -1339,6 +1341,67 @@ if (el.scrollReset) {
     el.scrollReset.addEventListener('click', function() {
         setAutoFollow(true);
         syncLyrics(true);
+    });
+}
+
+// Full-screen cover: the card's artwork is a button that blows it up over the
+// whole viewport, dismissed by a click anywhere on it or by Escape.
+var coverZoom = {
+    root: document.getElementById('cover-zoom'),
+    img: document.getElementById('cover-zoom-img'),
+    title: document.getElementById('cover-zoom-title'),
+    artist: document.getElementById('cover-zoom-artist'),
+    album: document.getElementById('cover-zoom-album'),
+    close: document.getElementById('cover-zoom-close'),
+    button: document.getElementById('np-cover-button'),
+};
+
+// The card shows a 512px thumbnail; dropping ?size= asks the same route for
+// the original artwork, which is what the full-screen view deserves. The
+// remote-artwork URL carries a per-track cache buster instead, so it stays.
+function fullCoverSrc(src) {
+    return src.indexOf('/cover/remote.jpg') === 0 ? src : src.split('?')[0];
+}
+
+function syncCoverZoom() {
+    if (!coverZoom.root || coverZoom.root.hidden) { return; }
+    var thumb = el.cover.getAttribute('src');
+    var full = thumb ? fullCoverSrc(thumb) : '';
+    if (full && coverZoom.img.getAttribute('src') !== full) {
+        // The thumbnail is already in cache, so it paints at once and the
+        // original swaps in only once it has loaded — never a blank frame.
+        coverZoom.img.src = thumb;
+        var preload = new Image();
+        preload.onload = function() {
+            if (el.cover.getAttribute('src') === thumb) { coverZoom.img.src = full; }
+        };
+        preload.src = full;
+    }
+    coverZoom.title.textContent = el.title.textContent;
+    coverZoom.artist.textContent = el.artist.textContent;
+    coverZoom.album.textContent = el.album.textContent;
+}
+
+function openCoverZoom() {
+    if (!coverZoom.root || !el.cover.getAttribute('src')) { return; }
+    coverZoom.root.hidden = false;
+    document.body.classList.add('cover-zoom-open');
+    syncCoverZoom();
+    coverZoom.close.focus();
+}
+
+function closeCoverZoom() {
+    if (!coverZoom.root || coverZoom.root.hidden) { return; }
+    coverZoom.root.hidden = true;
+    document.body.classList.remove('cover-zoom-open');
+    if (coverZoom.button) { coverZoom.button.focus(); }
+}
+
+if (coverZoom.button && coverZoom.root) {
+    coverZoom.button.addEventListener('click', openCoverZoom);
+    coverZoom.root.addEventListener('click', closeCoverZoom);
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') { closeCoverZoom(); }
     });
 }
 
