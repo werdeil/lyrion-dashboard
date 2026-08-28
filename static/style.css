@@ -1218,6 +1218,9 @@ body.in-app .page-header {
    same width as the stats panel under it. */
 @media (max-width: 860px) and (min-height: 601px) {
     .left-panel.is-zoomed .now-playing {
+        /* Definite, so the ratio squares the card off the panel's width; left
+           auto, the animated height would drive the width instead. */
+        width: 100%;
         aspect-ratio: 1 / 1;
         height: auto;
         min-height: 0;
