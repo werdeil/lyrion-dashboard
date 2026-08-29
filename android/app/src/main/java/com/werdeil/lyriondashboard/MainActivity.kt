@@ -168,6 +168,11 @@ class MainActivity : AppCompatActivity() {
         fun openSettings() {
             runOnUiThread { this@MainActivity.openSettings() }
         }
+
+        @JavascriptInterface
+        fun reload() {
+            runOnUiThread { this@MainActivity.reload() }
+        }
     }
 
     private fun isDashboardUrl(url: Uri): Boolean {

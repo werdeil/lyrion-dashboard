@@ -50,7 +50,7 @@ CI is `.github/workflows/android.yml`: on every push touching `android/**` it ru
 
 ## The JS ↔ native bridge
 
-`MainActivity` injects a `window.LyrionApp` object into the page. The web JS detects it, adds `body.in-app`, and wires the header menu to `bridge.openMenu()` / `openSettings()` (see the `frontend` skill). If you add a native capability the page should call, expose it as a method on that bridge and guard the page-side use behind the object's presence, matching the existing pattern.
+`MainActivity` injects a `window.LyrionApp` object into the page. The web JS detects it, adds `body.in-app`, and wires the header menu to `bridge.openMenu()` / `openSettings()` and the card's pull-to-refresh gesture to `bridge.reload()` (see the `frontend` skill). If you add a native capability the page should call, expose it as a method on that bridge and guard the page-side use behind the object's presence, matching the existing pattern.
 
 ## Auto-discovery
 
