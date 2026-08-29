@@ -1170,13 +1170,34 @@ body.in-app .page-header {
     object-fit: contain;
 }
 
-/* On the artwork rather than under it: the picture keeps the whole panel. */
+/* On the artwork rather than under it: the picture keeps the whole panel.
+   The fade is the top padding, so tint and blur are at full strength
+   everywhere the text is and ramp out over bare artwork above it. */
 .cover-zoom-meta {
+    --meta-fade: 44px;
     position: absolute;
     inset: auto 0 0 0;
-    padding: 28px 16px 14px;
+    padding: var(--meta-fade) 16px 14px;
     text-align: center;
-    background: linear-gradient(to top, rgba(0, 0, 0, 0.78), rgba(0, 0, 0, 0.45) 55%, transparent);
+    background: linear-gradient(to top, rgba(0, 0, 0, 0.45),
+                rgba(0, 0, 0, 0.28) calc(100% - var(--meta-fade)), transparent);
+}
+
+/* The blur sits on a layer of its own: on the caption itself, the mask
+   fading it out over the picture would take the text with it. */
+.cover-zoom-meta::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    backdrop-filter: blur(32px) saturate(140%);
+    -webkit-backdrop-filter: blur(32px) saturate(140%);
+    mask-image: linear-gradient(to top, #000 calc(100% - var(--meta-fade)), transparent);
+    -webkit-mask-image: linear-gradient(to top, #000 calc(100% - var(--meta-fade)), transparent);
+}
+
+/* Positioned, so the text paints after the blur layer rather than under it. */
+.cover-zoom-meta > p {
+    position: relative;
 }
 
 /* Playback progress on the artwork's bottom edge, inside its rounded corner. */
