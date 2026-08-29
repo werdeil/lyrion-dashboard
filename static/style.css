@@ -390,6 +390,66 @@ hr {
     min-width: 0;
 }
 
+/* Pull-to-refresh badge, app only (JS wires the gesture behind the native
+   bridge). --np-pull-y follows the finger, --np-pull-p its progress. */
+.np-pull {
+    display: none;
+    position: absolute;
+    top: 0;
+    left: 50%;
+    /* Over the card, under a lifted recent sleeve (z 50). */
+    z-index: 40;
+    width: 36px;
+    height: 36px;
+    margin-left: -18px;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    color: var(--accent-color);
+    background: color-mix(in srgb, var(--tint-color) 22%, rgba(32, 32, 32, 0.92));
+    border: 1px solid color-mix(in srgb, var(--tint-color) 30%, rgba(255, 255, 255, 0.08));
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.45);
+    /* Never eats a touch: the gesture is tracked on the card below it. */
+    pointer-events: none;
+    opacity: var(--np-pull-p, 0);
+    transform: translateY(calc(var(--np-pull-y, 0px) - 100%));
+    transition: transform 220ms ease, opacity 220ms ease;
+}
+
+body.in-app .np-pull {
+    display: flex;
+}
+
+/* No transition while the finger is down, or the badge lags behind it. */
+.np-pull.is-dragging {
+    transition: none;
+}
+
+.np-pull svg {
+    width: 20px;
+    height: 20px;
+    fill: currentColor;
+    transform: rotate(calc(var(--np-pull-p, 0) * 270deg));
+}
+
+.np-pull.is-armed {
+    background: color-mix(in srgb, var(--accent-color) 24%, rgba(32, 32, 32, 0.92));
+    border-color: color-mix(in srgb, var(--accent-color) 55%, transparent);
+}
+
+.np-pull.is-busy svg {
+    animation: np-spin 0.8s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .np-pull {
+        transition: none;
+    }
+    .np-pull.is-busy svg {
+        animation: none;
+    }
+}
+
 .np-lyrics-block {
     grid-column: 2;
     grid-row: 2;

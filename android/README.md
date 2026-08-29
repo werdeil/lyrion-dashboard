@@ -18,6 +18,7 @@ Or install the signed APK attached to a [GitHub release](https://github.com/werd
 - Keeps the screen on while the dashboard is displayed (configurable)
 - Works over plain HTTP on the local network (cleartext traffic allowed)
 - App menu (Settings / Reload / Quit) opened from the ⋮ button in the dashboard header; the back button/gesture simply leaves the app
+- Pull down on the cover/title/artist area of the now-playing card to reload the dashboard; the lyrics below scroll as usual
 
 ## Requirements
 

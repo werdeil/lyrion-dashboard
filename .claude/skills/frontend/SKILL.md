@@ -86,7 +86,7 @@ Two traps, both of which quietly yield wrong numbers rather than an error:
 
 ## Android bridge
 
-Inside the Android WebView a native object `window.LyrionApp` is injected. The JS detects it, adds `body.in-app`, reveals the header menu button, and wires it to `bridge.openMenu()` / `openSettings()`. On Android, the "open in Lyrion" links become `intent://` URLs targeting the LMS Material app. Guard any app-only behaviour behind the presence of the bridge, as the existing code does.
+Inside the Android WebView a native object `window.LyrionApp` is injected. The JS detects it (kept in `APP_BRIDGE`), adds `body.in-app`, reveals the header menu button, and wires it to `bridge.openMenu()` / `openSettings()`. Pull-to-refresh is app-only too: a downward drag starting in the card's cover/meta zone (`PULL_ZONE`, so never the scrolling lyrics box) rides the `#np-pull` badge down from the card's top edge and calls `bridge.reload()` past `PULL_TRIGGER`, which reloads through the shell so a server that has gone away lands on the native error view. The gesture only starts with the page and the card both at their top, and the `touchmove` listener is non-passive because suppressing the WebView's overscroll needs `preventDefault()`. On Android, the "open in Lyrion" links become `intent://` URLs targeting the LMS Material app. Guard any app-only behaviour behind the presence of the bridge, as the existing code does.
 
 ## Regenerate the README screenshots after a visual change
 

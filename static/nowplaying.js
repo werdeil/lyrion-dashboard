@@ -15,9 +15,11 @@ var LYRION_HOST = document.body.dataset.lyrionHost || '';
 // reveal the header bar (hidden on the web, where the branding lives in the
 // tab title) with its menu button wired to the native full-screen settings
 // screen (openMenu on current apps, openSettings on ones that predate it).
+var APP_BRIDGE = window.LyrionApp;
+
 (function () {
     var appMenu = document.getElementById('app-menu');
-    var bridge = window.LyrionApp;
+    var bridge = APP_BRIDGE;
     if (appMenu && bridge && (bridge.openMenu || bridge.openSettings)) {
         document.body.classList.add('in-app');
         appMenu.hidden = false;
@@ -1343,6 +1345,93 @@ if (el.scrollReset) {
         setAutoFollow(true);
         syncLyrics(true);
     });
+}
+
+// Pull-to-refresh, inside the Android app only: a downward drag over the
+// cover/meta zone of the card reloads the page through the native shell, so a
+// server that has gone away lands on the app's error screen rather than the
+// WebView's. The lyrics block is deliberately out of the zone — it scrolls.
+var PULL_ZONE = '.np-side, .np-meta, .np-empty';
+var PULL_TRIGGER = 72;
+var PULL_MAX = 104;
+// Drag absorbed before the badge moves, so a tap or a page scroll never nudges it.
+var PULL_SLOP = 8;
+
+var pullBadge = document.getElementById('np-pull');
+var pullStartY = 0;
+var pullStartX = 0;
+var pullTracking = false;
+var pullOwned = false;
+var pullArmed = false;
+var pullBusy = false;
+
+function paintPull(distance) {
+    var progress = Math.min(1, distance / PULL_TRIGGER);
+    pullBadge.style.setProperty('--np-pull-y', Math.min(distance, PULL_MAX) + 'px');
+    pullBadge.style.setProperty('--np-pull-p', progress);
+    pullArmed = distance >= PULL_TRIGGER;
+    pullBadge.classList.toggle('is-armed', pullArmed);
+}
+
+function resetPull() {
+    pullTracking = false;
+    pullOwned = false;
+    pullArmed = false;
+    pullBadge.classList.remove('is-dragging', 'is-armed');
+    pullBadge.style.setProperty('--np-pull-y', '0px');
+    pullBadge.style.setProperty('--np-pull-p', 0);
+}
+
+// The gesture only starts where the card and the page both rest at their top,
+// so a pull can never be a scroll the user meant to make.
+function pullCanStart(e) {
+    return !pullBusy && e.touches.length === 1 &&
+        (window.scrollY || window.pageYOffset || 0) <= 0 &&
+        nowPlaying.scrollTop <= 0 &&
+        !!(e.target && e.target.closest && e.target.closest(PULL_ZONE));
+}
+
+if (pullBadge && APP_BRIDGE && APP_BRIDGE.reload) {
+    nowPlaying.addEventListener('touchstart', function(e) {
+        if (!pullCanStart(e)) { return; }
+        pullStartY = e.touches[0].clientY;
+        pullStartX = e.touches[0].clientX;
+        pullTracking = true;
+        pullOwned = false;
+    }, { passive: true });
+
+    nowPlaying.addEventListener('touchmove', function(e) {
+        if (!pullTracking || !e.touches.length) { return; }
+        var moved = e.touches[0].clientY - pullStartY;
+        var sideways = Math.abs(e.touches[0].clientX - pullStartX);
+        if (!pullOwned) {
+            // Under the slop the direction isn't readable yet; past it, anything
+            // but a downward drag stays the page's, for the rest of the gesture.
+            if (Math.abs(moved) <= PULL_SLOP && sideways <= PULL_SLOP) { return; }
+            if (moved <= PULL_SLOP || sideways > moved) { pullTracking = false; return; }
+            pullOwned = true;
+            pullBadge.classList.add('is-dragging');
+        }
+        // Non-passive listener: this is what suppresses the WebView's own
+        // overscroll while the badge follows the finger.
+        e.preventDefault();
+        paintPull(moved - PULL_SLOP);
+    }, { passive: false });
+
+    nowPlaying.addEventListener('touchend', function() {
+        if (pullOwned && pullArmed) {
+            // Held at the trigger point, spinning, until the reload replaces the page.
+            pullBusy = true;
+            pullBadge.classList.remove('is-dragging');
+            pullBadge.classList.add('is-busy');
+            paintPull(PULL_TRIGGER);
+            APP_BRIDGE.reload();
+            return;
+        }
+        resetPull();
+    }, { passive: true });
+
+    nowPlaying.addEventListener('touchcancel', resetPull, { passive: true });
 }
 
 // Enlarged cover: the card's artwork is a button that blows it up over the
