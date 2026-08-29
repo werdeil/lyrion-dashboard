@@ -1377,6 +1377,12 @@ function fullCoverSrc(src) {
     return src.indexOf('/cover/remote.jpg') === 0 ? src : src.split('?')[0];
 }
 
+function setCoverRatio(img) {
+    if (img.naturalWidth && img.naturalHeight) {
+        coverZoom.figure.style.setProperty('--cover-r', img.naturalWidth / img.naturalHeight);
+    }
+}
+
 function syncCoverZoom() {
     if (!coverZoom.root || coverZoom.root.hidden) { return; }
     var thumb = el.cover.getAttribute('src');
@@ -1393,10 +1399,7 @@ function syncCoverZoom() {
     }
     // Read off the card's copy, which is already decoded: the enlarged one may
     // still be loading when the opening animation measures its box.
-    if (el.cover.naturalWidth && el.cover.naturalHeight) {
-        coverZoom.figure.style.setProperty(
-            '--cover-r', el.cover.naturalWidth / el.cover.naturalHeight);
-    }
+    setCoverRatio(el.cover);
     coverZoom.title.textContent = el.title.textContent;
     coverZoom.artist.textContent = el.artist.textContent;
     coverZoom.album.textContent = el.album.textContent;
@@ -1500,6 +1503,11 @@ function closeCoverZoom() {
 }
 
 if (coverZoom.button && coverZoom.root) {
+    // On a track change the card's copy still carries the previous artwork's
+    // dimensions, so the enlarged one settles the ratio when it loads.
+    coverZoom.img.addEventListener('load', function() {
+        setCoverRatio(coverZoom.img);
+    });
     coverZoom.button.addEventListener('click', openCoverZoom);
     coverZoom.root.addEventListener('click', closeCoverZoom);
     document.addEventListener('keydown', function(e) {
