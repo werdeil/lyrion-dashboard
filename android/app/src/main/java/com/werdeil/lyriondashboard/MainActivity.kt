@@ -169,8 +169,6 @@ class MainActivity : AppCompatActivity() {
             runOnUiThread { this@MainActivity.openSettings() }
         }
 
-        // The page's pull-to-refresh reloads through the shell, so a server
-        // that has gone away lands on the native error view.
         @JavascriptInterface
         fun reload() {
             runOnUiThread { this@MainActivity.reload() }

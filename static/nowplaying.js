@@ -1347,14 +1347,11 @@ if (el.scrollReset) {
     });
 }
 
-// Pull-to-refresh, inside the Android app only: a downward drag over the
-// cover/meta zone of the card reloads the page through the native shell, so a
-// server that has gone away lands on the app's error screen rather than the
-// WebView's. The lyrics block is deliberately out of the zone — it scrolls.
+// Pull-to-refresh, app only. The zone leaves out the lyrics block, which
+// scrolls, and the gesture reloads through the shell rather than in-page.
 var PULL_ZONE = '.np-side, .np-meta, .np-empty';
 var PULL_TRIGGER = 72;
 var PULL_MAX = 104;
-// Drag absorbed before the badge moves, so a tap or a page scroll never nudges it.
 var PULL_SLOP = 8;
 
 var pullBadge = document.getElementById('np-pull');
@@ -1382,8 +1379,6 @@ function resetPull() {
     pullBadge.style.setProperty('--np-pull-p', 0);
 }
 
-// The gesture only starts where the card and the page both rest at their top,
-// so a pull can never be a scroll the user meant to make.
 function pullCanStart(e) {
     return !pullBusy && e.touches.length === 1 &&
         (window.scrollY || window.pageYOffset || 0) <= 0 &&
@@ -1405,22 +1400,19 @@ if (pullBadge && APP_BRIDGE && APP_BRIDGE.reload) {
         var moved = e.touches[0].clientY - pullStartY;
         var sideways = Math.abs(e.touches[0].clientX - pullStartX);
         if (!pullOwned) {
-            // Under the slop the direction isn't readable yet; past it, anything
-            // but a downward drag stays the page's, for the rest of the gesture.
+            // Anything but a downward drag stays the page's for the rest of the gesture.
             if (Math.abs(moved) <= PULL_SLOP && sideways <= PULL_SLOP) { return; }
             if (moved <= PULL_SLOP || sideways > moved) { pullTracking = false; return; }
             pullOwned = true;
             pullBadge.classList.add('is-dragging');
         }
-        // Non-passive listener: this is what suppresses the WebView's own
-        // overscroll while the badge follows the finger.
+        // Non-passive listener: preventDefault is what suppresses the overscroll.
         e.preventDefault();
         paintPull(moved - PULL_SLOP);
     }, { passive: false });
 
     nowPlaying.addEventListener('touchend', function() {
         if (pullOwned && pullArmed) {
-            // Held at the trigger point, spinning, until the reload replaces the page.
             pullBusy = true;
             pullBadge.classList.remove('is-dragging');
             pullBadge.classList.add('is-busy');
