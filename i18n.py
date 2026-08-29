@@ -28,6 +28,7 @@ TRANSLATIONS = {
         "choose_player": "Choisir le lecteur affiché",
         "app_menu": "Menu de l'application",
         "cover_alt": "Pochette",
+        "cover_zoom": "Agrandir la pochette",
         "source_prefix": "Source :",
         "source_library": "Bibliothèque",
         # Stats
@@ -70,6 +71,7 @@ TRANSLATIONS = {
         "choose_player": "Choose the player shown",
         "app_menu": "App menu",
         "cover_alt": "Cover",
+        "cover_zoom": "Enlarge the cover",
         "source_prefix": "Source:",
         "source_library": "Library",
         # Stats

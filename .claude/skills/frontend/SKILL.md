@@ -55,6 +55,22 @@ The signature visual: the page samples the cover art (served **same-origin** via
 
 `parseLRC` turns timestamped LRC into `[{time, text}]`; `syncLyrics` (driven off the aged playback `time` from the poll) highlights the current line via `paintLine` and auto-scrolls, unless the user scrolled away (`setAutoFollow`, `updateScrollReset`, the resume-scroll button). Plain (un-timed) lyrics render as static text. The web-search switch (`setAuto`) is `off`/`auto`, persisted in `localStorage`; display always prefers synced over plain — it's never a user choice.
 
+## Enlarged cover
+
+The card's artwork is a button (`#np-cover-button`) opening `#cover-zoom`, an overlay holding the artwork with the track's title/artist/album over its lower edge. It covers `.left-panel` — the now-playing card only, leaving the stats panel readable — and is a sibling of the card rather than a child, because the card's `backdrop-filter` would make it the containing block of any `position: fixed` descendant. Narrow landscape is the one configuration where the card outgrows the screen, so there the overlay switches to `position: fixed` and takes the viewport.
+
+There is no close button: a click anywhere on the overlay closes it, as does Escape, and `render()` closes it when playback stops. Focus never leaves the trigger, which carries `aria-expanded`.
+
+The overlay has no surface of its own — the panel keeps its card background, and the card's content is what clears out under it (`.left-panel.is-zoomed .now-playing > *`, faded by `animateCardContent`). Only the narrow-landscape fallback, which covers the whole viewport, carries a backdrop. On the stacked layouts the overlay drops its padding so the picture runs edge to edge, the same width as the stats panel under it; `--cover-zoom-radius` keeps the picture's corners on the card's.
+
+`.cover-zoom-figure` is sized as the largest box of the artwork's ratio that fits the panel — `--cover-r` (set from the card image's `naturalWidth/naturalHeight`, already decoded when the view opens, and settled again when the enlarged image loads — on a track change the card's copy still carries the previous artwork's dimensions) plus a `100cqh` width off the overlay's container query. The picture fills that box, upscaled when the panel is bigger than the artwork, and the rounded edge, shadow and caption hug the picture rather than a letterboxed box. On the stacked layouts the card grows with the lyrics far past its own width, so `.left-panel.is-zoomed` squares it off.
+
+`paintProgress` paints the playback position into the bar on the artwork's bottom edge along with the card's own, so the two never drift.
+
+Opening is a FLIP: `animateZoom` measures the card cover's box and the enlarged figure's box at run time — the panel's height follows the lyrics, so neither is fixed — and animates the figure from one to the other while the card's content fades out and the caption arrives late; `animateCard` animates the card's height over the same beat so the stats below slide rather than jump. Closing plays it backwards and only then sets `hidden`. Opening fills backwards only (`zoomOpts`): once it ends the enlarged state comes from the stylesheet rather than an animation holding its last frame. Everything is skipped under `prefers-reduced-motion`.
+
+The card shows a 512px thumbnail; the overlay paints that cached thumbnail first and swaps in the original artwork (the same `/cover/` URL without `?size=`) once it has loaded, so it never shows a blank frame.
+
 ## Mosaic and recent-plays pile
 
 The empty-state background mosaic (`loadMosaic`/`layoutMosaic`/`stepMosaic`) and the recent-plays sleeve pile (`loadRecent`/`renderRecent`) are decorative, desktop-driven layouts. They pull cover ids from `/mosaic-covers.json` and `/recent-covers.json`.

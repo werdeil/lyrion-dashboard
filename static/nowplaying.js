@@ -433,6 +433,7 @@ function paintProgress() {
         ? Math.max(0, Math.min(100, (t / progress.duration) * 100))
         : 0;
     el.progressBar.style.width = pct + '%';
+    if (coverZoom && coverZoom.progressBar) { coverZoom.progressBar.style.width = pct + '%'; }
     if (lrcLines) { syncLyrics(); }
 }
 
@@ -1060,6 +1061,7 @@ function render(data) {
         if (el.playerSwitch) { el.playerSwitch.hidden = true; el.playerSwitch.textContent = ''; }
         lastSwitchKey = null;
         el.cover.removeAttribute('src');
+        closeCoverZoom();
         setLyrionLink(null);
         resetColors();
         lastTrackKey = null;
@@ -1115,6 +1117,7 @@ function render(data) {
         // belongs on top of it now — and the new track's own album, if it was
         // in the pile, must come out (renderRecent drops it).
         loadRecent();
+        syncCoverZoom();
         setLyrics(data.lyrics || I18N.no_lyrics_library, !data.lyrics);
         setLyricsSource(data.lyrics ? 'library' : null);
         lyricsTried = false;
@@ -1339,6 +1342,176 @@ if (el.scrollReset) {
     el.scrollReset.addEventListener('click', function() {
         setAutoFollow(true);
         syncLyrics(true);
+    });
+}
+
+// Enlarged cover: the card's artwork is a button that blows it up over the
+// panel, dismissed by a click anywhere on it or by Escape.
+var coverZoom = {
+    root: document.getElementById('cover-zoom'),
+    figure: document.getElementById('cover-zoom-figure'),
+    img: document.getElementById('cover-zoom-img'),
+    meta: document.querySelector('.cover-zoom-meta'),
+    progressBar: document.getElementById('cover-zoom-progress-bar'),
+    title: document.getElementById('cover-zoom-title'),
+    artist: document.getElementById('cover-zoom-artist'),
+    album: document.getElementById('cover-zoom-album'),
+    button: document.getElementById('np-cover-button'),
+    panel: document.querySelector('.left-panel'),
+};
+
+var ZOOM_MS = 260;
+var zoomAnims = [];
+
+function zoomOpts(closing) {
+    return {
+        duration: ZOOM_MS,
+        easing: 'cubic-bezier(0.2, 0, 0.2, 1)',
+        fill: closing ? 'both' : 'backwards',
+    };
+}
+
+// Dropping ?size= asks the same route for the original artwork; the remote
+// URL carries a per-track cache buster instead, so it keeps its query.
+function fullCoverSrc(src) {
+    return src.indexOf('/cover/remote.jpg') === 0 ? src : src.split('?')[0];
+}
+
+function setCoverRatio(img) {
+    if (img.naturalWidth && img.naturalHeight) {
+        coverZoom.figure.style.setProperty('--cover-r', img.naturalWidth / img.naturalHeight);
+    }
+}
+
+function syncCoverZoom() {
+    if (!coverZoom.root || coverZoom.root.hidden) { return; }
+    var thumb = el.cover.getAttribute('src');
+    var full = thumb ? fullCoverSrc(thumb) : '';
+    if (full && coverZoom.img.getAttribute('src') !== full) {
+        // The thumbnail is already in cache, so it paints at once and the
+        // original swaps in only once it has loaded — never a blank frame.
+        coverZoom.img.src = thumb;
+        var preload = new Image();
+        preload.onload = function() {
+            if (el.cover.getAttribute('src') === thumb) { coverZoom.img.src = full; }
+        };
+        preload.src = full;
+    }
+    // Read off the card's copy, which is already decoded: the enlarged one may
+    // still be loading when the opening animation measures its box.
+    setCoverRatio(el.cover);
+    coverZoom.title.textContent = el.title.textContent;
+    coverZoom.artist.textContent = el.artist.textContent;
+    coverZoom.album.textContent = el.album.textContent;
+}
+
+function stopZoomAnims() {
+    for (var i = 0; i < zoomAnims.length; i++) { zoomAnims[i].cancel(); }
+    zoomAnims = [];
+}
+
+// Both boxes are measured per run: the panel's height follows the lyrics, and
+// the enlarged picture is laid out from the artwork's ratio.
+function animateZoom(from, closing) {
+    var big = coverZoom.figure.getBoundingClientRect();
+    if (!from.width || !big.width ||
+        window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        return null;
+    }
+    var small = {
+        transform: 'translate(' + (from.left - big.left) + 'px, ' + (from.top - big.top) +
+            'px) scale(' + (from.width / big.width) + ')',
+    };
+    var grown = { transform: 'none' };
+    // The caption arrives once the picture is nearly in place and leaves
+    // first: shrunk to the card cover's size it would be illegible.
+    var caption = closing
+        ? [{ opacity: 1, offset: 0 }, { opacity: 0, offset: 0.45 }, { opacity: 0, offset: 1 }]
+        : [{ opacity: 0, offset: 0 }, { opacity: 0, offset: 0.55 }, { opacity: 1, offset: 1 }];
+    // Opening fills backwards only: once it ends the enlarged state comes from
+    // the stylesheet, never from an animation left holding its last frame.
+    var opts = zoomOpts(closing);
+    zoomAnims = [
+        coverZoom.figure.animate(closing ? [grown, small] : [small, grown], opts),
+        coverZoom.meta.animate(caption, opts),
+        coverZoom.root.animate({ opacity: closing ? [1, 0] : [0, 1] }, opts),
+    ];
+    return zoomAnims[0];
+}
+
+// Squaring the panel off moves everything below it, so its height is animated
+// alongside the picture.
+function animateCard(from, to, closing) {
+    if (Math.abs(from - to) < 1 ||
+        window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        return;
+    }
+    zoomAnims.push(nowPlaying.animate(
+        [{ height: from + 'px' }, { height: to + 'px' }], zoomOpts(closing)));
+}
+
+// The card's content clears out under the enlarged cover, on the same beat as
+// the picture, so the panel keeps its own background rather than gaining a veil.
+function animateCardContent(closing) {
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) { return; }
+    var frames = closing
+        ? [{ opacity: 0 }, { opacity: 1 }]
+        : [{ opacity: 1 }, { opacity: 0 }];
+    for (var i = 0; i < nowPlaying.children.length; i++) {
+        zoomAnims.push(nowPlaying.children[i].animate(frames, zoomOpts(closing)));
+    }
+}
+
+function openCoverZoom() {
+    if (!coverZoom.root || !el.cover.getAttribute('src')) { return; }
+    var from = el.cover.getBoundingClientRect();
+    var cardHeight = nowPlaying.getBoundingClientRect().height;
+    stopZoomAnims();
+    coverZoom.root.hidden = false;
+    coverZoom.panel.classList.add('is-zoomed');
+    coverZoom.button.setAttribute('aria-expanded', 'true');
+    syncCoverZoom();
+    animateZoom(from, false);
+    animateCardContent(false);
+    animateCard(cardHeight, nowPlaying.getBoundingClientRect().height, false);
+}
+
+function endCoverZoom() {
+    stopZoomAnims();
+    coverZoom.root.hidden = true;
+    coverZoom.panel.classList.remove('is-zoomed');
+}
+
+function closeCoverZoom() {
+    if (!coverZoom.root || coverZoom.root.hidden) { return; }
+    coverZoom.button.setAttribute('aria-expanded', 'false');
+    stopZoomAnims();
+    var squared = nowPlaying.getBoundingClientRect().height;
+    // Measured with the class off and put back at once, in the same frame:
+    // the panel keeps clipping its content while it grows back.
+    coverZoom.panel.classList.remove('is-zoomed');
+    var natural = nowPlaying.getBoundingClientRect().height;
+    coverZoom.panel.classList.add('is-zoomed');
+    var shrink = animateZoom(el.cover.getBoundingClientRect(), true);
+    animateCardContent(true);
+    animateCard(squared, natural, true);
+    if (shrink) {
+        shrink.onfinish = endCoverZoom;
+    } else {
+        endCoverZoom();
+    }
+}
+
+if (coverZoom.button && coverZoom.root) {
+    // On a track change the card's copy still carries the previous artwork's
+    // dimensions, so the enlarged one settles the ratio when it loads.
+    coverZoom.img.addEventListener('load', function() {
+        setCoverRatio(coverZoom.img);
+    });
+    coverZoom.button.addEventListener('click', openCoverZoom);
+    coverZoom.root.addEventListener('click', closeCoverZoom);
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') { closeCoverZoom(); }
     });
 }
 
