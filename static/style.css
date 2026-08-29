@@ -1179,8 +1179,8 @@ body.in-app .page-header {
     inset: auto 0 0 0;
     padding: var(--meta-fade) 16px 14px;
     text-align: center;
-    background: linear-gradient(to top, rgba(0, 0, 0, 0.82),
-                rgba(0, 0, 0, 0.62) calc(100% - var(--meta-fade)), transparent);
+    background: linear-gradient(to top, rgba(0, 0, 0, 0.45),
+                rgba(0, 0, 0, 0.28) calc(100% - var(--meta-fade)), transparent);
 }
 
 /* The blur sits on a layer of its own: on the caption itself, the mask
@@ -1189,8 +1189,8 @@ body.in-app .page-header {
     content: "";
     position: absolute;
     inset: 0;
-    backdrop-filter: blur(20px) saturate(140%);
-    -webkit-backdrop-filter: blur(20px) saturate(140%);
+    backdrop-filter: blur(32px) saturate(140%);
+    -webkit-backdrop-filter: blur(32px) saturate(140%);
     mask-image: linear-gradient(to top, #000 calc(100% - var(--meta-fade)), transparent);
     -webkit-mask-image: linear-gradient(to top, #000 calc(100% - var(--meta-fade)), transparent);
 }
