@@ -37,9 +37,10 @@ Application web Flask pour [Lyrion Music Server](https://github.com/LMS-Communit
 │   └── custom.py                          # Route : /files/<path>
 ├── services/
 │   ├── lyrion.py                          # Client JSON-RPC Lyrion
+│   ├── artwork.py                         # Lit la taille d'une image dans son en-tête
 │   ├── database.py                        # Accès SQLite (paroles, stats)
 │   ├── lyrics.py                          # Recherche web de paroles (LRCLIB, Musixmatch, Genius)
-│   └── tags.py                            # Lecture/écriture des paroles dans les tags audio
+│   └── tags.py                            # Lecture/écriture des paroles et pochettes dans les tags audio
 ├── templates/
 │   ├── _icons.html                        # Icônes SVG inline réutilisables (macros Jinja)
 │   └── nowplaying.html                    # Dashboard principal
@@ -47,6 +48,8 @@ Application web Flask pour [Lyrion Music Server](https://github.com/LMS-Communit
 ├── scripts/
 │   ├── embed_lyrics.py                    # Intègre les paroles web dans les tags des fichiers
 │   ├── embed_lyrics_cron.sh               # Wrapper cron : ne retague que les fichiers modifiés
+│   ├── embed_covers.py                    # Intègre folder.jpg dans les tags des fichiers
+│   ├── embed_covers_cron.sh               # Wrapper cron : ne revérifie que les dossiers modifiés
 │   └── generate_screenshots.py            # Regénère les captures des README (données factices)
 ├── android/                               # Application Android (surcouche WebView)
 ├── tests/
@@ -226,6 +229,43 @@ scripts/embed_lyrics_cron.sh /chemin/vers/musique [MARQUEUR] [-- OPTIONS]
 ```
 
 > Le `ctime` (et non le `mtime`) est utilisé volontairement : il capte aussi les ré-écritures de tags en place et les fichiers copiés en conservant leur `mtime` (`rsync -a`, `cp -p`).
+
+### Intégrer les pochettes dans les fichiers (`scripts/embed_covers.py`)
+
+Parcourt les dossiers d'albums et écrit le fichier de pochette de chaque dossier dans le tag *artwork* de ses morceaux, partout où ce fichier est plus net que ce que portent déjà les tags. Lyrion affiche la pochette embarquée et ignore totalement `folder.jpg` : un album avec une pochette de 1500 px sur le disque et une de 300 px dans ses tags continue donc d'afficher la petite tant que ce script n'est pas passé. Lyrion n'est jamais sollicité : il prendra le changement à son prochain scan.
+
+```bash
+python scripts/embed_covers.py /chemin/vers/musique [options]
+# Les jokers shell fonctionnent, même entre guillemets :
+python scripts/embed_covers.py "/chemin/vers/musique/A*" /chemin/vers/musique/B*
+```
+
+| Option | Description |
+|---|---|
+| <code>&#8209;&#8209;name&nbsp;folder.jpg</code> | Nom du fichier de pochette cherché dans chaque dossier d'album (défaut : `folder.jpg`), casse indifférente. |
+| <code>&#8209;&#8209;dry&#8209;run</code> | Affiche quels albums seraient re-tagués, sans rien écrire. |
+| <code>&#8209;&#8209;verbose</code> | Journalise chaque album, y compris ceux ignorés. |
+
+Les pochettes sont comparées sur leur **petit côté**, celui qui décide de la netteté à l'écran : seul un fichier plus grand est intégré, et un album dont les tags ne portent aucune pochette est toujours complété. L'image est stockée telle quelle, jamais ré-encodée. L'intégration réécrit chaque morceau de l'album, aussi la passe indique-t-elle de combien grossissent les fichiers audio — une pochette de 2 Mo sur un album de douze titres ajoute 24 Mo, qu'il faudra ensuite resynchroniser et sauvegarder.
+
+### Cron : ne re-vérifier que les dossiers modifiés (`scripts/embed_covers_cron.sh`)
+
+Même mécanisme de marqueur que le wrapper des paroles, à ceci près que l'unité est le dossier d'album : `find -cnewer` liste les fichiers dont le `ctime` a changé, et ce sont leurs dossiers qui sont passés à `embed_covers.py`. Un `folder.jpg` remplacé met donc son album dans la file au même titre qu'un nouveau morceau.
+
+```bash
+scripts/embed_covers_cron.sh /chemin/vers/musique [MARQUEUR] [-- OPTIONS]
+```
+
+- `MARQUEUR` : fichier d'horodatage (défaut : `state/embed_covers.last_run` à la racine du repo). Absent → toute la bibliothèque est traitée (première passe).
+- Mêmes règles que ci-dessus : horodaté au **début** de la passe, avancé uniquement **en cas de succès**, laissé en place par `--dry-run`.
+- Tout ce qui suit `--` est transmis tel quel à `embed_covers.py` (ex. `-- --name cover.jpg`).
+
+```cron
+0 5 * * * /chemin/vers/repo/scripts/embed_covers_cron.sh \
+  /chemin/vers/musique >> /tmp/embed_covers.log 2>&1
+```
+
+> Intégrer une pochette modifie le `ctime` de chaque morceau : l'album reparaît donc à la passe suivante, qui trouve alors les tags déjà corrects et passe son chemin.
 
 ### Regénérer les captures d'écran des README (`scripts/generate_screenshots.py`)
 
