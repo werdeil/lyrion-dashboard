@@ -1242,15 +1242,16 @@ body.in-app .page-header {
     text-align: center;
 }
 
-/* The artwork's detail taken out under the text. Inset, so the tint over it
-   hides where the frosting stops: engines drop a `filter` on this element. */
+/* The artwork's detail taken out under the text, masked to fade out inside the
+   tint: a `filter`, which would feather it, is dropped on a backdrop-filter. */
 .cover-zoom-frost {
     position: absolute;
     inset: 14px;
     z-index: 0;
-    border-radius: 14px;
     backdrop-filter: blur(22px) saturate(140%);
     -webkit-backdrop-filter: blur(22px) saturate(140%);
+    mask-image: radial-gradient(closest-side, #000 45%, transparent);
+    -webkit-mask-image: radial-gradient(closest-side, #000 45%, transparent);
 }
 
 /* The plaque itself: a rounded box feathered by its own filter, inset so the
