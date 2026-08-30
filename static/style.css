@@ -1242,22 +1242,33 @@ body.in-app .page-header {
     text-align: center;
 }
 
-/* Tint and blur on a layer of their own, inset so its own `filter` can feather
-   the rounded edge outwards; on the caption it would blur the text too. */
+/* The artwork's detail taken out under the text. Inset, so the tint over it
+   hides where the frosting stops: engines drop a `filter` on this element. */
+.cover-zoom-frost {
+    position: absolute;
+    inset: 14px;
+    z-index: 0;
+    border-radius: 14px;
+    backdrop-filter: blur(22px) saturate(140%);
+    -webkit-backdrop-filter: blur(22px) saturate(140%);
+}
+
+/* The plaque itself: a rounded box feathered by its own filter, inset so the
+   blur has room to spread past it. */
 .cover-zoom-meta::before {
     content: "";
     position: absolute;
-    inset: 10px;
+    inset: 8px;
+    z-index: 1;
     border-radius: 18px;
     background: rgba(0, 0, 0, 0.5);
-    backdrop-filter: blur(22px) saturate(140%);
-    -webkit-backdrop-filter: blur(22px) saturate(140%);
-    filter: blur(9px);
+    filter: blur(10px);
 }
 
-/* Positioned, so the text paints over the blurred layer rather than under it. */
+/* Stacked over both layers rather than under them. */
 .cover-zoom-meta > p {
     position: relative;
+    z-index: 2;
 }
 
 /* Playback progress on the artwork's bottom edge, inside its rounded corner. */
