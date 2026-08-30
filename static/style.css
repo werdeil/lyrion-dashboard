@@ -1236,15 +1236,32 @@ body.in-app .page-header {
     position: absolute;
     inset: auto 0 18px 0;
     width: fit-content;
-    max-width: calc(100% - 32px);
+    max-width: calc(100% - 40px);
     margin: 0 auto;
-    padding: 10px 22px 12px;
+    padding: 20px 46px 22px;
     text-align: center;
-    border: 1px solid rgba(255, 255, 255, 0.14);
-    border-radius: 16px;
-    background: rgba(0, 0, 0, 0.45);
-    backdrop-filter: blur(20px) saturate(140%);
-    -webkit-backdrop-filter: blur(20px) saturate(140%);
+}
+
+/* Tint and blur on a layer of their own, faded out on all four sides so the
+   plaque has no edge: masking the caption itself would fade the text with it. */
+.cover-zoom-meta::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(22px) saturate(140%);
+    -webkit-backdrop-filter: blur(22px) saturate(140%);
+    mask-image: linear-gradient(to right, transparent, #000 15%, #000 85%, transparent),
+                linear-gradient(to bottom, transparent, #000 18%, #000 82%, transparent);
+    -webkit-mask-image: linear-gradient(to right, transparent, #000 15%, #000 85%, transparent),
+                linear-gradient(to bottom, transparent, #000 18%, #000 82%, transparent);
+    mask-composite: intersect;
+    -webkit-mask-composite: source-in;
+}
+
+/* Positioned, so the text paints over the blurred layer rather than under it. */
+.cover-zoom-meta > p {
+    position: relative;
 }
 
 /* Playback progress on the artwork's bottom edge, inside its rounded corner. */

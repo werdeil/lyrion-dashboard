@@ -65,7 +65,7 @@ The overlay has no surface of its own — the panel keeps its card background, a
 
 `.cover-zoom-figure` is sized as the largest box of the artwork's ratio that fits the panel — `--cover-r` (set from the card image's `naturalWidth/naturalHeight`, already decoded when the view opens, and settled again when the enlarged image loads — on a track change the card's copy still carries the previous artwork's dimensions) plus a `100cqh` width off the overlay's container query. The picture fills that box, upscaled when the panel is bigger than the artwork, and the rounded edge, shadow and caption hug the picture rather than a letterboxed box. On the stacked layouts the card grows with the lyrics far past its own width, so `.left-panel.is-zoomed` squares it off.
 
-The caption (`.cover-zoom-meta`) is a plaque hugging its text near the picture's lower edge, not a band across it: absolutely positioned with `width: fit-content` and auto margins, tinted and `backdrop-filter`-blurred so it reads over any artwork.
+The caption (`.cover-zoom-meta`) is a plaque hugging its text near the picture's lower edge, not a band across it: absolutely positioned with `width: fit-content` and auto margins. Its tint and `backdrop-filter` blur sit on a `::before` layer masked by two crossed linear gradients (`mask-composite: intersect`), so the plaque fades out on all four sides instead of ending on an edge; the fade lands in the caption's padding, and the text is positioned to paint over that layer rather than be masked with it.
 
 `paintProgress` paints the playback position into the bar on the artwork's bottom edge along with the card's own, so the two never drift.
 
