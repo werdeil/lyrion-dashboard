@@ -67,6 +67,12 @@ def album_folders(patterns):
                     yield dirpath, [os.path.join(dirpath, n) for n in music]
 
 
+def label(folder):
+    """The album's last two path components, so a disc subfolder still names its
+    album in the log rather than showing up as a bare CD1."""
+    return os.sep.join(folder.rstrip(os.sep).split(os.sep)[-2:])
+
+
 def read_folder_cover(folder, name):
     """Return (bytes, shortest side) for the folder's cover file, or None.
 
@@ -112,7 +118,7 @@ def process(folder, files, data, side, current):
             tags.write_cover(path, data)
         except tags.CoverTagError as exc:
             failures.append(f"{os.path.basename(path)}: {exc}")
-    rel = os.path.basename(folder)
+    rel = label(folder)
     if failures:
         print(f"[fail]      {rel}: {len(failures)}/{len(files)} tracks failed")
         for line in failures[:3]:
@@ -150,7 +156,7 @@ def main(argv=None):
 
     for folder, files in album_folders(args.targets):
         counts["scanned"] += 1
-        rel = os.path.basename(folder)
+        rel = label(folder)
 
         cover = read_folder_cover(folder, args.name)
         if not cover:
