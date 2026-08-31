@@ -4,16 +4,17 @@ description: >-
   Work on the Android app — the thin WebView wrapper in `android/`. Use this
   whenever a task touches the Kotlin sources, the Gradle build, the WebView
   shell, the native settings screen, LMS server auto-discovery, the JS↔native
-  bridge, app strings/i18n, or the Android CI/lint. Covers the "shell only, UI
-  lives on the web" principle, the debug/release signing split, the static
-  versioning F-Droid needs, and the min/target SDKs, so changes fit the wrapper.
+  bridge, app strings/i18n, the Wear OS companion in `android/wear/`, or the
+  Android CI/lint. Covers the "shell only, UI lives on the web" principle, the
+  debug/release signing split, the static versioning F-Droid needs, and the
+  min/target SDKs, so changes fit the wrapper.
 ---
 
 # Android app (WebView wrapper)
 
 The Android app is a **thin native shell**: the whole UI is the web dashboard served by the Flask app, loaded in a full-screen WebView. Same principle as [lms-material-app](https://github.com/CDrummond/lms-material-app). Don't rebuild dashboard UI natively — if a feature belongs on screen, it belongs in the web page; the app only provides shell concerns (window, settings, discovery, a native bridge).
 
-Everything lives under `android/`. Package `com.werdeil.lyriondashboard`, Kotlin, Gradle KTS, `minSdk = 26` (Android 8.0), `targetSdk = 35`, `compileSdk = 37`, Java/JVM 17.
+Everything lives under `android/`, a two-module Gradle project: `app/` (the phone wrapper, described here) and `wear/` (a standalone Wear OS companion, [below](#wear-os-companion-wear)). Package `com.werdeil.lyriondashboard`, Kotlin, Gradle KTS, `minSdk = 26` (Android 8.0), `targetSdk = 35`, `compileSdk = 37`, Java/JVM 17.
 
 ## Layout
 
@@ -34,10 +35,31 @@ android/app/src/main/
 ```bash
 cd android
 ./gradlew assembleDebug   # -> app/build/outputs/apk/debug/app-debug.apk
+                          #    wear/build/outputs/apk/debug/wear-debug.apk
 ./gradlew lintDebug       # Android Lint (gates CI)
 ```
 
-CI is `.github/workflows/android.yml`: on every push touching `android/**` it runs `lintDebug` then `assembleDebug` and uploads the debug APK as an artifact. The release APK is built and attached only when a GitHub release is published (see the `release` skill).
+CI is `.github/workflows/android.yml`: on every push touching `android/**` it runs `lintDebug` then `assembleDebug` and uploads both debug APKs as artifacts. The release APKs are built and attached only when a GitHub release is published (see the `release` skill).
+
+## Wear OS companion (`wear/`)
+
+A **standalone** watch app (a WebView is not available on Wear OS, so this one is native — Compose for Wear OS). It shows only the current track's lyrics, karaoke-style when they carry LRC timestamps, and is the one place where native UI is correct rather than a violation of the shell rule.
+
+```
+android/wear/src/main/java/com/werdeil/lyriondashboard/wear/
+├── MainActivity.kt      # hosts the screens, keeps the display on
+├── LyricsScreen.kt      # the karaoke list
+├── DashboardClient.kt   # polls /now-playing.json and /lyrics.json
+├── Lrc.kt               # LRC parsing
+├── Prefs.kt             # server URL + keep-screen-on
+└── SettingsScreen.kt    # server URL entry (system remote input)
+```
+
+- It talks to the **dashboard server**, not to Lyrion: it polls `/now-playing.json` and extrapolates the playback position between polls, exactly as the web page does (see the `frontend` skill), and falls back to `/lyrics.json` once per track when the library has no synced lyrics.
+- It shares the phone app's `applicationId` (only its `namespace` differs), because Play requires the Wear form factor of a listing to use the phone app's package name; `uses-feature android.hardware.type.watch` keeps the watch APK off phones. Kotlin comes from AGP, so only the Compose compiler plugin is declared, pinned to the Kotlin AGP bundles.
+- Its strings are bilingual too: `wear/src/main/res/values/` and `values-fr/`.
+
+Installing it needs adb over wireless debugging. The phone app's *Install the watch app* setting drives that server-side through `/wear/install.json` (`services/wear_install.py`), so the user needs no computer; `android/README.md` documents the manual route.
 
 ## Signing: debug vs release
 
@@ -46,7 +68,7 @@ CI is `.github/workflows/android.yml`: on every push touching `android/**` it ru
 
 ## Versioning (must stay static)
 
-`versionName` and `versionCode` in `app/build.gradle.kts` are **static literals**, committed, because F-Droid builds from the tagged source and parses them from that file. `versionCode` packs the semver as `X*10000 + Y*100 + Z`. Don't compute them at build time. Bumping is the Release workflow's job — see the `release` skill.
+`versionName` and `versionCode` in `app/build.gradle.kts` are **static literals**, committed, because F-Droid builds from the tagged source and parses them from that file. `versionCode` packs the semver as `X*10000 + Y*100 + Z`. Don't compute them at build time. Bumping is the Release workflow's job — see the `release` skill; it bumps `wear/build.gradle.kts` in lockstep, because `android.yml` checks the release tag against **both** modules' `versionName`.
 
 ## The JS ↔ native bridge
 
@@ -63,7 +85,7 @@ App strings are bilingual like the web app: `res/values/strings.xml` (EN) and `r
 ## Checklist
 
 1. Keep it a shell — new UI goes in the web page, not native views.
-2. New user string → both `values/` and `values-fr/` strings.xml.
+2. New user string → both `values/` and `values-fr/` strings.xml, in the module it belongs to.
 3. New native capability the page uses → method on `window.LyrionApp`, guarded page-side by the bridge's presence.
 4. Leave `versionName`/`versionCode` static; bump via the Release workflow.
-5. `./gradlew lintDebug assembleDebug` clean before pushing (CI runs both).
+5. `./gradlew lintDebug assembleDebug` clean before pushing (CI runs both, over both modules).

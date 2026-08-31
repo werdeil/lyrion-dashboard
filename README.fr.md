@@ -19,6 +19,7 @@ Application web Flask pour [Lyrion Music Server](https://github.com/LMS-Communit
 - **Statistiques de la bibliothèque** -- Albums, artistes, morceaux joués/non joués, genres, notes, paroles, vélocité d'écoute sur 30 jours.
 - **Serveur de fichiers** -- Sert les fichiers depuis un répertoire configurable.
 - **Application Android** -- Une fine surcouche WebView (même principe que [lms-material-app](https://github.com/CDrummond/lms-material-app)) avec découverte automatique du serveur LMS, publiée sur [F-Droid](https://f-droid.org/packages/com.werdeil.lyriondashboard/), voir [`android/`](android/README.md).
+- **Application Wear OS** -- Une app compagnon autonome pour montre affichant uniquement les paroles synchronisées du titre en cours, façon karaoké, voir [`android/`](android/README.md#wear-os-companion-wear).
 
 ## Structure du projet
 
@@ -34,13 +35,15 @@ Application web Flask pour [Lyrion Music Server](https://github.com/LMS-Communit
 ├── .env.example                           # Modèle de configuration
 ├── routes/
 │   ├── nowplaying.py                      # Routes : /, /now-playing.json, /cover, /lyrics.json
-│   └── custom.py                          # Route : /files/<path>
+│   ├── custom.py                          # Route : /files/<path>
+│   └── wear.py                            # Routes : /wear/status.json, /wear/install.json
 ├── services/
 │   ├── lyrion.py                          # Client JSON-RPC Lyrion
 │   ├── artwork.py                         # Lit la taille d'une image dans son en-tête
 │   ├── database.py                        # Accès SQLite (paroles, stats)
 │   ├── lyrics.py                          # Recherche web de paroles (LRCLIB, Musixmatch, Genius)
-│   └── tags.py                            # Lecture/écriture des paroles et pochettes dans les tags audio
+│   ├── tags.py                            # Lecture/écriture des paroles et pochettes dans les tags audio
+│   └── wear_install.py                    # Pousse l'APK montre sur un appareil Wear OS via adb
 ├── templates/
 │   ├── _icons.html                        # Icônes SVG inline réutilisables (macros Jinja)
 │   └── nowplaying.html                    # Dashboard principal
@@ -51,7 +54,7 @@ Application web Flask pour [Lyrion Music Server](https://github.com/LMS-Communit
 │   ├── embed_covers.py                    # Intègre folder.jpg dans les tags des fichiers
 │   ├── embed_covers_cron.sh               # Wrapper cron : ne revérifie que les dossiers modifiés
 │   └── generate_screenshots.py            # Regénère les captures des README (données factices)
-├── android/                               # Application Android (surcouche WebView)
+├── android/                               # Application Android (surcouche WebView) + app Wear OS
 ├── tests/
 └── docs/screenshots/                      # Captures d'écran du README
 ```

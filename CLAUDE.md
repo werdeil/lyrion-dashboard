@@ -85,7 +85,7 @@ When opening a PR, follow `.github/pull_request_template.md`: fill in the proble
 - `app.py` — the app factory (`create_app`). Registers blueprints, the `/health` endpoint, and one `after_request` that sets app-wide security headers (`CSP default-src 'self'`, `nosniff`, `SAMEORIGIN`) via `setdefault`, so a route only sets a header itself to **override** the default for one route (as `/files/` does with `CSP: sandbox`).
 - `config.py` — all configuration from env vars, read once at import (the source tree is mounted read-only). `DEV=1` enables template auto-reload and disables static caching. `VERSION` is read from the `VERSION` file.
 - `logsetup.py` — `configure_logging()` (called once by `create_app`) points the root logger at stdout, so `docker logs` is the single place to look; `LOG_LEVEL` sets the level (`DEBUG` under `DEV=1`, else `INFO`). Modules log through `logging.getLogger(__name__)` with lazy `%s` formatting. The rule of thumb: **INFO for an outcome the operator would ask about** (a lyrics search and each provider's verdict, a track with no lyrics in the library, a throttled request, a stats recompute), **WARNING/ERROR for a degraded dependency** (a provider down, Lyrion unreachable, a DB that won't open), **DEBUG for detail that only matters once you're already looking** (HTTP statuses, cache internals, per-call timings). The ceiling is repetition, not importance: **anything that repeats on the 2s now-playing poll stays DEBUG** (the Lyrion calls, the player enumeration), while a per-track-change line may be INFO. Never log lyrics or cover bodies, only their size and provenance.
-- `routes/nowplaying.py` (`nowplaying_bp`) — the dashboard page and its JSON endpoints. `routes/custom.py` (`custom_bp`) — the sandboxed `/files/` server.
+- `routes/nowplaying.py` (`nowplaying_bp`) — the dashboard page and its JSON endpoints. `routes/custom.py` (`custom_bp`) — the sandboxed `/files/` server. `routes/wear.py` (`wear_bp`) — `/wear/status.json` and `/wear/install.json`, which push the Wear OS companion APK to a watch.
 
 ### Services
 
@@ -95,6 +95,7 @@ When opening a PR, follow `.github/pull_request_template.md`: fill in the proble
 - `services/ratelimit.py` — dependency-free `RateLimiter` (per-IP sliding window) and `Cooldown` (once per interval), used to fuse the outbound lyrics searches. Idle entries are swept on every call so the maps stay bounded.
 - `services/tags.py` — framework-free tag writer (mutagen), shared by the web app and the CLI scripts: lyrics (plain text only) and cover art (stored as handed, never re-encoded).
 - `services/artwork.py` — image dimensions from header bytes alone (JPEG/PNG/GIF/BMP/WebP), no dependencies. Lyrion shows the artwork embedded in the tags and ignores `folder.jpg`, which is what `scripts/embed_covers.py` reconciles. **See the `covers` skill.**
+- `services/wear_install.py` — installs the Wear OS companion on a watch through the server's `adb` (wireless debugging), so the phone never needs a computer. `adb` is optional: absent, `/wear/status.json` says so instead of failing. The subprocess arguments are allowlist-validated and run without a shell (the paired `# nosec` justifications). **See the `android` skill.**
 
 ### Frontend
 
@@ -152,6 +153,6 @@ Project skills live in `.claude/skills/` (tracked in git, shared with contributo
 - **`lyrics`** — the web fallback providers, cache/verification, and embedding lyrics into audio file tags.
 - **`covers`** — album artwork: measuring an image from its header, and embedding a folder's cover into the tags.
 - **`release`** — cutting a version (the `VERSION`/gradle mirrors, the manual Release → publish → `android.yml` chain).
-- **`android`** — the WebView wrapper (shell-only principle, signing split, static F-Droid versioning, discovery, the JS↔native bridge).
+- **`android`** — the WebView wrapper and the Wear OS companion (shell-only principle, signing split, static F-Droid versioning, discovery, the JS↔native bridge).
 
 **A skill that describes what a PR changes moves with it, in the same PR.** The trigger is the code, not the user: a refactor nobody can see — an rAF loop becoming a timer — leaves the skill confidently wrong, and unlike a stale README nobody reads it again until the next task has already trusted it.

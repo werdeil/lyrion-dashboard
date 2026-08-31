@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="settings_title">Paramètres</string>
+
+    <string name="pref_server_url">URL du serveur</string>
+    <string name="pref_keep_screen_on">Garder l\'écran allumé</string>
+
+    <string name="no_server">Définissez l\'URL du serveur Lyrion Dashboard pour commencer</string>
+    <string name="error_cannot_connect">Impossible de joindre le serveur — vérifiez l\'URL et le réseau</string>
+    <string name="not_playing">Aucune lecture en cours</string>
+    <string name="no_lyrics">Pas de paroles pour ce titre</string>
+    <string name="searching_web">Recherche sur le web…</string>
+</resources>

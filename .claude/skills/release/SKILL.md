@@ -19,7 +19,7 @@ Releases are **cut manually** from the GitHub UI, not on every merge. The flow i
 The semantic version lives in **three** places that must agree, and the release workflow is what keeps them in sync:
 
 1. `VERSION` (repo root) — the **single source of truth** for the web app. `config.py` reads it at import and exposes it on `/health`.
-2. `android/app/build.gradle.kts` — `versionName` (the semver) and `versionCode` (an integer). These are **static literals on purpose**: F-Droid builds from the source at the tag and parses them from this file, so they must be committed, not computed at build time.
+2. `android/app/build.gradle.kts` and `android/wear/build.gradle.kts` — `versionName` (the semver) and `versionCode` (an integer), the same values in both. These are **static literals on purpose**: F-Droid builds from the source at the tag and parses them from this file, so they must be committed, not computed at build time.
 3. The git tag `vX.Y.Z`.
 
 `versionCode` packs the semver as **`X*10000 + Y*100 + Z`** (e.g. `0.2.1` → `201`, `1.0.0` → `10000`). Keep that formula — the Release workflow and the gradle comment both rely on it.
@@ -29,7 +29,7 @@ The semantic version lives in **three** places that must agree, and the release 
 Triggered by `workflow_dispatch` with inputs `version` (X.Y.Z, no leading `v`) and `prerelease`. It:
 
 1. Validates the version is semver and the tag doesn't already exist.
-2. Bumps `versionCode`/`versionName` in `build.gradle.kts` (via `sed`, failing loudly if nothing changed) and writes `VERSION`.
+2. Bumps `versionCode`/`versionName` in both `build.gradle.kts` files (via `sed`, failing loudly if either didn't change) and writes `VERSION`.
 3. Commits `chore(release): vX.Y.Z`, tags `vX.Y.Z`, pushes both.
 4. Opens a **draft** GitHub release with auto-generated notes (`--generate-notes`).
 
@@ -39,27 +39,27 @@ It stops there. Nothing is published automatically.
 
 Publishing the draft fires `android.yml` on `release: published`, which:
 
-- Re-checks the tag matches `versionName` in `build.gradle.kts` (F-Droid coherence guard) — a mismatch fails the job.
-- Builds the **release APK**, which **must** be signed. The four repo secrets `ANDROID_KEYSTORE_BASE64`, `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS`, `ANDROID_KEY_PASSWORD` are all required: the job decodes the keystore, checks it opens with that password and holds that alias, and **fails** if any of it is missing or malformed. It never falls back to unsigned.
-- Verifies the built APK with `apksigner` and fails if Gradle produced `app-release-unsigned.apk` — a release published unsigned in the past (v0.2.1) because this check did not exist.
+- Re-checks the tag matches `versionName` in both modules' `build.gradle.kts` (F-Droid coherence guard) — a mismatch fails the job.
+- Builds the **release APKs** (phone and watch), which **must** be signed. The four repo secrets `ANDROID_KEYSTORE_BASE64`, `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS`, `ANDROID_KEY_PASSWORD` are all required: the job decodes the keystore, checks it opens with that password and holds that alias, and **fails** if any of it is missing or malformed. It never falls back to unsigned.
+- Verifies each built APK with `apksigner` and fails if Gradle produced a `-release-unsigned.apk` — a release published unsigned in the past (v0.2.1) because this check did not exist.
 - Attaches `lyrion-dashboard-vX.Y.Z.apk` to the release.
 
 Note the ref subtlety: on a `release` event GitHub runs the workflow **as it exists at the tagged commit**. Recreating a release on an old tag replays that tag's `android.yml`, not the current one — so a workflow fix only takes effect for tags cut after it landed (or after the tag is moved).
 
-`android.yml` also builds a **debug** APK on every push touching `android/**` (uploaded as a workflow artifact, not attached to a release).
+`android.yml` also builds the **debug** APKs on every push touching `android/**` (uploaded as workflow artifacts, not attached to a release).
 
 ## Doing a release
 
 1. Decide the new `X.Y.Z`.
 2. Run the **Release** workflow (Actions → Release → Run workflow) with that version; tick prerelease if applicable.
 3. Review the auto-generated notes on the resulting **draft** release, edit if needed, then **Publish**.
-4. Confirm `android.yml` ran and the signed APK is attached.
+4. Confirm `android.yml` ran and both signed APKs are attached.
 
 Prefer this path over hand-editing versions: doing it manually risks the three mirrors drifting, which the F-Droid coherence guard will reject at release time. If you must bump by hand (e.g. prepping a PR), change **all three** consistently and keep the `versionCode` packing formula.
 
 ## Checklist
 
-- [ ] Version bumped in `VERSION` **and** `versionName`/`versionCode` in `android/app/build.gradle.kts`, with `versionCode = X*10000 + Y*100 + Z`.
-- [ ] Tag `vX.Y.Z` matches `versionName` (else `android.yml` fails).
+- [ ] Version bumped in `VERSION` **and** `versionName`/`versionCode` in `android/app/build.gradle.kts` and `android/wear/build.gradle.kts`, with `versionCode = X*10000 + Y*100 + Z`.
+- [ ] Tag `vX.Y.Z` matches `versionName` in both modules (else `android.yml` fails).
 - [ ] Release cut via the workflow, reviewed as a draft, then published.
-- [ ] Signed APK attached (signing secrets present) — verify on the release.
+- [ ] Signed APKs attached (signing secrets present) — verify on the release.

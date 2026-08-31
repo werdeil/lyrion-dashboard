@@ -43,7 +43,9 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: android-lint-report
-          path: android/app/build/reports/lint-results-debug.html
+          path: |
+            android/app/build/reports/lint-results-debug.html
+            android/wear/build/reports/lint-results-debug.html
 
       - name: Build debug APK
         run: ./gradlew assembleDebug
@@ -54,17 +56,25 @@ jobs:
           name: lyrion-dashboard-debug
           path: android/app/build/outputs/apk/debug/app-debug.apk
 
+      - name: Upload Wear OS debug APK
+        uses: actions/upload-artifact@v7
+        with:
+          name: lyrion-dashboard-wear-debug
+          path: android/wear/build/outputs/apk/debug/wear-debug.apk
+
       # F-Droid builds from the source at the tag, so the version must be
       # committed in build.gradle.kts — this only guards their coherence.
       - name: Check that the release tag matches the app version
         if: github.event_name == 'release'
         run: |
-          version=$(grep -oP 'versionName = "\K[^"]+' app/build.gradle.kts)
           tag="${{ github.event.release.tag_name }}"
-          if [ "v$version" != "$tag" ]; then
-            echo "::error::Release tag $tag does not match versionName $version in android/app/build.gradle.kts"
-            exit 1
-          fi
+          for module in app wear; do
+            version=$(grep -oP 'versionName = "\K[^"]+' $module/build.gradle.kts)
+            if [ "v$version" != "$tag" ]; then
+              echo "::error::Release tag $tag does not match versionName $version in android/$module/build.gradle.kts"
+              exit 1
+            fi
+          done
 
       # A release must never ship unsigned: every step below fails loudly
       # rather than falling back to an unsigned APK. Secrets are only ever
@@ -132,18 +142,10 @@ jobs:
           export ANDROID_KEYSTORE_PATH="$RUNNER_TEMP/keystore.jks"
           ./gradlew assembleRelease
 
-      - name: Verify the release APK is signed
+      - name: Verify the release APKs are signed
         if: github.event_name == 'release'
         run: |
           set -euo pipefail
-          apk=app/build/outputs/apk/release/app-release.apk
-
-          if [ ! -f "$apk" ]; then
-            echo "::error::$apk not found. Gradle produced:"
-            ls -1 app/build/outputs/apk/release/ || true
-            echo "::error::An app-release-unsigned.apk means the release signingConfig was not applied."
-            exit 1
-          fi
 
           # AGP installs build-tools under $ANDROID_HOME, so apksigner exists
           # by the time the build has run; take the newest version available.
@@ -153,18 +155,31 @@ jobs:
             exit 1
           fi
 
-          "$apksigner" verify --verbose --print-certs "$apk"
-          echo "Release APK is signed."
+          for module in app wear; do
+            apk=$module/build/outputs/apk/release/$module-release.apk
 
-      - name: Attach release APK to the GitHub release
+            if [ ! -f "$apk" ]; then
+              echo "::error::$apk not found. Gradle produced:"
+              ls -1 $module/build/outputs/apk/release/ || true
+              echo "::error::A $module-release-unsigned.apk means the release signingConfig was not applied."
+              exit 1
+            fi
+
+            "$apksigner" verify --verbose --print-certs "$apk"
+            echo "$module release APK is signed."
+          done
+
+      - name: Attach the release APKs to the GitHub release
         if: github.event_name == 'release'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          # Explicit filename: a glob would happily pick up an unsigned or
-          # stale APK if several ever landed in this directory.
-          apk=app/build/outputs/apk/release/app-release.apk
-          asset="lyrion-dashboard-${{ github.event.release.tag_name }}.apk"
-          cp "$apk" "$asset"
-          gh release upload "${{ github.event.release.tag_name }}" "$asset" --clobber
+          # Explicit filenames: a glob would happily pick up an unsigned or
+          # stale APK if several ever landed in these directories.
+          tag="${{ github.event.release.tag_name }}"
+          cp app/build/outputs/apk/release/app-release.apk "lyrion-dashboard-$tag.apk"
+          cp wear/build/outputs/apk/release/wear-release.apk "lyrion-dashboard-wear-$tag.apk"
+          gh release upload "$tag" \
+            "lyrion-dashboard-$tag.apk" \
+            "lyrion-dashboard-wear-$tag.apk" --clobber

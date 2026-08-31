@@ -19,6 +19,7 @@ A Flask web app for [Lyrion Music Server](https://github.com/LMS-Community/slims
 - **Library statistics** -- Albums, artists, played/unplayed tracks, genres, ratings, lyrics, 30-day listening velocity.
 - **File server** -- Serves files from a configurable directory.
 - **Android app** -- A thin WebView wrapper (same principle as [lms-material-app](https://github.com/CDrummond/lms-material-app)) with LMS auto-discovery, published on [F-Droid](https://f-droid.org/packages/com.werdeil.lyriondashboard/), see [`android/`](android/README.md).
+- **Wear OS app** -- A standalone watch companion showing only the synced lyrics of the current track, karaoke-style, see [`android/`](android/README.md#wear-os-companion-wear).
 
 ## Project structure
 
@@ -34,13 +35,15 @@ A Flask web app for [Lyrion Music Server](https://github.com/LMS-Community/slims
 ├── .env.example                           # Configuration template
 ├── routes/
 │   ├── nowplaying.py                      # Routes: /, /now-playing.json, /cover, /lyrics.json
-│   └── custom.py                          # Route: /files/<path>
+│   ├── custom.py                          # Route: /files/<path>
+│   └── wear.py                            # Routes: /wear/status.json, /wear/install.json
 ├── services/
 │   ├── lyrion.py                          # Lyrion JSON-RPC client
 │   ├── artwork.py                         # Read an image's size from its header bytes
 │   ├── database.py                        # SQLite access (lyrics, stats)
 │   ├── lyrics.py                          # Web lyrics fallback (LRCLIB, Musixmatch, Genius)
-│   └── tags.py                            # Read/embed lyrics and cover art into audio file tags
+│   ├── tags.py                            # Read/embed lyrics and cover art into audio file tags
+│   └── wear_install.py                    # Push the watch APK to a Wear OS device over adb
 ├── templates/
 │   ├── _icons.html                        # Reusable inline SVG icons (Jinja macros)
 │   └── nowplaying.html                    # Main dashboard
@@ -51,7 +54,7 @@ A Flask web app for [Lyrion Music Server](https://github.com/LMS-Community/slims
 │   ├── embed_covers.py                    # Embed folder.jpg into files' tags
 │   ├── embed_covers_cron.sh               # Cron wrapper: only re-checks changed folders
 │   └── generate_screenshots.py            # Regenerate the README screenshots (fake data)
-├── android/                               # Android app (WebView wrapper)
+├── android/                               # Android app (WebView wrapper) + Wear OS app
 ├── tests/
 └── docs/screenshots/                      # README screenshots
 ```
