@@ -12,6 +12,7 @@ debug APK there while testing), otherwise the wear asset of the latest
 GitHub release is downloaded to that path and reused afterwards.
 """
 
+import logging
 import os
 import re
 import shutil
@@ -25,6 +26,8 @@ from flask import current_app
 # though subprocess is invoked without a shell.
 _HOST_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*$")
 _CODE_RE = re.compile(r"^\d{6}$")
+
+logger = logging.getLogger(__name__)
 
 _PAIR_TIMEOUT = 30
 _CONNECT_TIMEOUT = 30
@@ -79,6 +82,7 @@ def install(host, connect_port, pair_port=None, pair_code=None):
         )
     apk = _resolve_apk()
 
+    logger.info("Wear install on %s:%s (apk %s)", host, connect_port, apk)
     transcript = []
     serial = f"{host}:{connect_port}"
     try:
@@ -99,6 +103,11 @@ def install(host, connect_port, pair_port=None, pair_code=None):
         transcript.append(out)
         if "success" not in out.lower():
             raise WearInstallError("install", _tail(transcript))
+    except WearInstallError as exc:
+        logger.warning(
+            "Wear install on %s:%s failed at %s", host, connect_port, exc.step
+        )
+        raise
     finally:
         # Leave no dangling adb connection; ignore the outcome (best-effort
         # cleanup, a failure here must not mask the real result).
@@ -107,6 +116,7 @@ def install(host, connect_port, pair_port=None, pair_code=None):
         except Exception:  # nosec B110
             pass
 
+    logger.info("Wear install on %s:%s succeeded", host, connect_port)
     return _tail(transcript)
 
 
@@ -144,6 +154,7 @@ def _resolve_apk():
         return path
 
     repo = current_app.config["GITHUB_REPO"]
+    logger.info("No watch APK at %s, fetching the latest release of %s", path, repo)
     try:
         r = requests.get(
             f"https://api.github.com/repos/{repo}/releases/latest", timeout=15

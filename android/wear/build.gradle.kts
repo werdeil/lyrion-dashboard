@@ -2,10 +2,8 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
     id("com.android.application")
-    // Kotlin itself is AGP 9's built-in (no kotlin.android plugin, same as the
-    // phone app module). Only the Compose compiler plugin must be applied, and
-    // its version must match AGP 9.2's bundled Kotlin (KGP 2.2.10) so the
-    // Compose compiler matches the compiler doing the build.
+    // Kotlin comes from AGP itself (no kotlin.android plugin, as in app/); this
+    // version must track the Kotlin AGP bundles, or the build fails outright.
     id("org.jetbrains.kotlin.plugin.compose") version "2.2.10"
 }
 

@@ -1,3 +1,4 @@
+import logging
 import threading
 import time
 
@@ -6,6 +7,8 @@ import urllib3
 from flask import abort, current_app
 
 urllib3.disable_warnings()
+
+log = logging.getLogger(__name__)
 
 # Shared Session so upstream requests reuse their TCP connections.
 _session = requests.Session()
@@ -26,27 +29,52 @@ def _read_image(r):
         # only ever lands in an <img>, so relay it as a generic image.
         content_type = "image/jpeg"
     if not content_type.startswith("image/"):
+        log.warning("cover %s served %s, not an image", r.url, content_type)
         abort(502)
     chunks, total = [], 0
     for chunk in r.iter_content(64 * 1024):
         chunks.append(chunk)
         total += len(chunk)
         if total > COVER_MAX_BYTES:
+            log.warning("cover %s exceeds %d bytes, dropped", r.url, COVER_MAX_BYTES)
             abort(502)
     return b"".join(chunks), content_type
 
 
+def _command(payload):
+    params = payload.get("params") or []
+    args = params[1] if len(params) > 1 else []
+    return " ".join(str(a) for a in args) if args else "?"
+
+
 def lyrion_request(payload):
     host = current_app.config["LYRION_HOST"]
+    started = time.monotonic()
     # TLS verification is off for the self-signed local Lyrion; audit S1
     # (security audit in PR #15) documents this accepted risk.
-    r = _session.post(
-        f"{host}/jsonrpc.js",
-        json=payload,
-        verify=False,
-        timeout=5,
-    )
-    return r.json()
+    try:
+        r = _session.post(
+            f"{host}/jsonrpc.js",
+            json=payload,
+            verify=False,
+            timeout=5,
+        )
+    except requests.RequestException as exc:
+        log.error("Lyrion unreachable at %s for [%s]: %s", host, _command(payload), exc)
+        raise
+    elapsed = int((time.monotonic() - started) * 1000)
+    if r.status_code != 200:
+        log.warning("Lyrion returned HTTP %s for [%s]", r.status_code, _command(payload))
+    # Lyrion replies with an empty (non-JSON) body when asked about an unknown
+    # player id — e.g. a vanished ephemeral player still held in _last_player.
+    # Return {} instead of letting r.json() raise; callers read `result` safely.
+    try:
+        data = r.json()
+    except ValueError:
+        log.debug("Lyrion answered [%s] with a non-JSON body in %d ms", _command(payload), elapsed)
+        return {}
+    log.debug("Lyrion answered [%s] in %d ms", _command(payload), elapsed)
+    return data
 
 
 def fetch_cover(coverid, size=None):
@@ -68,6 +96,7 @@ def fetch_cover(coverid, size=None):
     # verify=False for the self-signed local Lyrion — see audit S1.
     r = _session.get(f"{host}/music/{coverid}/{name}", verify=False, timeout=5, stream=True)
     if size and r.status_code == 404:
+        log.debug("cover %s has no %dx%d thumbnail, falling back to the full artwork", coverid, size, size)
         r.close()
         r = _session.get(f"{host}/music/{coverid}/cover.jpg", verify=False, timeout=5, stream=True)
     return _read_image(r)
@@ -89,7 +118,7 @@ def get_players():
         "params": ["", ["players", "0", "100"]],
     }
     data = lyrion_request(payload)
-    return data["result"].get("players_loop", [])
+    return data.get("result", {}).get("players_loop", [])
 
 
 def get_now_playing(player_id):
@@ -142,71 +171,125 @@ def get_now_playing(player_id):
     }
 
 
-# Now-playing snapshot shared across clients, so Lyrion sees one enumeration
-# per TTL instead of 1+N requests per poll per client.
+# Snapshot of every currently-playing player, shared across clients so Lyrion
+# sees one enumeration (1 + N status calls) per TTL rather than per poll per client.
 NOW_PLAYING_TTL = 2
 
-_now_cache = {"value": None, "fetched_at": 0, "expires_at": 0}
+_now_cache = {"players": [], "fetched_at": 0, "expires_at": 0}
 _now_lock = threading.Lock()
+# Player shown last on the automatic path, so it stays put instead of flipping.
 _last_player = {"id": None, "name": None}
 
 
-def get_active_now_playing():
-    """Now-playing state of the player that is currently playing, cached for
-    NOW_PLAYING_TTL seconds (see above).
+def get_active_now_playing(selected_id=None):
+    """Now-playing state of the player to display, cached for NOW_PLAYING_TTL.
+
+    When several players play at once the page can pin one via `selected_id`
+    (an id it kept from an earlier `players` list); that player wins while it
+    is still playing, otherwise we fall back to automatic selection and set
+    `selection_active` False so the page drops its now-stale pick. The response
+    always carries `players` — [{id, name}] for every player currently playing —
+    so the page can offer (and populate) its switcher.
 
     The cached playback position is aged by the wall time elapsed since the
-    value was fetched, so the progress bar and karaoke highlight stay accurate
+    snapshot was taken, so the progress bar and karaoke highlight stay accurate
     even when several clients share one cached snapshot.
     """
     with _now_lock:
         now_ts = time.time()
-        if _now_cache["value"] is None or _now_cache["expires_at"] <= now_ts:
-            _now_cache["value"] = _query_active_now_playing()
+        # expires_at starts at 0, so the first call fetches; an empty list is a
+        # valid cached result kept for the TTL.
+        if _now_cache["expires_at"] <= now_ts:
+            _now_cache["players"] = _query_playing_players()
             _now_cache["fetched_at"] = time.time()
             _now_cache["expires_at"] = _now_cache["fetched_at"] + NOW_PLAYING_TTL
-        result = dict(_now_cache["value"])
+        playing = _now_cache["players"]
         age = time.time() - _now_cache["fetched_at"]
+
+        players = [{"id": p["player_id"], "name": p["player_name"]} for p in playing]
+
+        chosen = None
+        selection_active = False
+        if selected_id:
+            chosen = next(
+                (p for p in playing if p["player_id"] == selected_id), None
+            )
+            selection_active = chosen is not None
+        if chosen is None:
+            # Under the lock: _auto_select mutates the shared _last_player.
+            chosen = _auto_select(playing)
+
+        if chosen is None:
+            return {
+                "playing": False,
+                "mode": "stop",
+                "player_name": None,
+                "players": players,
+                "selection_active": False,
+            }
+        result = dict(chosen)
+
     if result.get("playing") and result.get("time") is not None:
         result["time"] += age
+    result["players"] = players
+    result["selection_active"] = selection_active
     return result
 
 
-def _query_active_now_playing():
-    """Ask Lyrion which player is playing, and what.
-
-    Lyrion has no single call returning the transport state of every player,
-    so we enumerate players and query `status` on each, returning the first one
-    whose mode is 'play' — except that the player found playing last time is
-    tried first, skipping the enumeration while it keeps playing. If none is
-    actually playing, we return a not-playing payload so the page shows its
-    empty state — a paused/stopped player with a track still loaded is
-    deliberately not surfaced.
+def _auto_select(playing):
+    """Pick a player among those playing: the one shown last if still playing,
+    else the first in Lyrion's order. Records it in _last_player (cleared when
+    nothing plays). Only reached on the automatic path, so an explicit
+    per-client pick never pollutes the auto-pick other clients rely on.
     """
+    if not playing:
+        _last_player["id"] = None
+        _last_player["name"] = None
+        return None
+
+    chosen = None
     if _last_player["id"]:
-        now = get_now_playing(_last_player["id"])
-        if now.get("playing") and now.get("track_id"):
-            now["player_name"] = _last_player["name"]
-            now["player_id"] = _last_player["id"]
-            return now
+        chosen = next(
+            (p for p in playing if p["player_id"] == _last_player["id"]), None
+        )
+    if chosen is None:
+        chosen = playing[0]
 
+    _last_player["id"] = chosen["player_id"]
+    _last_player["name"] = chosen["player_name"]
+    return chosen
+
+
+def _query_playing_players():
+    """Enumerate players and return those currently playing, in Lyrion's order.
+
+    Lyrion has no single call returning the transport state of every player, so
+    we enumerate players and query `status` on each. Every returned entry is the
+    get_now_playing payload enriched with player_id/player_name (the id also
+    lets the page deep-link "open Lyrion" to this very player, ?player=<id>). A
+    paused/stopped player with a track still loaded is deliberately left out, as
+    is a disconnected one — its cached `mode` can still say "play" after an
+    ungraceful (power-cut) drop, since Lyrion never saw a clean stop.
+    """
+    playing = []
+    known = 0
     for player in get_players():
-        player_id = player.get("playerid")
-        if not player_id or player_id == _last_player["id"]:
+        known += 1
+        if not player.get("connected", 1):
+            log.debug("player %s (%s) is disconnected, skipped", player.get("name"), player.get("playerid"))
             continue
-
+        player_id = player.get("playerid")
+        if not player_id:
+            continue
         now = get_now_playing(player_id)
         if now.get("playing") and now.get("track_id"):
-            _last_player["id"] = player_id
-            _last_player["name"] = player.get("name")
-            now["player_name"] = player.get("name")
-            # Exposed so the page can deep-link the "open Lyrion" button to the
-            # Material skin focused on this very player (?player=<id>).
             now["player_id"] = player_id
-            return now
-
-    # Nothing playing: drop the shortcut so the next refresh goes straight to
-    # the enumeration instead of probing a player known to be idle.
-    _last_player["id"] = None
-    _last_player["name"] = None
-    return {"playing": False, "mode": "stop", "player_name": None}
+            now["player_name"] = player.get("name")
+            playing.append(now)
+        else:
+            log.debug(
+                "player %s: mode=%s track_id=%s, not shown",
+                player.get("name"), now.get("mode"), now.get("track_id"),
+            )
+    log.debug("now playing: %d of %d player(s) - %s", len(playing), known, [p["player_name"] for p in playing])
+    return playing

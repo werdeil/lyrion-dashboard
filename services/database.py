@@ -1,3 +1,4 @@
+import logging
 import time
 import sqlite3
 import threading
@@ -5,14 +6,25 @@ from contextlib import contextmanager
 
 from flask import current_app
 
+log = logging.getLogger(__name__)
+
 
 @contextmanager
 def get_db_conn():
     db = current_app.config["DB_PATH"]
     persist = current_app.config["DB_PERSIST_PATH"]
-    conn = sqlite3.connect(f"file:{db}?mode=ro", uri=True)
+    try:
+        conn = sqlite3.connect(f"file:{db}?mode=ro", uri=True)
+    except sqlite3.Error as exc:
+        log.error("cannot open %s read-only: %s", db, exc)
+        raise
     conn.isolation_level = None
-    conn.execute(f"ATTACH DATABASE 'file:{persist}?mode=ro' AS persist")
+    try:
+        conn.execute(f"ATTACH DATABASE 'file:{persist}?mode=ro' AS persist")
+    except sqlite3.Error as exc:
+        conn.close()
+        log.error("cannot attach %s read-only: %s", persist, exc)
+        raise
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA mmap_size = 268435456")
     conn.execute("PRAGMA cache_size = -32000")
@@ -37,7 +49,9 @@ def get_track_lyrics(track_id):
         ).fetchone()
 
     if row and row["lyrics"]:
+        log.debug("track %s: %d chars of lyrics in the library", track_id, len(row["lyrics"]))
         return row["lyrics"]
+    log.info("track %s: no lyrics in the library%s", track_id, "" if row else " (unknown track id)")
     return None
 
 
@@ -113,8 +127,10 @@ def get_stats():
     """
     with _stats_lock:
         if _stats_cache["value"] is None or _stats_cache["expires_at"] <= time.time():
+            started = time.monotonic()
             _stats_cache["value"] = _compute_stats()
             _stats_cache["expires_at"] = time.time() + STATS_TTL
+            log.info("library stats recomputed in %d ms", int((time.monotonic() - started) * 1000))
         return dict(_stats_cache["value"])
 
 
@@ -233,7 +249,8 @@ def _compute_stats():
             "track_artists_non_played": (row["track_artists_unplayed"] or 0) + (row["track_artists_partially_played"] or 0),
         })
 
-        # Query 4: misc stats (genres, ratings, lyrics, velocity)
+        # The velocity windows start at local midnight: SQLite's 'now' is UTC, so the
+        # localtime/utc pair round-trips the boundary through the TZ environment.
         row = cur.execute("""
             SELECT
                 (SELECT COUNT(*) FROM genres) AS genres,
@@ -243,9 +260,11 @@ def _compute_stats():
                 (SELECT COUNT(DISTINCT id) FROM tracks
                  WHERE audio = 1 AND lyrics IS NOT NULL)                       AS songs_with_lyrics,
                 (SELECT COUNT(*) FROM persist.tracks_persistent
-                 WHERE lastplayed > strftime('%s', 'now', '-30 days'))         AS velocity_30d,
+                 WHERE lastplayed >= strftime('%s', 'now', 'localtime', 'start of day',
+                                              '-30 days', 'utc'))              AS velocity_30d,
                 (SELECT COUNT(*) FROM persist.tracks_persistent
-                 WHERE lastplayed > strftime('%s', 'now', '-1 year'))          AS velocity_1year
+                 WHERE lastplayed >= strftime('%s', 'now', 'localtime', 'start of day',
+                                              '-1 year', 'utc'))               AS velocity_1year
         """).fetchone()
 
         stats.update({

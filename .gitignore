@@ -3,8 +3,10 @@ __pycache__/
 .DS_Store
 .env
 docker-compose.override.yml
-.claude/
-CLAUDE.md
+# Per-contributor Claude config; the shared .claude/settings.json and CLAUDE.md
+# are tracked, their .local variants stay personal.
+.claude/settings.local.json
+CLAUDE.local.md
 .venv-cli/
 .venv/
 venv/

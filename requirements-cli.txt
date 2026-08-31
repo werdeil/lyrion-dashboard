@@ -3,4 +3,4 @@
 requests==2.34.2
 mutagen==1.48.1
 beautifulsoup4==4.15.0   # optional: only needed for the Genius provider
-python-dotenv==1.2.2     # optional: auto-loads .env so the CLI shares the app config
+python-dotenv==1.2.3     # optional: auto-loads .env so the CLI shares the app config

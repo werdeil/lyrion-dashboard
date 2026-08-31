@@ -24,6 +24,7 @@ from app import create_app
 import routes.nowplaying as R
 
 FOUND = {"lyrics": "la la la", "synced": None, "source": "fake"}
+NOTHING = {"lyrics": None, "synced": None, "source": "none"}
 
 
 class LyricsRouteTest(unittest.TestCase):
@@ -61,6 +62,34 @@ class LyricsRouteTest(unittest.TestCase):
         self.client.get("/lyrics.json?artist=Muse&title=Song&refresh=1")
         self.client.get("/lyrics.json?artist=Muse&title=Other&refresh=1")
         self.assertTrue(mock_fetch.call_args.kwargs["force"])
+
+    @patch("routes.nowplaying.fetch_lyrics", return_value=NOTHING)
+    def test_a_held_refresh_that_finds_nothing_is_flagged(self, _mock_fetch):
+        first = self.client.get("/lyrics.json?artist=Muse&title=Song&refresh=1")
+        self.assertNotIn("throttled", first.get_json())
+        second = self.client.get("/lyrics.json?artist=Muse&title=Song&refresh=1")
+        self.assertTrue(second.get_json()["throttled"])
+
+    @patch("routes.nowplaying.fetch_lyrics", return_value=FOUND)
+    def test_a_held_refresh_serving_lyrics_is_not_flagged(self, _mock_fetch):
+        self.client.get("/lyrics.json?artist=Muse&title=Song&refresh=1")
+        second = self.client.get("/lyrics.json?artist=Muse&title=Song&refresh=1")
+        self.assertNotIn("throttled", second.get_json())
+
+    @patch("routes.nowplaying.fetch_lyrics", return_value=FOUND)
+    def test_refresh_reports_how_long_the_next_one_is_held(self, _mock_fetch):
+        plain = self.client.get("/lyrics.json?artist=Muse&title=Song").get_json()
+        self.assertNotIn("retry_after", plain)
+        refreshed = self.client.get("/lyrics.json?artist=Muse&title=Song&refresh=1").get_json()
+        self.assertGreater(refreshed["retry_after"], 0)
+        self.assertLessEqual(refreshed["retry_after"], R.REFRESH_COOLDOWN.interval)
+
+    @patch("routes.nowplaying.fetch_lyrics", return_value=FOUND)
+    def test_the_rate_limited_response_is_json(self, _mock_fetch):
+        for _ in range(R.LYRICS_RATE.limit + 1):
+            response = self.client.get("/lyrics.json?artist=Muse&title=Song")
+        self.assertEqual(response.status_code, 429)
+        self.assertTrue(response.get_json()["throttled"])
 
 
 if __name__ == "__main__":

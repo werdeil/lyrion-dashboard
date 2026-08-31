@@ -12,13 +12,13 @@ A Flask web app for [Lyrion Music Server](https://github.com/LMS-Community/slims
 
 ## Features
 
-- **Now Playing** -- Automatically detects the player currently playing and shows its track (cover art, title, artist, album), refreshed live via Lyrion's JSON-RPC API. The accent color adapts to the cover art automatically.
+- **Now Playing** -- Automatically detects the player currently playing and shows its track (cover art, title, artist, album), refreshed live via Lyrion's JSON-RPC API. The accent color adapts to the cover art automatically. Clicking the cover grows it over the now-playing panel, which it fills, playback progress riding its bottom edge — the statistics stay readable beside it; a click anywhere or Escape shrinks it back.
 - **Recent plays** -- On wide screens, the recently played albums stack up as a pile of record sleeves under the cover — the most recent on top, older ones cascading down, smaller and dimmer, so the order reads at a glance. Hovering a sleeve lifts it to the front. Built from the Alternative Play Count history, one cover per album, skips excluded.
 - **Synced lyrics** -- Lyrics with LRC timestamps are displayed line-by-line with real-time highlighting and auto-scroll synced to playback, karaoke-style. The source line is tinted in the accent color when the lyrics on screen are time-synced.
-- **Web lyrics fallback** -- When the library has no (synced) lyrics, a sync switch lets you search the web (LRCLIB, Musixmatch, Genius) on demand or automatically for every track. In auto mode, a retry button re-runs the search for the current track, bypassing the cache.
+- **Web lyrics fallback** -- An auto-search switch queries the web (LRCLIB, Musixmatch, Genius) for every playing track: it fills in lyrics the library is missing, and upgrades the library's plain text to a synced (karaoke) version when one is found. While it's on, a retry button re-runs the search for the current track, bypassing the cache; it greys out for a few seconds between two searches of the same track.
 - **Library statistics** -- Albums, artists, played/unplayed tracks, genres, ratings, lyrics, 30-day listening velocity.
 - **File server** -- Serves files from a configurable directory.
-- **Android app** -- A thin WebView wrapper (same principle as [lms-material-app](https://github.com/CDrummond/lms-material-app)) with LMS auto-discovery, see [`android/`](android/README.md).
+- **Android app** -- A thin WebView wrapper (same principle as [lms-material-app](https://github.com/CDrummond/lms-material-app)) with LMS auto-discovery, published on [F-Droid](https://f-droid.org/packages/com.werdeil.lyriondashboard/), see [`android/`](android/README.md).
 - **Wear OS app** -- A standalone watch companion showing only the synced lyrics of the current track, karaoke-style, see [`android/`](android/README.md#wear-os-companion-wear).
 
 ## Project structure
@@ -27,6 +27,7 @@ A Flask web app for [Lyrion Music Server](https://github.com/LMS-Community/slims
 ├── app.py                                 # Flask entry point (factory)
 ├── config.py                              # Centralized configuration (env vars)
 ├── i18n.py                                # FR/EN UI translations
+├── logsetup.py                            # Log formatting and level (LOG_LEVEL)
 ├── requirements.txt                       # Python dependencies (web app)
 ├── requirements-cli.txt                   # Python dependencies (scripts/ only)
 ├── docker-compose.yml                     # Docker deployment
@@ -34,12 +35,15 @@ A Flask web app for [Lyrion Music Server](https://github.com/LMS-Community/slims
 ├── .env.example                           # Configuration template
 ├── routes/
 │   ├── nowplaying.py                      # Routes: /, /now-playing.json, /cover, /lyrics.json
-│   └── custom.py                          # Route: /files/<path>
+│   ├── custom.py                          # Route: /files/<path>
+│   └── wear.py                            # Routes: /wear/status.json, /wear/install.json
 ├── services/
 │   ├── lyrion.py                          # Lyrion JSON-RPC client
+│   ├── artwork.py                         # Read an image's size from its header bytes
 │   ├── database.py                        # SQLite access (lyrics, stats)
 │   ├── lyrics.py                          # Web lyrics fallback (LRCLIB, Musixmatch, Genius)
-│   └── tags.py                            # Read/embed lyrics into audio file tags
+│   ├── tags.py                            # Read/embed lyrics and cover art into audio file tags
+│   └── wear_install.py                    # Push the watch APK to a Wear OS device over adb
 ├── templates/
 │   ├── _icons.html                        # Reusable inline SVG icons (Jinja macros)
 │   └── nowplaying.html                    # Main dashboard
@@ -47,6 +51,8 @@ A Flask web app for [Lyrion Music Server](https://github.com/LMS-Community/slims
 ├── scripts/
 │   ├── embed_lyrics.py                    # Embed web lyrics into files' tags
 │   ├── embed_lyrics_cron.sh               # Cron wrapper: only re-tags changed files
+│   ├── embed_covers.py                    # Embed folder.jpg into files' tags
+│   ├── embed_covers_cron.sh               # Cron wrapper: only re-checks changed folders
 │   └── generate_screenshots.py            # Regenerate the README screenshots (fake data)
 ├── android/                               # Android app (WebView wrapper) + Wear OS app
 ├── tests/
@@ -95,6 +101,14 @@ python app.py
 
 The app is available at `http://localhost:1111`.
 
+### Android app
+
+The companion app is published on F-Droid:
+
+[<img src="https://fdroid.gitlab.io/artwork/badge/get-it-on.png" alt="Get it on F-Droid" height="70">](https://f-droid.org/packages/com.werdeil.lyriondashboard/)
+
+A signed APK is also attached to each [GitHub release](https://github.com/werdeil/lyrion-dashboard/releases). On first launch, let it discover the Lyrion server on the local network or enter the dashboard URL yourself — see [`android/`](android/README.md).
+
 ## Configuration
 
 | Variable | Description | Default |
@@ -103,28 +117,45 @@ The app is available at `http://localhost:1111`.
 | `DB_DIR` | Directory containing Lyrion's `library.db` | -- |
 | `DB_PERSIST_DIR` | Directory containing Lyrion's `persist.db` | -- |
 | `CUSTOM_DATA_DIR` | Generated files directory | `/opt/scripts/custom_data` |
-| `HOST` | Listen address | `0.0.0.0` |
-| `PORT` | Listen port | `1111` |
 | `LYRICS_PROVIDERS` | Web lyrics providers, tried in order (`lrclib`, `musixmatch`, `genius`) | `lrclib,musixmatch,genius` |
 | `MUSIXMATCH_TOKEN` | Fixed Musixmatch token (otherwise fetched automatically) | -- |
 | `LRCLIB_TIMEOUT` | LRCLIB request timeout, in seconds | `15` |
 | `LYRICS_VERIFY_DURATION_TOLERANCE` | Max drift (seconds) tolerated by `--verify` in `embed_lyrics.py` | `3` |
+| `TZ` | Timezone used to align the listening-velocity windows on local midnight (e.g. `Europe/Paris`) | `UTC` |
+| `LOG_LEVEL` | Verbosity of the application logs (`DEBUG`, `INFO`, `WARNING`, `ERROR`, `CRITICAL`) | `INFO` (`DEBUG` when `DEV=1`) |
+| `DEV` | Set to `1` to live-reload templates and disable static caching (development) | -- |
+
+## Logs
+
+Everything the app has to say goes to the container's standard output:
+
+```bash
+docker logs -f lyrion-dashboard
+```
+
+At start-up it reports the version, the resolved `LYRION_HOST`, the provider order and whether `library.db` / `persist.db` were actually found — the first thing to check when the page stays empty.
+
+At `INFO` (the default), a track that ends up without lyrics tells its whole story: the library lookup, then each provider, then the verdict.
+
+```
+track 12345: no lyrics in the library
+lyrics: lrclib has no match (312 ms)
+lyrics: musixmatch unreachable after 5003 ms (Read timed out)
+lyrics: genius has no match (486 ms)
+lyrics: 'Hocus Pocus' by 'Focus' -> none (synced=False, plain=False) in 5801 ms
+```
+
+A healthy search is a single line, `lyrics: 'Space Debris' by 'Deep Purple' -> lrclib (synced=True, plain=True) in 412 ms`. `source` tells the outcomes apart: a provider name (found), `none` (searched, nothing matched), `rejected` (a candidate came back but was another recording), `unavailable` (no provider answered — the search is not cached and will be retried). Also at `INFO`: a result served from the cache instead of a new search, a search refused by the rate limit or the refresh cooldown, and a stats recompute with its duration.
+
+Set `LOG_LEVEL=DEBUG` and restart the container to also get each provider's HTTP detail, the lookups that succeeded, the player enumeration and every Lyrion JSON-RPC call with its duration. It is verbose — the now-playing poll runs every 2s — so use it while reproducing a problem, then set it back.
 
 ## Security
 
-The dashboard has **no authentication, by design**: it is a glanceable,
-always-on display meant for a **trusted home LAN**. Anyone who can reach the
-port can see what is playing in real time (presence information), read the
-library statistics and download everything under `CUSTOM_DATA_DIR`
-(`/files/`).
+The dashboard has **no authentication, by design**: it is a glanceable, always-on display meant for a **trusted home LAN**. Anyone who can reach the port can see what is playing in real time (presence information), read the library statistics and download everything under `CUSTOM_DATA_DIR` (`/files/`).
 
-- Never expose the port directly to the Internet (no port forwarding, no
-  public reverse proxy).
-- For remote access, join the LAN instead of opening the dashboard up: a VPN
-  such as WireGuard or Tailscale keeps it LAN-only while your devices connect
-  from anywhere.
-- The full security & performance review lives in
-  [PR #15](https://github.com/werdeil/lyrion-dashboard/pull/15).
+- Never expose the port directly to the Internet (no port forwarding, no public reverse proxy).
+- For remote access, join the LAN instead of opening the dashboard up: a VPN such as WireGuard or Tailscale keeps it LAN-only while your devices connect from anywhere.
+- The full security & performance review lives in [PR #15](https://github.com/werdeil/lyrion-dashboard/pull/15).
 
 ## Endpoints
 
@@ -136,6 +167,7 @@ library statistics and download everything under `CUSTOM_DATA_DIR`
 | GET | `/now-playing.json` | Live state of the currently playing track, auto-detected (JSON) |
 | GET | `/cover/<coverid>.jpg` | Proxies an album cover from Lyrion, same-origin |
 | GET | `/cover/remote.jpg` | Proxies the artwork of the currently playing remote/streaming track |
+| GET | `/mosaic-covers.json` | Album cover ids for the empty-state mosaic, recently played first (JSON) |
 | GET | `/recent-covers.json` | Recently played album cover ids, newest first (JSON) |
 | GET | `/lyrics.json` | Fetches lyrics from the web for a track, on demand |
 | GET | `/files/<path>` | Serves a file from the custom data directory |
@@ -175,11 +207,12 @@ python scripts/embed_lyrics.py "/path/to/music/A*" /path/to/music/B*
 
 | Option | Description |
 |---|---|
-| `--force` | Rewrites the tag even if lyrics are already present. |
-| `--clear` | Erases the existing tag when nothing is found online, to reflect what the providers offer. Also processes already-tagged files (so one web request per file); combinable with `--force`. |
-| `--dry-run` | Prints what would be done, without writing anything. |
-| `--delay 0.5` | Delay (seconds) between web requests (default: 0.5). |
-| `--verbose` | Logs every file, including skipped ones. |
+| <code>&#8209;&#8209;force</code> | Rewrites the tag even if lyrics are already present. |
+| <code>&#8209;&#8209;clear</code> | Erases the existing tag when nothing is found online, to reflect what the providers offer. Also processes already-tagged files (so one web request per file); combinable with `--force`. |
+| <code>&#8209;&#8209;no&#8209;verify</code> | Accepts a provider's lyrics even when its own title/artist/duration don't match the file. Off by default: since tags are written permanently, a mismatched result is worse than no lyrics. |
+| <code>&#8209;&#8209;dry&#8209;run</code> | Prints what would be done, without writing anything. |
+| <code>&#8209;&#8209;delay&nbsp;0.5</code> | Delay (seconds) between web requests (default: 0.5). |
+| <code>&#8209;&#8209;verbose</code> | Logs every file, including skipped ones. |
 
 ### Cron: only re-tag changed files (`scripts/embed_lyrics_cron.sh`)
 
@@ -200,6 +233,43 @@ scripts/embed_lyrics_cron.sh /path/to/music [MARKER] [-- OPTIONS]
 
 > `ctime` (not `mtime`) is used on purpose: it also catches in-place tag rewrites and files copied while preserving their `mtime` (`rsync -a`, `cp -p`).
 
+### Embed cover art into files (`scripts/embed_covers.py`)
+
+Walks album folders and writes each folder's cover file into the *artwork* tag of its tracks, wherever that file is sharper than what the tags already carry. Lyrion displays the embedded artwork and ignores `folder.jpg` entirely, so an album with a 1500 px sleeve on disk and a 300 px one in its tags keeps showing the small one until this runs. Lyrion is never contacted: it picks the change up on its next scan.
+
+```bash
+python scripts/embed_covers.py /path/to/music [options]
+# Shell globs work, even when quoted:
+python scripts/embed_covers.py "/path/to/music/A*" /path/to/music/B*
+```
+
+| Option | Description |
+|---|---|
+| <code>&#8209;&#8209;name&nbsp;folder.jpg</code> | Name of the cover file to look for in each album folder (default: `folder.jpg`), matched without regard to case. |
+| <code>&#8209;&#8209;dry&#8209;run</code> | Prints which albums would be re-tagged, without writing anything. |
+| <code>&#8209;&#8209;verbose</code> | Logs every album, including skipped ones. |
+
+Covers are compared on their **shortest side**, the one that decides how sharp a sleeve looks on screen: only a bigger file is embedded, and an album whose tags carry no artwork at all is always filled in. The image is stored as it is, never re-encoded. Embedding rewrites every track of the album, so the run reports how much the audio files grow — a 2 MB sleeve across a twelve-track album adds 24 MB that then has to resync and back up.
+
+### Cron: only re-check changed folders (`scripts/embed_covers_cron.sh`)
+
+Same marker mechanism as the lyrics wrapper, except the unit is the album folder: `find -cnewer` lists the files whose `ctime` changed, and it is their folders that `embed_covers.py` is handed. A replaced `folder.jpg` therefore queues its album just as a new track does.
+
+```bash
+scripts/embed_covers_cron.sh /path/to/music [MARKER] [-- OPTIONS]
+```
+
+- `MARKER`: timestamp file (default: `state/embed_covers.last_run` at the repo root). Missing → the whole library is processed (first pass).
+- Same rules as above: stamped at the **start** of the pass, advanced only **on success**, left where it is by `--dry-run`.
+- Everything after `--` is forwarded as-is to `embed_covers.py` (e.g. `-- --name cover.jpg`).
+
+```cron
+0 5 * * * /path/to/repo/scripts/embed_covers_cron.sh \
+  /path/to/music >> /tmp/embed_covers.log 2>&1
+```
+
+> Embedding a cover bumps every track's `ctime`, so the album shows up again in the next pass — which then finds the tags already right and moves on.
+
 ### Regenerate the README screenshots (`scripts/generate_screenshots.py`)
 
 Runs the real app with the Lyrion/database layers mocked (fake now-playing track, synced LRC lyrics, generated cover art, a fake recent-plays history, canned stats) and captures the README images with headless Chromium: desktop in both languages (with the recent-plays pile under the cover), the responsive mobile view and the Android app view in a device frame. Each capture uses a different cover on purpose, to show the accent color adapting to the artwork. No Lyrion server or database is needed.
@@ -209,6 +279,10 @@ pip install -r requirements.txt playwright
 playwright install chromium   # once
 python scripts/generate_screenshots.py
 ```
+
+## Sponsor
+
+If this dashboard is useful to you, you can support its development through [GitHub Sponsors](https://github.com/sponsors/werdeil). It is entirely optional: the project stays free and MIT-licensed either way.
 
 ## License
 

@@ -13,11 +13,13 @@ var LYRION_HOST = document.body.dataset.lyrionHost || '';
 
 // Inside the Android app a native bridge (window.LyrionApp) is injected;
 // reveal the header bar (hidden on the web, where the branding lives in the
-// tab title) with its menu button wired to the native app menu (falling back
-// to the settings screen with app versions that predate it).
+// tab title) with its menu button wired to the native full-screen settings
+// screen (openMenu on current apps, openSettings on ones that predate it).
+var APP_BRIDGE = window.LyrionApp;
+
 (function () {
     var appMenu = document.getElementById('app-menu');
-    var bridge = window.LyrionApp;
+    var bridge = APP_BRIDGE;
     if (appMenu && bridge && (bridge.openMenu || bridge.openSettings)) {
         document.body.classList.add('in-app');
         appMenu.hidden = false;
@@ -37,6 +39,7 @@ var el = {
     player: document.getElementById('np-player'),
     playerRow: document.getElementById('np-player-row'),
     playerLink: document.getElementById('np-player-link'),
+    playerSwitch: document.getElementById('np-player-switch'),
     title:  document.getElementById('np-title'),
     artist: document.getElementById('np-artist'),
     album:  document.getElementById('np-album'),
@@ -83,11 +86,29 @@ function updateSwitch() {
 }
 
 // The manual retry button sits in the spinner's slot: it only shows in auto
-// mode and while no search is running (the spinner replaces it meanwhile).
+// mode and while no search is running (the spinner replaces it meanwhile). It
+// greys out while the server would refuse a new search for this track, so a
+// click never lands on a fuse instead of a search.
 var searching = false;
+var retryHeld = false;
 function updateRetry() {
     if (!el.retry) { return; }
     el.retry.hidden = searching || lyricsMode !== 'auto';
+    el.retry.disabled = retryHeld;
+}
+
+// Held for exactly as long as the server says its per-track cooldown will run.
+var retryHoldTimer = null;
+function holdRetry(seconds) {
+    clearTimeout(retryHoldTimer);
+    retryHeld = seconds > 0;
+    if (retryHeld) {
+        retryHoldTimer = setTimeout(function() {
+            retryHeld = false;
+            updateRetry();
+        }, seconds * 1000);
+    }
+    updateRetry();
 }
 
 function persistMode() {
@@ -121,6 +142,134 @@ function setLyrionLink(playerId) {
     // The empty-state "open Lyrion" button always targets the plain Material
     // page: with nothing playing there is no player to focus.
     setMaterialLink(el.emptyOpen, null);
+}
+
+// Player this device follows when several play at once, kept per device (the
+// server holds no selection state) and sent to the poll as ?player=<id>.
+var SELECTED_PLAYER_KEY = 'lyrion.selectedPlayer';
+var selectedPlayer = null;
+try { selectedPlayer = localStorage.getItem(SELECTED_PLAYER_KEY) || null; } catch (e) {}
+
+function setSelectedPlayer(id) {
+    selectedPlayer = id || null;
+    try {
+        if (selectedPlayer) { localStorage.setItem(SELECTED_PLAYER_KEY, selectedPlayer); }
+        else { localStorage.removeItem(SELECTED_PLAYER_KEY); }
+    } catch (e) {}
+}
+
+var LYRION_ARROW_PATH = 'M19 19H5V5h7V3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2v-7h-2v7zM14 3v2h3.59l-9.83 9.83 1.41 1.41L19 6.41V10h2V3h-7z';
+var CHEVRON_PATH = 'M7 10l5 5 5-5z';
+function makeIcon(pathD, cls) {
+    var ns = 'http://www.w3.org/2000/svg';
+    var svg = document.createElementNS(ns, 'svg');
+    svg.setAttribute('viewBox', '0 0 24 24');
+    svg.setAttribute('aria-hidden', 'true');
+    svg.setAttribute('focusable', 'false');
+    svg.setAttribute('class', cls);
+    var path = document.createElementNS(ns, 'path');
+    path.setAttribute('d', pathD);
+    svg.appendChild(path);
+    return svg;
+}
+
+function closeSwitchMenu() {
+    if (!el.playerSwitch) { return; }
+    var menu = el.playerSwitch.querySelector('.np-switch-menu');
+    var toggle = el.playerSwitch.querySelector('.np-switch-toggle');
+    if (menu) { menu.hidden = true; }
+    if (toggle) { toggle.setAttribute('aria-expanded', 'false'); }
+}
+// Close the menu on an outside click or Escape.
+document.addEventListener('click', function (e) {
+    if (el.playerSwitch && !el.playerSwitch.contains(e.target)) { closeSwitchMenu(); }
+});
+document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') { closeSwitchMenu(); }
+});
+
+// Signature (player ids + active id) so the DOM is only rebuilt on real change,
+// keeping the menu state across steady-state polls.
+var lastSwitchKey = null;
+
+function renderPlayerSwitch(data) {
+    if (!el.playerSwitch) { return; }
+    var players = data.players || [];
+
+    // Followed player stopped (or was ignored): revert to automatic selection.
+    if (selectedPlayer && data.selection_active === false) {
+        setSelectedPlayer(null);
+    }
+
+    if (players.length < 2) {
+        el.playerSwitch.hidden = true;
+        el.playerSwitch.textContent = '';
+        lastSwitchKey = null;
+        return;
+    }
+
+    el.playerRow.hidden = true;  // the dropdown takes over the name row
+    el.playerSwitch.hidden = false;
+
+    var activeId = data.player_id;
+    var key = players.map(function (p) { return p.id; }).join(',') + '|' + activeId;
+    if (key === lastSwitchKey) { return; }
+    lastSwitchKey = key;
+    el.playerSwitch.textContent = '';
+
+    // Trigger: the followed player's name + a chevron, opening the menu.
+    var toggle = document.createElement('button');
+    toggle.type = 'button';
+    toggle.className = 'np-switch-toggle';
+    toggle.setAttribute('aria-haspopup', 'true');
+    toggle.setAttribute('aria-expanded', 'false');
+    var toggleName = document.createElement('span');
+    toggleName.className = 'np-switch-current';
+    toggleName.textContent = data.player_name || '';
+    toggle.appendChild(toggleName);
+    toggle.appendChild(makeIcon(CHEVRON_PATH, 'np-switch-chevron'));
+
+    var menu = document.createElement('div');
+    menu.className = 'np-switch-menu';
+    menu.setAttribute('role', 'menu');
+    menu.hidden = true;
+
+    players.forEach(function (p) {
+        var current = p.id === activeId;
+        var item;
+        if (current) {
+            // The followed player's row opens Lyrion (like the single-player name).
+            item = document.createElement('a');
+            setMaterialLink(item, p.id);
+            item.title = I18N.open_lyrion;
+            item.appendChild(document.createTextNode(p.name || ''));
+            item.appendChild(makeIcon(LYRION_ARROW_PATH, 'np-switch-arrow'));
+            // Let the link open, but close the menu behind it.
+            item.addEventListener('click', closeSwitchMenu);
+        } else {
+            item = document.createElement('button');
+            item.type = 'button';
+            item.appendChild(document.createTextNode(p.name || ''));
+            item.addEventListener('click', function () {
+                closeSwitchMenu();
+                setSelectedPlayer(p.id);
+                poll();
+            });
+        }
+        item.className = 'np-switch-item' + (current ? ' is-current' : '');
+        item.setAttribute('role', 'menuitem');
+        menu.appendChild(item);
+    });
+
+    toggle.addEventListener('click', function (e) {
+        e.stopPropagation();
+        var open = menu.hidden;
+        menu.hidden = !open;
+        toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+    });
+
+    el.playerSwitch.appendChild(toggle);
+    el.playerSwitch.appendChild(menu);
 }
 var lastTrackKey = null;
 var currentTrack = null;
@@ -220,11 +369,14 @@ function hsv2Rgb(hsv) {
     return [Math.round(r * 255), Math.round(g * 255), Math.round(b * 255)];
 }
 
-function isGrey(rgb) {
-    return Math.abs(rgb[0] - rgb[1]) < 2 &&
-           Math.abs(rgb[0] - rgb[2]) < 2 &&
-           Math.abs(rgb[1] - rgb[2]) < 2;
-}
+// Accent normalisation in HSV: fixed brightness (Material's V), saturation
+// bounded on both sides.
+var ACCENT_V = 0.8235;
+// Under the floor the accent reads as the lyrics' own off-white; under the
+// minimum the swatch's hue is sampling noise, so ACCENT_DEFAULT stands in.
+var ACCENT_SAT_MIN = 0.15;
+var ACCENT_SAT_FLOOR = 0.45;
+var ACCENT_SAT_MAX = 0.8;
 
 function rgb2Css(rgb) {
     return 'rgb(' + rgb[0] + ',' + rgb[1] + ',' + rgb[2] + ')';
@@ -257,14 +409,12 @@ function sampleCoverTint() {
 
         setTint(rgb2Css(avRgb));
 
-        // Grey covers (or no usable swatch) fall back to the default accent,
-        // exactly like Material does.
-        if (isGrey(avRgb) || !vRgb || isGrey(vRgb)) {
+        var hsv = vRgb && rgb2Hsv(vRgb);
+        if (!hsv || hsv[1] < ACCENT_SAT_MIN) {
             setAccent(ACCENT_DEFAULT);
         } else {
-            var hsv = rgb2Hsv(vRgb);
-            hsv[2] = 0.8235;                 // fixed brightness (Material's V)
-            hsv[1] = Math.min(hsv[1], 0.8);  // cap saturation
+            hsv[1] = Math.min(Math.max(hsv[1], ACCENT_SAT_FLOOR), ACCENT_SAT_MAX);
+            hsv[2] = ACCENT_V;
             setAccent(rgb2Css(hsv2Rgb(hsv)));
         }
     } catch (e) {
@@ -285,6 +435,7 @@ function paintProgress() {
         ? Math.max(0, Math.min(100, (t / progress.duration) * 100))
         : 0;
     el.progressBar.style.width = pct + '%';
+    if (coverZoom && coverZoom.progressBar) { coverZoom.progressBar.style.width = pct + '%'; }
     if (lrcLines) { syncLyrics(); }
 }
 
@@ -351,7 +502,7 @@ function setLyrics(text, isEmpty, keepScroll) {
     lrcActiveIdx = -1;
 
     if (!text || isEmpty) {
-        el.lyrics.textContent = text || I18N.no_lyrics;
+        el.lyrics.textContent = text || I18N.no_lyrics_library;
         el.lyrics.classList.toggle('empty', !!isEmpty || !text);
         el.lyrics.scrollTop = prevScroll;
         updateScrollReset();
@@ -371,9 +522,8 @@ function setLyrics(text, isEmpty, keepScroll) {
             el.lyrics.appendChild(div);
             lrcNodes.push(div);
         }
-        // Set the scroll only once the lines exist: setting it before the
-        // rebuild let scroll-behavior:smooth cancel the reset mid-animation, so
-        // the view never returned to the top on a track change.
+        // Set the scroll only once the lines exist: doing it before the rebuild
+        // would let scroll-behavior:smooth cancel the reset mid-animation.
         el.lyrics.scrollTop = prevScroll;
         syncLyrics();
     } else {
@@ -462,66 +612,137 @@ function setSearching(on) {
     updateRetry();
 }
 
-// Square cover tile (px) the mosaic layout is sized around: sets how many
-// rows and columns of covers fit the card. Kept fairly small so the belt stays
-// dense enough that its wrap seam is never a visible gap, even on short phone
-// cards with few rows.
+// Cover tile (px) the row count is sized around, and the band it is held to.
 var MOSAIC_TILE = 130;
-// Thumbnail size requested for mosaic covers. They're blurred and downscaled,
-// so a small thumbnail is indistinguishable from full art but loads far
-// faster (dozens fetch at once) — a bit above the tile size for DPR headroom.
-var MOSAIC_COVER_SIZE = 200;
-// Gap between covers on the belt (both between covers in a row and between
-// rows), and how fast the belt travels (px/s).
+var MOSAIC_MIN_ROWS = 3;
+var MOSAIC_MAX_ROWS = 4;
 var MOSAIC_GAP = 10;
-var MOSAIC_SPEED = 26;
+// How long the belt rests between advances, which is what it costs: a backdrop
+// in constant motion is recomposited every frame and takes a whole core.
+var MOSAIC_STEP_MS = 6000;
 
-// The covers ride one continuous serpentine belt: laid end to end, they cross
-// row 0 left→right, drop to row 1 and cross it right→left, and so on down the
-// card, then wrap from the bottom back to the top. `mosaicGeom` holds the
-// measured geometry; positionMosaic() maps each tile's position along the belt
-// (phase) to an (x, y) on screen, and stepMosaic() advances the phase.
+// The covers ride one serpentine belt: row 0 left→right, row 1 right→left and
+// so on down the card, then a wrap from the bottom back to the top.
 var mosaicGeom = null;
 var mosaicIds = null;
-var mosaicRAFStarted = false;
+var mosaicTimer = 0;
 
+function prefersReducedMotion() {
+    return !!(window.matchMedia &&
+        window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+}
+
+// The spare slot per row is load-bearing: it keeps both row ends off the card,
+// which is what lets a cover cross rows out of sight (mosaicSlot).
+function mosaicGridRows(W, H, rows) {
+    // A tile is a gap shorter than its row band, so rows don't touch.
+    var rowH = H / rows;
+    return {
+        rows: rows, rowH: rowH, step: rowH, tile: rowH - MOSAIC_GAP,
+        perRow: Math.ceil(W / rowH) + 1,
+    };
+}
+
+// Layout and cover request both derive from this, so they can't drift.
+function mosaicGrid(W, H) {
+    return mosaicGridRows(W, H, Math.min(MOSAIC_MAX_ROWS,
+        Math.max(MOSAIC_MIN_ROWS, Math.round(H / MOSAIC_TILE))));
+}
+
+function mosaicCardW() {
+    return el.emptyMosaic.offsetWidth || 900;
+}
+
+function mosaicCardH() {
+    return el.emptyMosaic.offsetHeight || 500;
+}
+
+// A spare per row on top of the belt's slots, so a card that grows a little
+// still has distinct covers to fill it.
+function mosaicCoversWanted() {
+    var grid = mosaicGrid(mosaicCardW(), mosaicCardH());
+    return Math.min(grid.rows * (grid.perRow + 1), 200);
+}
+
+// Bucketed, so a resize reuses cached thumbnails instead of having Lyrion
+// render a new size for every pixel width the card passes through.
+function mosaicCoverSize(tile) {
+    return Math.min(256, Math.max(96, Math.ceil(tile / 32) * 32));
+}
+
+function placeTile(tile, x, y, instant) {
+    if (instant) {
+        tile.style.transition = 'none';
+    }
+    tile.style.transform = 'translate3d(' + x + 'px,' + y + 'px,0)';
+    if (instant) {
+        void tile.offsetWidth;   // flush, so the next write transitions from here
+        tile.style.transition = '';
+    }
+}
+
+// The last slot sits a step past the final row, off the card, and is where the
+// belt closes: an odd row count leaves its two ends on opposite sides.
+function mosaicSlot(g, s) {
+    var closing = s === g.slots - 1;
+    var row = closing ? g.rows - 1 : Math.floor(s / g.perRow);
+    var k = closing ? g.perRow : (s % g.perRow);
+    // Even rows travel right, odd rows left: boustrophedon. The whole belt sits
+    // a step to the left, so covers enter from off the edge, not at x=0.
+    return {
+        x: ((row % 2 === 0) ? k : (g.perRow - k)) * g.step - g.step,
+        y: row * g.rowH + MOSAIC_GAP / 2,
+    };
+}
+
+// A cover glides one step along its row and is placed outright anywhere else,
+// the belt only breaking off the card. A row change glides on the row it left.
 function positionMosaic(phase) {
     var g = mosaicGeom;
     if (!g) { return; }
     for (var i = 0; i < g.tiles.length; i++) {
-        // Distance of this tile along the belt, wrapped into [0, total length).
-        var p = (i * g.step + phase) % g.length;
-        if (p < 0) { p += g.length; }
-        var row = Math.floor(p / g.rowLen);
-        var within = p - row * g.rowLen;
-        // Even rows travel right, odd rows left (so a cover leaving one row's
-        // edge continues from the row below): boustrophedon.
-        var x = (row % 2 === 0) ? within : (g.rowLen - within);
-        // Shift left by one step so tiles enter from just off the left/right
-        // edge rather than popping in at x=0. The tile is MOSAIC_GAP shorter
-        // than its row band, so half a gap of top padding centres it and leaves
-        // a gap between rows.
-        var y = row * g.rowH + MOSAIC_GAP / 2;
-        g.tiles[i].style.transform =
-            'translate3d(' + (x - g.step) + 'px,' + y + 'px,0)';
+        var s = (i + Math.round(phase / g.step)) % g.slots;
+        var at = mosaicSlot(g, s);
+        var tile = g.tiles[i];
+        if (g.dropY[i] !== undefined) {
+            placeTile(tile, g.drawnX[i], g.dropY[i], true);
+            g.drawnY[i] = g.dropY[i];
+            g.dropY[i] = undefined;
+        }
+        if (g.drawnX[i] === undefined ||
+                Math.abs(at.x - g.drawnX[i]) > g.step * 1.5) {
+            placeTile(tile, at.x, at.y, true);
+            g.drawnY[i] = at.y;
+        } else if (g.drawnY[i] === at.y) {
+            placeTile(tile, at.x, at.y, false);
+        } else {
+            placeTile(tile, at.x, g.drawnY[i], false);
+            g.dropY[i] = at.y;
+        }
+        g.drawnX[i] = at.x;
     }
 }
 
-function stepMosaic(ts) {
+// The tiles' CSS transform transition is what glides them to the new slot.
+function stepMosaic() {
     var g = mosaicGeom;
-    // Only advance while the empty state is actually on screen (offsetParent is
-    // null when a parent is display:none, i.e. something is playing).
-    if (g && el.emptyMosaic.offsetParent !== null) {
-        if (!g.last) { g.last = ts; }
-        // Clamp dt so a background tab (rAF paused) doesn't lurch on return.
-        var dt = Math.min(ts - g.last, 100);
-        g.last = ts;
-        g.phase = (g.phase + MOSAIC_SPEED * dt / 1000) % g.length;
-        positionMosaic(g.phase);
-    } else if (g) {
-        g.last = 0;
-    }
-    requestAnimationFrame(stepMosaic);
+    if (!g) { return; }
+    g.phase = (g.phase + g.step) % g.length;
+    positionMosaic(g.phase);
+}
+
+// Safe to call from anywhere: it checks itself that the empty state is the card
+// on screen and the page visible, and schedules nothing otherwise.
+function startMosaic() {
+    if (mosaicTimer || !mosaicGeom || document.hidden) { return; }
+    if (!nowPlaying.classList.contains('is-empty') || prefersReducedMotion()) { return; }
+    mosaicTimer = setInterval(stepMosaic, MOSAIC_STEP_MS);
+}
+
+function stopMosaic() {
+    if (!mosaicTimer) { return; }
+    clearInterval(mosaicTimer);
+    mosaicTimer = 0;
 }
 
 // Covers are fetched in parallel (fast) but revealed strictly in belt order —
@@ -553,29 +774,20 @@ function layoutMosaic(ids) {
     el.emptyMosaic.textContent = '';
     if (mosaicRevealTimer) { clearTimeout(mosaicRevealTimer); mosaicRevealTimer = null; }
     mosaicRevealCursor = 0;
-    var reduce = window.matchMedia &&
-        window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    var W = el.emptyMosaic.offsetWidth || 900;
-    var H = el.emptyMosaic.offsetHeight || 500;
-    var rows = Math.max(3, Math.round(H / MOSAIC_TILE));
-    var rowH = H / rows;
-    // Tile is a gap shorter than the row band so rows don't touch vertically;
-    // the horizontal step keeps the same gap between covers along the row.
-    var tile = rowH - MOSAIC_GAP;
-    var step = tile + MOSAIC_GAP;
-    // One extra slot per row so a cover is always entering as another leaves.
-    var perRow = Math.ceil(W / step) + 1;
-    // With fewer covers than a full grid, drop rows so each surviving row stays
-    // full of distinct covers rather than repeating them across the card.
-    if (ids.length >= perRow) {
-        rows = Math.min(rows, Math.floor(ids.length / perRow));
-    } else {
-        rows = 1;
-        perRow = ids.length;
+    var reduce = prefersReducedMotion();
+    var W = mosaicCardW();
+    var H = mosaicCardH();
+    var grid = mosaicGrid(W, H);
+    // Too few covers for that many rows: fewer, taller ones. Dropping a row
+    // without regrowing the rest would leave bare card at the bottom.
+    while (grid.rows > 1 && ids.length < grid.rows * grid.perRow + 1) {
+        grid = mosaicGridRows(W, H, grid.rows - 1);
     }
-    var count = rows * perRow;
+    var count = grid.rows * grid.perRow + 1;
+    var size = mosaicCoverSize(grid.tile);
 
-    el.emptyMosaic.style.setProperty('--mosaic-tile', tile + 'px');
+    el.emptyMosaic.style.setProperty('--mosaic-tile', grid.tile + 'px');
+    var frag = document.createDocumentFragment();
     var tiles = [];
     for (var i = 0; i < count; i++) {
         var img = document.createElement('img');
@@ -585,19 +797,24 @@ function layoutMosaic(ids) {
         img.onload = img.onerror = function() {
             if (mosaicRevealTimer === null) { advanceMosaicReveal(); }
         };
-        img.src = '/cover/' + encodeURIComponent(ids[i % ids.length]) + '.jpg?size=' + MOSAIC_COVER_SIZE;
+        img.src = '/cover/' + encodeURIComponent(ids[i % ids.length]) + '.jpg?size=' + size;
         img.alt = '';
         img.decoding = 'async';
         if (reduce) { img.classList.add('is-shown'); }
-        el.emptyMosaic.appendChild(img);
+        frag.appendChild(img);
         tiles.push(img);
     }
     mosaicGeom = {
-        tiles: tiles, step: step, rowH: rowH,
-        rowLen: perRow * step, length: rows * perRow * step,
-        phase: 0, last: 0,
+        tiles: tiles, step: grid.step, rowH: grid.rowH,
+        rows: grid.rows, perRow: grid.perRow, slots: count,
+        length: count * grid.step, phase: 0,
+        // Where each tile is drawn, and the row drop owed to it.
+        drawnX: [], drawnY: [], dropY: [],
     };
+    // Placed before entering the document: a tile first rendered already at its
+    // position has no earlier transform, so the glide can't fire on layout.
     positionMosaic(0);
+    el.emptyMosaic.appendChild(frag);
     // Reduced motion: no caterpillar fill, show everything at once (tiles were
     // already marked shown above); otherwise start the ordered reveal.
     if (reduce) {
@@ -615,76 +832,66 @@ function layoutMosaic(ids) {
 // empty state simply stays as plain text, same as before.
 var mosaicLoading = false;
 var mosaicLoaded = false;
+// Re-lays the belt even when the cover list comes back unchanged.
+var mosaicDirty = false;
+// High-water mark of what has been asked for, so a resize only re-asks when
+// the card wants more than any request so far.
+var mosaicAsked = 0;
 function loadMosaic() {
     if (mosaicLoaded || mosaicLoading || !el.emptyMosaic) { return; }
     mosaicLoading = true;
-    // Ask for about as many covers as the belt has slots: rows that fill the
-    // card height times a row a little wider than the card. The endpoint
-    // returns the most recently played albums (newest first), so the belt's
-    // ordered reveal draws the latest listens first.
-    var cols = Math.ceil(el.emptyMosaic.offsetWidth / MOSAIC_TILE) || 6;
-    var rows = Math.max(3, Math.round(el.emptyMosaic.offsetHeight / MOSAIC_TILE));
-    var wanted = Math.min(rows * (cols + 2), 200);
+    // Newest first, so the belt's ordered reveal draws the latest listens first.
+    var wanted = mosaicCoversWanted();
+    mosaicAsked = Math.max(mosaicAsked, wanted);
     fetch('/mosaic-covers.json?limit=' + wanted)
         .then(function(r) { return r.json(); })
         .then(function(ids) {
             mosaicLoading = false;
             mosaicLoaded = true;
             if (!ids || !ids.length) { return; }
-            if (!mosaicIds || mosaicIds.join('|') !== ids.join('|')) {
+            if (mosaicDirty || !mosaicIds || mosaicIds.join('|') !== ids.join('|')) {
                 mosaicIds = ids;
+                mosaicDirty = false;
                 layoutMosaic(ids);
             }
             if (el.empty) { el.empty.classList.add('has-mosaic'); }
-            // Honour reduced-motion: lay the belt out but leave it still.
-            var reduce = window.matchMedia &&
-                window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-            if (!reduce && !mosaicRAFStarted) {
-                mosaicRAFStarted = true;
-                requestAnimationFrame(stepMosaic);
-            }
+            // Reduced-motion leaves the belt laid out but still (startMosaic).
+            startMosaic();
         })
         .catch(function() { mosaicLoading = false; });
 }
 
-// Re-lay the belt to the new size on resize (debounced); reuses the covers
-// already fetched, so no extra network. The running rAF picks up the new
-// geometry automatically.
 var mosaicResizeTimer = null;
 window.addEventListener('resize', function() {
     if (!mosaicIds) { return; }
     if (mosaicResizeTimer) { clearTimeout(mosaicResizeTimer); }
-    mosaicResizeTimer = setTimeout(function() { layoutMosaic(mosaicIds); }, 300);
+    mosaicResizeTimer = setTimeout(function() {
+        mosaicDirty = true;
+        // A hidden card measures nothing usable: leave it stale for next time.
+        if (!nowPlaying.classList.contains('is-empty')) { return; }
+        if (mosaicCoversWanted() > mosaicAsked) {
+            mosaicLoaded = false;
+            loadMosaic();
+            return;
+        }
+        mosaicDirty = false;
+        layoutMosaic(mosaicIds);
+    }, 300);
 });
 
-// Recent plays under the cover (desktop only): the previous albums as a pile
-// of record sleeves the playing cover sits on. The freshest listen is on top
-// at full light; each older one cascades down behind it, tilted and dimmer,
-// only its lower edge showing. Occlusion carries the order — nothing is
-// dated. Hover/focus lifts a sleeve to the front (pure CSS, see .np-recent-*).
-//
-// Thumbnail size for the sleeve art, and the pile's shape as fractions of the
-// column width. Age now drives size as well as brightness: the freshest
-// listen is RECENT_TOP_RATIO of the column, each older one RECENT_SHRINK
-// narrower (60% → 50% → 40% …), down to RECENT_MIN_RATIO. RECENT_STEP_RATIO
-// is the vertical cascade step between successive sleeves.
+// Recent plays as a pile of sleeves under the cover (desktop only): freshest
+// on top, older ones smaller and dimmer. Ratios are fractions of the column.
 var RECENT_COVER_SIZE = 300;
-var RECENT_TOP_RATIO = 0.60;
-var RECENT_SHRINK = 0.10;
-// Preferred (and maximum) vertical cascade step, as a fraction of the column;
-// the actual step shrinks to fit a short column (see renderRecent). Sleeves
-// are centred, so the freshest (widest) one covers the centre of each older
-// one — this keeps a band of each peeking out below the one in front.
-var RECENT_STEP_RATIO = 0.26;
-// Minimum px of an older sleeve that must stay uncovered below the fresher
-// one on top of it, so it can still be hovered.
-var RECENT_MIN_PEEK = 22;
-// Slight horizontal nudge off centre, alternating left/right by depth, as a
-// fraction of the column — the "tossed pile" lean of option H.
+// Sizes of the freshest and oldest sleeves; the ones between interpolate.
+var RECENT_TOP_RATIO = 0.70;
+var RECENT_BOTTOM_RATIO = 0.20;
+// Overlap between two sleeves, as a fraction of the upper one's height.
+var RECENT_OVERLAP = 0.30;
+// Horizontal nudge off centre, alternating by depth — the pile's "tossed" lean.
 var RECENT_LANE_SHIFT = 0.08;
-// The shrink ramp (0.60, 0.50, … 0.20 of the column) bottoms out at five
-// sleeves; also the visual cap.
-var RECENT_MAX = 5;
+// Sanity cap only — renderRecent's fit loop is the real bound. Must stay under
+// .np-cover's z-index (30), which a sleeve's own z-index counts up towards.
+var RECENT_MAX = 20;
 // Fewer sleeves than this doesn't read as a pile; hide the block instead.
 var RECENT_MIN = 3;
 // Small tilts cycled by depth so the pile looks tossed rather than ruled.
@@ -698,6 +905,21 @@ var recentRetries = 0;
 
 function recentLayoutActive() {
     return !!(window.matchMedia && window.matchMedia(RECENT_MQ).matches);
+}
+
+// Sizes and offsets for a pile of n sleeves in a w-wide column. Its span
+// (last top + size) grows with n, which is what lets renderRecent pick n.
+function recentPlan(n, w) {
+    var top = w * RECENT_TOP_RATIO;
+    var bottom = w * RECENT_BOTTOM_RATIO;
+    var plan = [];
+    var y = 0;
+    for (var i = 0; i < n; i++) {
+        var size = n > 1 ? top + (bottom - top) * i / (n - 1) : top;
+        plan.push({ size: Math.round(size), top: Math.round(y) });
+        y += size * (1 - RECENT_OVERLAP);
+    }
+    return plan;
 }
 
 var recentCovers = null;   // last /recent-covers.json payload (cover ids)
@@ -747,38 +969,20 @@ function renderRecent() {
     recentRetries = 0;
     el.recentPile.textContent = '';
 
-    // Fit the pile to the column height: try the most sleeves (capped by the
-    // shrink ramp and the album count), shrinking the cascade step down to a
-    // still-hoverable minimum; drop the oldest and retry until it fits, or hide
-    // if not even RECENT_MIN sleeves fit. This keeps the pile visible on short
-    // screens (packed tighter) instead of vanishing.
-    var sizeFirst = Math.round(w * RECENT_TOP_RATIO);
-    var minStep = w * RECENT_SHRINK + RECENT_MIN_PEEK;
-    var prefStep = w * RECENT_STEP_RATIO;
-    var count = 0;
-    var step = 0;
-    for (var c = Math.min(covers.length, RECENT_MAX); c >= RECENT_MIN; c--) {
-        if (sizeFirst > h) { break; }   // even the freshest sleeve overflows
-        var sizeLast = Math.round(w * (RECENT_TOP_RATIO - RECENT_SHRINK * (c - 1)));
-        var fitStep = (h - sizeLast) / (c - 1);   // c >= RECENT_MIN (3) so c-1 >= 2
-        if (fitStep >= minStep) {
-            step = Math.round(Math.min(prefStep, fitStep));
-            count = c;
-            break;
-        }
+    // Largest pile that still fits the column; under RECENT_MIN it hides.
+    var plan = null;
+    var maxCount = Math.min(covers.length, RECENT_MAX);
+    for (var c = RECENT_MIN; c <= maxCount; c++) {
+        var candidate = recentPlan(c, w);
+        var last = candidate[c - 1];
+        if (last.top + last.size > h) { break; }
+        plan = candidate;
     }
-    if (!count) {
+    if (!plan) {
         el.recent.hidden = true;
         return;
     }
-    var plan = [];
-    for (i = 0; i < count; i++) {
-        plan.push({
-            cover: covers[i],
-            size: Math.round(w * (RECENT_TOP_RATIO - RECENT_SHRINK * i)),
-            top: i * step,
-        });
-    }
+    var count = plan.length;
 
     for (i = 0; i < count; i++) {
         var size = plan[i].size;
@@ -806,7 +1010,7 @@ function renderRecent() {
         sleeve.style.setProperty('--np-recent-sat', (1 - 0.25 * age).toFixed(3));
 
         var img = document.createElement('img');
-        img.src = '/cover/' + encodeURIComponent(plan[i].cover) +
+        img.src = '/cover/' + encodeURIComponent(covers[i]) +
             '.jpg?size=' + RECENT_COVER_SIZE;
         img.alt = '';
         img.decoding = 'async';
@@ -849,13 +1053,17 @@ function render(data) {
     if (!data || !data.track_id) {
         nowPlaying.classList.add('is-empty');
         loadMosaic();
+        startMosaic();
         // Drop the pile's cache: the listens that just ended will reorder it,
         // so the next playback refetches instead of showing a stale pile.
         recentCovers = null;
         recentKey = null;
         if (el.recent) { el.recent.hidden = true; }
         el.player.textContent = '';
+        if (el.playerSwitch) { el.playerSwitch.hidden = true; el.playerSwitch.textContent = ''; }
+        lastSwitchKey = null;
         el.cover.removeAttribute('src');
+        closeCoverZoom();
         setLyrionLink(null);
         resetColors();
         lastTrackKey = null;
@@ -871,6 +1079,7 @@ function render(data) {
 
     nowPlaying.classList.remove('is-empty');
     mosaicLoaded = false;
+    stopMosaic();
 
     progress = {
         time: data.time || 0,
@@ -884,6 +1093,7 @@ function render(data) {
     setLyrionLink(data.player_id);
     el.player.textContent = data.player_name || '';
     el.playerRow.hidden = !data.player_name;
+    renderPlayerSwitch(data);
     el.title.textContent = data.title || '';
     el.artist.textContent = data.artist || '';
     el.album.textContent = data.album
@@ -909,11 +1119,14 @@ function render(data) {
         // belongs on top of it now — and the new track's own album, if it was
         // in the pile, must come out (renderRecent drops it).
         loadRecent();
-        setLyrics(data.lyrics || I18N.no_lyrics, !data.lyrics);
+        syncCoverZoom();
+        setLyrics(data.lyrics || I18N.no_lyrics_library, !data.lyrics);
         setLyricsSource(data.lyrics ? 'library' : null);
         lyricsTried = false;
         webResult = null;
         setSearching(false);
+        // The cooldown is per track, so a new one starts with a live button.
+        holdRetry(0);
 
         if (el.modeBlock) {
             el.modeBlock.style.display = '';
@@ -931,6 +1144,15 @@ function render(data) {
             }
         }
     }
+}
+
+// Why the panel came back empty: a search that ran and found nothing reads
+// differently from one the server's fuses held back or that never reached the
+// providers — both return instantly, which otherwise looks like a broken retry.
+function emptyLyricsMessage(res) {
+    if (res && res.throttled) { return I18N.lyrics_throttled; }
+    if (res && res.source === 'unavailable') { return I18N.lyrics_unavailable; }
+    return I18N.no_lyrics_found;
 }
 
 function fetchLyrics() {
@@ -956,6 +1178,7 @@ function fetchLyrics() {
             // render() has already reset the UI for the new one — don't clobber it.
             if (track !== currentTrack) { return; }
             setSearching(false);
+            holdRetry(res.retry_after || 0);
             // Prefer the synced (LRC) version; fall back to plain text.
             var lyrics = res.synced || res.lyrics;
             if (lyrics) {
@@ -963,13 +1186,13 @@ function fetchLyrics() {
                 setLyrics(lyrics, false);
                 setLyricsSource(res.source);
             } else {
-                setLyrics(I18N.no_lyrics_web, true);
+                setLyrics(emptyLyricsMessage(res), true);
             }
         })
         .catch(function() {
             if (track !== currentTrack) { return; }
             setSearching(false);
-            setLyrics(I18N.no_lyrics_web, true);
+            setLyrics(I18N.lyrics_unavailable, true);
         });
 }
 
@@ -991,6 +1214,7 @@ function trySyncedFromWeb() {
         .then(function(res) {
             if (track !== currentTrack) { return; }
             setSearching(false);
+            holdRetry(res.retry_after || 0);
             // Only replace the local plain lyrics if the web returned synced
             // (LRC) lyrics — otherwise keep what the library already has.
             if (res.synced) {
@@ -1010,7 +1234,7 @@ function trySyncedFromWeb() {
 // current scroll position instead of jumping back to the top.
 function showLocal() {
     var data = currentTrack || {};
-    setLyrics(data.lyrics || I18N.no_lyrics, !data.lyrics, true);
+    setLyrics(data.lyrics || I18N.no_lyrics_library, !data.lyrics, true);
     setLyricsSource(data.lyrics ? 'library' : null);
 }
 
@@ -1070,31 +1294,31 @@ if (el.retry) {
     el.retry.addEventListener('click', retryLyrics);
 }
 
-// Short lyrics that already fit the box have nothing to scroll — a gesture
-// on them can't mean "let me scroll away from the highlight", so don't let it
-// trip auto-follow off.
-function isLyricsScrollable() {
-    return el.lyrics.scrollHeight > el.lyrics.clientHeight + 1;
+// Pixels the box can still travel in the direction a gesture pushes it
+// (positive delta scrolls down), zero at either end and for unscrollable text.
+function scrollRoom(delta) {
+    if (delta > 0) {
+        return Math.max(0, el.lyrics.scrollHeight - el.lyrics.clientHeight - el.lyrics.scrollTop);
+    }
+    return Math.max(0, el.lyrics.scrollTop);
 }
 
-// A deliberate scroll gesture (wheel or touch drag) on the synced lyrics
-// pauses the karaoke auto-follow, so it doesn't fight the user for control.
-// Programmatic scrolling from syncLyrics() never fires these events, so
-// telling it apart from a real gesture needs no extra bookkeeping — only
-// telling a real gesture apart from an incidental bump does, via the
-// SCROLL_PAUSE_THRESHOLD accumulated below. These listeners are passive, so
-// the browser applies the native scroll regardless of that bookkeeping; below
-// the threshold, resync immediately rather than waiting for the next
-// periodic syncLyrics() tick, otherwise the delayed snap-back reads as a
-// bounce. Above the threshold, let the native scroll ride and pause instead.
+// A deliberate scroll gesture (wheel or touch drag) on the synced lyrics pauses
+// the karaoke auto-follow, so it doesn't fight the user for control. Only the
+// travel the box can absorb counts: a gesture pushing against an end it already
+// rests at moves nothing, so it can't mean "let me read elsewhere".
+// Programmatic scrolls from syncLyrics() never fire these events, so no
+// bookkeeping is needed to tell them from a real gesture. The listeners are
+// passive — the native scroll applies regardless, so below the threshold resync
+// at once rather than letting the next periodic tick snap back as a bounce.
 el.lyrics.addEventListener('wheel', function(e) {
-    if (!lrcLines || !autoFollowScroll || !isLyricsScrollable()) { return; }
+    if (!lrcLines || !autoFollowScroll) { return; }
     var now = Date.now();
     // A gap between ticks starts a new gesture, so unrelated bumps spread out
     // over time don't add up into a false trigger.
     if (now - wheelLastAt > 400) { wheelAccum = 0; }
     wheelLastAt = now;
-    wheelAccum += Math.abs(e.deltaY);
+    wheelAccum += Math.min(Math.abs(e.deltaY), scrollRoom(e.deltaY));
     if (wheelAccum > SCROLL_PAUSE_THRESHOLD) {
         setAutoFollow(false);
     } else {
@@ -1107,8 +1331,9 @@ el.lyrics.addEventListener('touchstart', function(e) {
 }, { passive: true });
 
 el.lyrics.addEventListener('touchmove', function(e) {
-    if (!lrcLines || !autoFollowScroll || !isLyricsScrollable() || touchStartY === null || !e.touches.length) { return; }
-    if (Math.abs(e.touches[0].clientY - touchStartY) > SCROLL_PAUSE_THRESHOLD) {
+    if (!lrcLines || !autoFollowScroll || touchStartY === null || !e.touches.length) { return; }
+    var moved = touchStartY - e.touches[0].clientY;
+    if (Math.min(Math.abs(moved), scrollRoom(moved)) > SCROLL_PAUSE_THRESHOLD) {
         setAutoFollow(false);
     } else {
         syncLyrics(true);
@@ -1122,10 +1347,259 @@ if (el.scrollReset) {
     });
 }
 
+// Pull-to-refresh, app only. The zone leaves out the lyrics block, which
+// scrolls, and the gesture reloads through the shell rather than in-page.
+var PULL_ZONE = '.np-side, .np-meta, .np-empty';
+var PULL_TRIGGER = 72;
+var PULL_MAX = 104;
+var PULL_SLOP = 8;
+
+var pullBadge = document.getElementById('np-pull');
+var pullStartY = 0;
+var pullStartX = 0;
+var pullTracking = false;
+var pullOwned = false;
+var pullArmed = false;
+var pullBusy = false;
+
+function paintPull(distance) {
+    var progress = Math.min(1, distance / PULL_TRIGGER);
+    pullBadge.style.setProperty('--np-pull-y', Math.min(distance, PULL_MAX) + 'px');
+    pullBadge.style.setProperty('--np-pull-p', progress);
+    pullArmed = distance >= PULL_TRIGGER;
+    pullBadge.classList.toggle('is-armed', pullArmed);
+}
+
+function resetPull() {
+    pullTracking = false;
+    pullOwned = false;
+    pullArmed = false;
+    pullBadge.classList.remove('is-dragging', 'is-armed');
+    pullBadge.style.setProperty('--np-pull-y', '0px');
+    pullBadge.style.setProperty('--np-pull-p', 0);
+}
+
+function pullCanStart(e) {
+    return !pullBusy && e.touches.length === 1 &&
+        (window.scrollY || window.pageYOffset || 0) <= 0 &&
+        nowPlaying.scrollTop <= 0 &&
+        !!(e.target && e.target.closest && e.target.closest(PULL_ZONE));
+}
+
+if (pullBadge && APP_BRIDGE && APP_BRIDGE.reload) {
+    nowPlaying.addEventListener('touchstart', function(e) {
+        if (!pullCanStart(e)) { return; }
+        pullStartY = e.touches[0].clientY;
+        pullStartX = e.touches[0].clientX;
+        pullTracking = true;
+        pullOwned = false;
+    }, { passive: true });
+
+    nowPlaying.addEventListener('touchmove', function(e) {
+        if (!pullTracking || !e.touches.length) { return; }
+        var moved = e.touches[0].clientY - pullStartY;
+        var sideways = Math.abs(e.touches[0].clientX - pullStartX);
+        if (!pullOwned) {
+            // Anything but a downward drag stays the page's for the rest of the gesture.
+            if (Math.abs(moved) <= PULL_SLOP && sideways <= PULL_SLOP) { return; }
+            if (moved <= PULL_SLOP || sideways > moved) { pullTracking = false; return; }
+            pullOwned = true;
+            pullBadge.classList.add('is-dragging');
+        }
+        // Non-passive listener: preventDefault is what suppresses the overscroll.
+        e.preventDefault();
+        paintPull(moved - PULL_SLOP);
+    }, { passive: false });
+
+    nowPlaying.addEventListener('touchend', function() {
+        if (pullOwned && pullArmed) {
+            pullBusy = true;
+            pullBadge.classList.remove('is-dragging');
+            pullBadge.classList.add('is-busy');
+            paintPull(PULL_TRIGGER);
+            APP_BRIDGE.reload();
+            return;
+        }
+        resetPull();
+    }, { passive: true });
+
+    nowPlaying.addEventListener('touchcancel', resetPull, { passive: true });
+}
+
+// Enlarged cover: the card's artwork is a button that blows it up over the
+// panel, dismissed by a click anywhere on it or by Escape.
+var coverZoom = {
+    root: document.getElementById('cover-zoom'),
+    figure: document.getElementById('cover-zoom-figure'),
+    img: document.getElementById('cover-zoom-img'),
+    meta: document.querySelector('.cover-zoom-meta'),
+    progressBar: document.getElementById('cover-zoom-progress-bar'),
+    title: document.getElementById('cover-zoom-title'),
+    artist: document.getElementById('cover-zoom-artist'),
+    album: document.getElementById('cover-zoom-album'),
+    button: document.getElementById('np-cover-button'),
+    panel: document.querySelector('.left-panel'),
+};
+
+var ZOOM_MS = 260;
+var zoomAnims = [];
+
+function zoomOpts(closing) {
+    return {
+        duration: ZOOM_MS,
+        easing: 'cubic-bezier(0.2, 0, 0.2, 1)',
+        fill: closing ? 'both' : 'backwards',
+    };
+}
+
+// Dropping ?size= asks the same route for the original artwork; the remote
+// URL carries a per-track cache buster instead, so it keeps its query.
+function fullCoverSrc(src) {
+    return src.indexOf('/cover/remote.jpg') === 0 ? src : src.split('?')[0];
+}
+
+function setCoverRatio(img) {
+    if (img.naturalWidth && img.naturalHeight) {
+        coverZoom.figure.style.setProperty('--cover-r', img.naturalWidth / img.naturalHeight);
+    }
+}
+
+function syncCoverZoom() {
+    if (!coverZoom.root || coverZoom.root.hidden) { return; }
+    var thumb = el.cover.getAttribute('src');
+    var full = thumb ? fullCoverSrc(thumb) : '';
+    if (full && coverZoom.img.getAttribute('src') !== full) {
+        // The thumbnail is already in cache, so it paints at once and the
+        // original swaps in only once it has loaded — never a blank frame.
+        coverZoom.img.src = thumb;
+        var preload = new Image();
+        preload.onload = function() {
+            if (el.cover.getAttribute('src') === thumb) { coverZoom.img.src = full; }
+        };
+        preload.src = full;
+    }
+    // Read off the card's copy, which is already decoded: the enlarged one may
+    // still be loading when the opening animation measures its box.
+    setCoverRatio(el.cover);
+    coverZoom.title.textContent = el.title.textContent;
+    coverZoom.artist.textContent = el.artist.textContent;
+    coverZoom.album.textContent = el.album.textContent;
+}
+
+function stopZoomAnims() {
+    for (var i = 0; i < zoomAnims.length; i++) { zoomAnims[i].cancel(); }
+    zoomAnims = [];
+}
+
+// Both boxes are measured per run: the panel's height follows the lyrics, and
+// the enlarged picture is laid out from the artwork's ratio.
+function animateZoom(from, closing) {
+    var big = coverZoom.figure.getBoundingClientRect();
+    if (!from.width || !big.width ||
+        window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        return null;
+    }
+    var small = {
+        transform: 'translate(' + (from.left - big.left) + 'px, ' + (from.top - big.top) +
+            'px) scale(' + (from.width / big.width) + ')',
+    };
+    var grown = { transform: 'none' };
+    // The caption arrives once the picture is nearly in place and leaves
+    // first: shrunk to the card cover's size it would be illegible.
+    var caption = closing
+        ? [{ opacity: 1, offset: 0 }, { opacity: 0, offset: 0.45 }, { opacity: 0, offset: 1 }]
+        : [{ opacity: 0, offset: 0 }, { opacity: 0, offset: 0.55 }, { opacity: 1, offset: 1 }];
+    // Opening fills backwards only: once it ends the enlarged state comes from
+    // the stylesheet, never from an animation left holding its last frame.
+    var opts = zoomOpts(closing);
+    zoomAnims = [
+        coverZoom.figure.animate(closing ? [grown, small] : [small, grown], opts),
+        coverZoom.meta.animate(caption, opts),
+        coverZoom.root.animate({ opacity: closing ? [1, 0] : [0, 1] }, opts),
+    ];
+    return zoomAnims[0];
+}
+
+// Squaring the panel off moves everything below it, so its height is animated
+// alongside the picture.
+function animateCard(from, to, closing) {
+    if (Math.abs(from - to) < 1 ||
+        window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        return;
+    }
+    zoomAnims.push(nowPlaying.animate(
+        [{ height: from + 'px' }, { height: to + 'px' }], zoomOpts(closing)));
+}
+
+// The card's content clears out under the enlarged cover, on the same beat as
+// the picture, so the panel keeps its own background rather than gaining a veil.
+function animateCardContent(closing) {
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) { return; }
+    var frames = closing
+        ? [{ opacity: 0 }, { opacity: 1 }]
+        : [{ opacity: 1 }, { opacity: 0 }];
+    for (var i = 0; i < nowPlaying.children.length; i++) {
+        zoomAnims.push(nowPlaying.children[i].animate(frames, zoomOpts(closing)));
+    }
+}
+
+function openCoverZoom() {
+    if (!coverZoom.root || !el.cover.getAttribute('src')) { return; }
+    var from = el.cover.getBoundingClientRect();
+    var cardHeight = nowPlaying.getBoundingClientRect().height;
+    stopZoomAnims();
+    coverZoom.root.hidden = false;
+    coverZoom.panel.classList.add('is-zoomed');
+    coverZoom.button.setAttribute('aria-expanded', 'true');
+    syncCoverZoom();
+    animateZoom(from, false);
+    animateCardContent(false);
+    animateCard(cardHeight, nowPlaying.getBoundingClientRect().height, false);
+}
+
+function endCoverZoom() {
+    stopZoomAnims();
+    coverZoom.root.hidden = true;
+    coverZoom.panel.classList.remove('is-zoomed');
+}
+
+function closeCoverZoom() {
+    if (!coverZoom.root || coverZoom.root.hidden) { return; }
+    coverZoom.button.setAttribute('aria-expanded', 'false');
+    stopZoomAnims();
+    var squared = nowPlaying.getBoundingClientRect().height;
+    // Measured with the class off and put back at once, in the same frame:
+    // the panel keeps clipping its content while it grows back.
+    coverZoom.panel.classList.remove('is-zoomed');
+    var natural = nowPlaying.getBoundingClientRect().height;
+    coverZoom.panel.classList.add('is-zoomed');
+    var shrink = animateZoom(el.cover.getBoundingClientRect(), true);
+    animateCardContent(true);
+    animateCard(squared, natural, true);
+    if (shrink) {
+        shrink.onfinish = endCoverZoom;
+    } else {
+        endCoverZoom();
+    }
+}
+
+if (coverZoom.button && coverZoom.root) {
+    // On a track change the card's copy still carries the previous artwork's
+    // dimensions, so the enlarged one settles the ratio when it loads.
+    coverZoom.img.addEventListener('load', function() {
+        setCoverRatio(coverZoom.img);
+    });
+    coverZoom.button.addEventListener('click', openCoverZoom);
+    coverZoom.root.addEventListener('click', closeCoverZoom);
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') { closeCoverZoom(); }
+    });
+}
+
 el.cover.addEventListener('load', sampleCoverTint);
 
-// Broken-cover fallback, moved out of an inline onerror for the CSP. The
-// guard keeps a broken placeholder from looping the error event forever.
+// Broken-cover fallback (an inline onerror would violate the CSP); the guard
+// keeps a broken placeholder from looping the error event forever.
 el.cover.addEventListener('error', function() {
     var fallback = el.cover.dataset.fallback;
     if (fallback && el.cover.src.indexOf(fallback) === -1) {
@@ -1133,14 +1607,49 @@ el.cover.addEventListener('error', function() {
     }
 });
 
-// A poll can outlive its 5s slot when the server is busy; piling a new
-// request onto a stuck one only feeds the very congestion that delayed it,
-// so ticks are skipped while one is still in flight.
+// Kept in step with the server-side cache (NOW_PLAYING_TTL, 2s), which bounds
+// how often Lyrion is queried regardless of poll rate.
+var POLL_INTERVAL_MS = 2000;
+// A request the OS suspended mid-flight (network handover, doze) can hang for
+// minutes without ever failing, so give every poll a deadline of its own.
+var POLL_TIMEOUT_MS = 8000;
+
+// Ticks are skipped while a poll is still in flight, so a stuck request can't
+// pile up more requests behind it.
 var pollInFlight = false;
+var pollController = null;
+var pollWatchdog = null;
+var pollSeq = 0;
+
+// A response that lost its race — aborted, or superseded by a later poll — must
+// neither clear the newer poll's flag nor render its stale payload.
+function endPoll(seq) {
+    if (seq !== pollSeq) { return false; }
+    clearTimeout(pollWatchdog);
+    pollInFlight = false;
+    return true;
+}
+
+function abortPoll() {
+    if (!pollInFlight) { return; }
+    pollSeq++;
+    clearTimeout(pollWatchdog);
+    pollInFlight = false;
+    pollController.abort();
+}
+
+function restartPoll() {
+    abortPoll();
+    poll();
+}
 
 function poll() {
     if (pollInFlight) { return; }
     pollInFlight = true;
+    var seq = ++pollSeq;
+    var controller = new AbortController();
+    pollController = controller;
+    pollWatchdog = setTimeout(restartPoll, POLL_TIMEOUT_MS);
     // Time the round trip so render() can back-date the position. data.time is
     // measured server-side (when it queries Lyrion), but we only learn it after
     // the whole network round trip, by which point playback has moved on. The
@@ -1149,18 +1658,22 @@ function poll() {
     var sentAt = Date.now();
     // Tell the server which track is already on screen: it skips the lyrics
     // lookup (and the response omits them) while the track hasn't changed —
-    // render() only reads data.lyrics on a track change anyway.
-    var url = lastTrackKey === null
-        ? '/now-playing.json'
-        : '/now-playing.json?known=' + encodeURIComponent(lastTrackKey);
-    fetch(url)
+    // render() only reads data.lyrics on a track change anyway. And, when set,
+    // which player this device pinned.
+    var params = [];
+    if (lastTrackKey !== null) { params.push('known=' + encodeURIComponent(lastTrackKey)); }
+    if (selectedPlayer) { params.push('player=' + encodeURIComponent(selectedPlayer)); }
+    var url = '/now-playing.json' + (params.length ? '?' + params.join('&') : '');
+    // no-store: the URL is stable while the track plays, so a cached body would
+    // be exactly the state we poll to leave behind.
+    fetch(url, { signal: controller.signal, cache: 'no-store' })
         .then(function(r) { return r.json(); })
         .then(function(data) {
-            pollInFlight = false;
+            if (!endPoll(seq)) { return; }
             pollRtt = Date.now() - sentAt;
             render(data);
         })
-        .catch(function() { pollInFlight = false; });
+        .catch(function() { endPoll(seq); });
 }
 
 function renderStats(stats) {
@@ -1197,25 +1710,22 @@ function pollStats() {
         .catch(function() {});
 }
 
-document.addEventListener('visibilitychange', function() {
-    // Background tabs throttle setInterval, so the now-playing view can lag
-    // behind by far more than the poll period; catch up as soon as the tab
-    // is looked at again instead of waiting for the next tick.
-    if (document.visibilityState === 'visible') {
-        poll();
-    }
-});
+// A backgrounded page has its timers throttled and any in-flight poll may
+// never settle (the OS can suspend the socket), so on return: abort it, poll again.
+function catchUp() {
+    if (document.visibilityState === 'hidden') { stopMosaic(); return; }
+    startMosaic();
+    restartPoll();
+}
+document.addEventListener('visibilitychange', catchUp);
+window.addEventListener('focus', catchUp);
+window.addEventListener('pageshow', catchUp);
 
 dimZeroSubRows();
 poll();
-setInterval(poll, 5000);
+setInterval(poll, POLL_INTERVAL_MS);
 setInterval(pollStats, 60000);
-setInterval(paintProgress, 1000);
-// The progress repaint (and thus the LRC highlight) only ticks once a second,
-// which leaves the karaoke highlight up to ~1s late. The extrapolated position
-// advances continuously between network polls, so refresh the highlight a few
-// times a second while playing for a smoother follow. Gated on playback so it
-// doesn't fight manual scrolling while paused, where the 1s tick already covers.
-setInterval(function () {
-    if (lrcLines && progress.playing) { syncLyrics(); }
-}, 250);
+// The extrapolated position advances continuously between network polls, so
+// repaint the bar (and, while there are lyrics, the karaoke highlight via
+// paintProgress) a few times a second for a smooth follow.
+setInterval(paintProgress, 250);

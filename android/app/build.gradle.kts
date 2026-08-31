@@ -23,8 +23,15 @@ android {
         // be committed. Bump both for every release (versionCode packs the
         // semver as X*10000 + Y*100 + Z); CI fails the release if the tag
         // doesn't match versionName.
-        versionCode = 100
-        versionName = "0.1.0"
+        versionCode = 206
+        versionName = "0.2.6"
+    }
+
+    // AGP embeds a signed dependency graph ("Dependency metadata" signing
+    // block, meant for Play Console) that F-Droid's scanner rejects — strip it.
+    dependenciesInfo {
+        includeInApk = false
+        includeInBundle = false
     }
 
     // A fixed debug keystore (standard debug credentials, committed on
@@ -42,7 +49,10 @@ android {
 
     // Release signing is driven by environment variables so CI can sign
     // without the release keystore ever being committed. Without them the
-    // release build stays unsigned (app-release-unsigned.apk).
+    // release build stays unsigned (app-release-unsigned.apk) — which is
+    // what local and F-Droid builds want, but never a GitHub release: the
+    // release workflow verifies the signature and fails instead of
+    // publishing an unsigned APK.
     val keystorePath = System.getenv("ANDROID_KEYSTORE_PATH")
     if (keystorePath != null) {
         signingConfigs {
@@ -51,6 +61,12 @@ android {
                 storePassword = System.getenv("ANDROID_KEYSTORE_PASSWORD")
                 keyAlias = System.getenv("ANDROID_KEY_ALIAS")
                 keyPassword = System.getenv("ANDROID_KEY_PASSWORD")
+                // With minSdk >= 24 AGP skips v1 (JAR) signing, but F-Droid's
+                // reproducible-builds tooling (`fdroid signatures`) can only
+                // extract a v1 signature — so force all three schemes on.
+                enableV1Signing = true
+                enableV2Signing = true
+                enableV3Signing = true
             }
         }
     }
@@ -90,7 +106,7 @@ kotlin {
 
 dependencies {
     implementation("androidx.core:core-ktx:1.19.0")
-    implementation("androidx.appcompat:appcompat:1.7.1")
+    implementation("androidx.appcompat:appcompat:1.8.0")
     implementation("com.google.android.material:material:1.14.0")
     implementation("androidx.preference:preference-ktx:1.2.1")
 }

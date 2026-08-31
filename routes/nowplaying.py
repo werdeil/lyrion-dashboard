@@ -1,3 +1,4 @@
+import logging
 import re
 
 from flask import Blueprint, render_template, current_app, jsonify, request, Response, abort
@@ -15,12 +16,21 @@ from i18n import pick_lang, TRANSLATIONS
 
 nowplaying_bp = Blueprint("nowplaying", __name__)
 
+log = logging.getLogger(__name__)
+
 # Coverids are numeric ids or hex hashes; anything else must not reach the upstream URL.
 COVERID_RE = re.compile(r"[0-9a-fA-F]+")
 
-# Fuses for the outbound lyrics searches: per-IP rate limit, per-track cooldown on refresh=1.
+# Player ids are MAC addresses (or IPs); only matched against ids Lyrion
+# reported, never sent upstream, but keep junk out anyway.
+PLAYER_ID_RE = re.compile(r"[0-9A-Fa-f:.\-]{1,64}")
+
+# Fuses for the outbound lyrics searches: per-IP rate limit, per-track cooldown
+# on refresh=1. The cooldown only has to absorb a double-click — the per-IP
+# limit is what bounds the fan-out to the providers.
 LYRICS_RATE = RateLimiter(limit=10, window=60)
-REFRESH_COOLDOWN = Cooldown(interval=30)
+REFRESH_COOLDOWN = Cooldown(interval=5)
+THROTTLED_RESULT = {"lyrics": None, "synced": None, "source": "none", "throttled": True}
 
 
 @nowplaying_bp.route("/")
@@ -38,15 +48,21 @@ def index():
 
 @nowplaying_bp.route("/now-playing.json")
 def now_playing_json():
-    """Live state of whichever player is currently playing, polled by the page.
+    """Live state of the player to display, polled by the page.
 
     The page passes ?known=<track key> — the id|title|artist|album key of the
     track it already displays (the same key render() dedupes on). Lyrics are
     only looked up and included when the playing track differs from it, so the
     steady-state poll skips the database entirely; the page only reads lyrics
     on a track change anyway.
+
+    ?player=<id> pins a player (the switcher's pick), honoured while it keeps
+    playing, else the automatic selection. A malformed id is ignored.
     """
-    now = get_active_now_playing()
+    selected = request.args.get("player")
+    if selected and not PLAYER_ID_RE.fullmatch(selected):
+        selected = None
+    now = get_active_now_playing(selected_id=selected)
     track_key = "|".join(
         str(now.get(f)) if now.get(f) is not None else ""
         for f in ("track_id", "title", "artist", "album")
@@ -62,7 +78,7 @@ def cover(coverid):
     sample its colours on a canvas. Cached client-side since covers are stable.
 
     ?size=N asks Lyrion for an NxN thumbnail instead of the full artwork; the
-    mosaic uses it to load its many blurred covers cheaply."""
+    mosaic uses it to load its many covers cheaply."""
     if not COVERID_RE.fullmatch(coverid):
         abort(404)
     size = request.args.get("size", type=int)
@@ -128,12 +144,7 @@ def recent_covers_json():
 
 @nowplaying_bp.route("/stats.json")
 def stats_json():
-    stats = get_stats()
-    return current_app.response_class(
-        response=current_app.json.dumps(stats, indent=2, ensure_ascii=False),
-        status=200,
-        mimetype="application/json",
-    )
+    return jsonify(get_stats())
 
 
 @nowplaying_bp.route("/lyrics.json")
@@ -145,15 +156,28 @@ def lyrics_json():
     cached in-memory by services.lyrics, so repeated clicks are cheap. Rate
     limited (see LYRICS_RATE / REFRESH_COOLDOWN above) because every cache
     miss fans out to third-party services from our IP.
+
+    A response carries `"throttled": true` when one of those fuses kept the
+    search from running and nothing came back, so the page can say the retry
+    was held rather than that the track has no lyrics anywhere, and
+    `"retry_after": <seconds>` on any ?refresh=1 so it can hold its retry
+    button for exactly as long as a new search would be refused.
     """
     if not LYRICS_RATE.allow(request.remote_addr or "unknown"):
-        abort(429)
+        log.warning("lyrics: rate limit hit by %s, search refused", request.remote_addr)
+        return jsonify(THROTTLED_RESULT), 429
     force = request.args.get("refresh") == "1"
+    held = False
+    retry_after = 0.0
     if force:
         track_key = "|".join(
             request.args.get(f) or "" for f in ("track_id", "artist", "title")
         )
         force = REFRESH_COOLDOWN.allow(track_key)
+        held = not force
+        retry_after = REFRESH_COOLDOWN.remaining(track_key)
+        if held:
+            log.info("lyrics: refresh held by the cooldown for %.1fs (%s)", retry_after, track_key)
     result = fetch_lyrics(
         track_id=request.args.get("track_id"),
         artist=request.args.get("artist"),
@@ -162,4 +186,11 @@ def lyrics_json():
         duration=request.args.get("duration"),
         force=force,
     )
-    return jsonify(result)
+    # Copied, not annotated in place: what the service returns is its own, and
+    # a cached entry handed out twice must not collect one request's flags.
+    response = dict(result)
+    if held and not (result["lyrics"] or result["synced"]):
+        response["throttled"] = True
+    if retry_after:
+        response["retry_after"] = round(retry_after, 1)
+    return jsonify(response)

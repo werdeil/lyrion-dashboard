@@ -14,6 +14,7 @@ export default [
                 navigator: "readonly",
                 localStorage: "readonly",
                 fetch: "readonly",
+                AbortController: "readonly",
                 setInterval: "readonly",
                 setTimeout: "readonly",
                 clearInterval: "readonly",
@@ -22,6 +23,7 @@ export default [
                 Image: "readonly",
                 getComputedStyle: "readonly",
                 requestAnimationFrame: "readonly",
+                cancelAnimationFrame: "readonly",
                 URLSearchParams: "readonly",
                 // Vendored libraries from static/lib/
                 Vibrant: "readonly",

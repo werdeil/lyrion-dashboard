@@ -133,6 +133,9 @@ hr {
 .left-panel {
     flex: 1 1 0;
     min-width: 0;
+    /* Containing block of the enlarged cover: not the card, whose
+       backdrop-filter would trap a fixed-position descendant. */
+    position: relative;
 }
 
 .stats-panel {
@@ -156,6 +159,10 @@ hr {
 
 .stat-group {
     margin-bottom: 16px;
+}
+
+.stat-group:last-child {
+    margin-bottom: 0;
 }
 
 .stat-group-title {
@@ -237,24 +244,6 @@ hr {
     margin-left: 8px;
 }
 
-.stat-row.sub .stat-value {
-    color: var(--text-muted);
-}
-
-.velocity-value {
-    font-size: var(--fs-xl);
-    font-weight: bold;
-    color: var(--accent-color);
-    text-align: center;
-    margin-top: 4px;
-}
-
-.velocity-label {
-    text-align: center;
-    font-size: var(--fs-xs);
-    color: var(--text-muted);
-}
-
 .now-playing {
     display: grid;
     grid-template-columns: 300px 1fr;
@@ -268,9 +257,8 @@ hr {
     -webkit-backdrop-filter: blur(10px);
 }
 
-/* Left column of the card: the cover on top and, on large screens, the
-   recent-plays stack under it. Carries the grid placement the cover used to
-   own, so the responsive rules below only ever re-place this wrapper. */
+/* Left column (cover + recent-plays stack). The grid placement lives here so
+   the responsive rules below only ever re-place this wrapper. */
 .np-side {
     grid-column: 1;
     grid-row: 1 / span 2;
@@ -282,11 +270,28 @@ hr {
 .np-cover {
     width: 100%;
     aspect-ratio: 1 / 1;
-    /* Between the resting sleeves (z-index 1..count, at most 5) and a lifted
-       one (z-index 50): the freshest sleeve tucks UNDER the cover at rest, but
-       a hovered/focused sleeve rises in FRONT of it. */
+    /* Above every resting sleeve (z-index 1..count, capped by RECENT_MAX),
+       below a lifted one (50): a hovered sleeve rises in front of the cover. */
     position: relative;
-    z-index: 10;
+    z-index: 30;
+}
+
+/* The cover doubles as the button enlarging it; it must add no box of its
+   own so the image keeps filling the square. */
+.np-cover-button {
+    display: block;
+    width: 100%;
+    height: 100%;
+    padding: 0;
+    border: none;
+    border-radius: 10px;
+    background: none;
+    cursor: zoom-in;
+}
+
+.np-cover-button:focus-visible {
+    outline: 2px solid var(--accent-color);
+    outline-offset: 3px;
 }
 
 .np-cover img {
@@ -385,6 +390,66 @@ hr {
     min-width: 0;
 }
 
+/* Pull-to-refresh badge, app only (JS wires the gesture behind the native
+   bridge). --np-pull-y follows the finger, --np-pull-p its progress. */
+.np-pull {
+    display: none;
+    position: absolute;
+    top: 0;
+    left: 50%;
+    /* Over the card, under a lifted recent sleeve (z 50). */
+    z-index: 40;
+    width: 36px;
+    height: 36px;
+    margin-left: -18px;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    color: var(--accent-color);
+    background: color-mix(in srgb, var(--tint-color) 22%, rgba(32, 32, 32, 0.92));
+    border: 1px solid color-mix(in srgb, var(--tint-color) 30%, rgba(255, 255, 255, 0.08));
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.45);
+    /* Never eats a touch: the gesture is tracked on the card below it. */
+    pointer-events: none;
+    opacity: var(--np-pull-p, 0);
+    transform: translateY(calc(var(--np-pull-y, 0px) - 100%));
+    transition: transform 220ms ease, opacity 220ms ease;
+}
+
+body.in-app .np-pull {
+    display: flex;
+}
+
+/* No transition while the finger is down, or the badge lags behind it. */
+.np-pull.is-dragging {
+    transition: none;
+}
+
+.np-pull svg {
+    width: 20px;
+    height: 20px;
+    fill: currentColor;
+    transform: rotate(calc(var(--np-pull-p, 0) * 270deg));
+}
+
+.np-pull.is-armed {
+    background: color-mix(in srgb, var(--accent-color) 24%, rgba(32, 32, 32, 0.92));
+    border-color: color-mix(in srgb, var(--accent-color) 55%, transparent);
+}
+
+.np-pull.is-busy svg {
+    animation: np-spin 0.8s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .np-pull {
+        transition: none;
+    }
+    .np-pull.is-busy svg {
+        animation: none;
+    }
+}
+
 .np-lyrics-block {
     grid-column: 2;
     grid-row: 2;
@@ -411,8 +476,12 @@ hr {
     color: var(--text-muted);
 }
 
+.np-player,
+.np-player-switch {
+    margin: 0 0 4px;
+}
+
 .np-player {
-    margin: 0 0 4px 0;
     font-size: var(--fs-xs);
     text-transform: uppercase;
     letter-spacing: 1px;
@@ -446,6 +515,129 @@ hr {
     opacity: 0.7;
 }
 
+/* Player picker replacing .np-player when >= 2 players play: a compact
+   name + chevron trigger opening a dropdown of the playing players. Stays on
+   one line whatever the count or name length. */
+.np-player-switch {
+    position: relative;
+    display: flex;
+    justify-content: flex-start;
+}
+
+.np-player-switch > .np-switch-toggle {
+    flex: 0 1 auto;
+    min-width: 0;
+}
+
+.np-switch-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35em;
+    max-width: 100%;
+    padding: 4px 6px;
+    margin: -4px -6px;
+    border: 0;
+    border-radius: 5px;
+    background: transparent;
+    color: var(--text-muted);
+    font-size: var(--fs-xs);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    cursor: pointer;
+    transition: color 250ms ease;
+}
+
+.np-switch-toggle:hover,
+.np-switch-toggle:focus-visible,
+.np-switch-toggle[aria-expanded="true"] {
+    color: var(--accent-color);
+}
+
+.np-switch-current {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.np-switch-chevron {
+    width: 1.1em;
+    height: 1.1em;
+    fill: currentColor;
+    flex: none;
+    opacity: 0.8;
+    transition: transform 180ms ease;
+}
+
+.np-switch-toggle[aria-expanded="true"] .np-switch-chevron {
+    transform: rotate(180deg);
+}
+
+/* The menu of playing players, anchored under the trigger. */
+.np-switch-menu[hidden] {
+    display: none;  /* the class's display:flex would otherwise beat [hidden] */
+}
+
+.np-switch-menu {
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    z-index: 20;
+    min-width: 12rem;
+    max-width: min(18rem, 80vw);
+    max-height: 15rem;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 4px;
+    border-radius: 8px;
+    background: var(--surface);
+    border: 1px solid var(--border-color);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+}
+
+.np-switch-item {
+    display: flex;
+    align-items: center;
+    gap: 0.4em;
+    padding: 8px 10px;
+    border: 0;
+    border-radius: 5px;
+    background: transparent;
+    color: var(--text);
+    font-size: var(--fs-sm);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    text-align: left;
+    text-decoration: none;
+    white-space: nowrap;
+    cursor: pointer;
+}
+
+.np-switch-item:hover,
+.np-switch-item:focus-visible {
+    background: color-mix(in srgb, var(--accent-color) 16%, transparent);
+    color: var(--text-bright);
+}
+
+/* Followed player: highlighted, and its row opens Lyrion. */
+.np-switch-item.is-current {
+    color: var(--accent-color);
+    font-weight: bold;
+}
+
+.np-switch-arrow {
+    width: 0.95em;
+    height: 0.95em;
+    margin-left: auto;
+    fill: currentColor;
+    opacity: 0.8;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .np-switch-chevron { transition: none; }
+}
+
 .np-progress {
     margin-top: 16px;
     height: 3px;
@@ -464,20 +656,11 @@ hr {
 }
 
 .np-lyrics {
-    /* position:relative makes this the offsetParent of the .lrc-line
-       children, so their offsetTop is measured against this scroll box.
-       Without it the lines resolve to <body> and the auto-scroll centring
-       over-scrolls (notably on mobile, where the lyrics block sits far down
-       the page), pinning the active line to the top and hiding past lines. */
+    /* offsetParent for the .lrc-line children: without it their offsetTop
+       resolves against <body> and the karaoke auto-scroll over-scrolls. */
     position: relative;
-    /* The active karaoke line is scaled up (1.03) and clipping happens at
-       this box's padding edge, so a near-full-width line used to get cut off
-       on both sides. The card around it already has 20px of padding: extend
-       the box into that existing margin (negative side margins) and give the
-       same amount back as inner padding. Both percentages resolve against the
-       containing block's width, so they cancel exactly: the text wraps at the
-       same width as ever (plain and synced modes stay identical), while the
-       clip edge moves 2% out — beyond the scaled line's ±1.5% overhang. */
+    /* The scaled-up (1.03) active line would clip at the padding edge: trade
+       2% margin for 2% padding so the clip edge moves out, wrapping unchanged. */
     margin: 12px -2% 0;
     padding: 0 2%;
     max-height: 420px;
@@ -593,9 +776,14 @@ hr {
     fill: currentColor;
 }
 
-.np-retry:hover {
+.np-retry:hover:not(:disabled) {
     color: var(--accent-color);
     background: rgba(255, 255, 255, 0.08);
+}
+
+.np-retry:disabled {
+    opacity: 0.35;
+    cursor: default;
 }
 
 /* display:inline-flex above would defeat the hidden attribute without this. */
@@ -770,13 +958,10 @@ hr {
        corners. The margin the tilt needs is mostly an absolute distance
        (≈ half the card width × sin3°), so a pure percentage collapses to
        nothing on a short phone card and leaves gaps: pair a small percentage
-       (which keeps up on very large screens) with a fixed floor. Far less waste
-       than the old inset:-8% + scale:1.15, which pushed a third of every row
-       off-card for nothing. */
+       (which keeps up on very large screens) with a fixed floor. */
     inset: calc(-3% - 16px);
     overflow: hidden;
     transform: rotate(-3deg);
-    filter: blur(1px) saturate(0.7) brightness(0.4);
     pointer-events: none;
 }
 
@@ -792,9 +977,14 @@ hr {
     height: var(--mosaic-tile, 130px);
     object-fit: cover;
     border-radius: 8px;
+    /* Graded per tile, not on the moving container: a filter there would force
+       the whole collage to be re-rendered on every frame of the belt. */
+    filter: saturate(0.7) brightness(0.4);
     will-change: transform;
     opacity: 0;
-    transition: opacity 450ms ease;
+    /* The transform transition is the belt's glide; it must stay well under
+       MOSAIC_STEP_MS, the rest between two steps. */
+    transition: opacity 450ms ease, transform 1400ms ease-in-out;
 }
 
 .np-mosaic-tile.is-shown {
@@ -991,12 +1181,158 @@ body.in-app .page-header {
     color: #ffb7c0;
 }
 
-/* Fixed, non-scrolling viewport layout — only when the screen is both wide AND
-   tall enough. The min-height guard keeps phones in landscape (wide but short,
-   e.g. ~926x430) off this layout, since height:100vh + overflow:hidden would
-   otherwise clip the content with no way to scroll. They fall back to the
-   default scrollable layout instead. */
-@media (min-width: 861px) and (min-height: 600px) {
+/* Enlarged cover, covering the now-playing panel only. It has no surface of
+   its own: the card's content clears out under it (see is-zoomed below). */
+.cover-zoom {
+    --cover-zoom-radius: 10px;
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: clamp(12px, 3%, 32px);
+    cursor: zoom-out;
+    /* Query container: the artwork's box is sized off the panel's height. */
+    container-type: size;
+}
+
+.left-panel.is-zoomed .now-playing > * {
+    opacity: 0;
+}
+
+/* display:flex above would defeat the hidden attribute without this. */
+.cover-zoom[hidden] {
+    display: none;
+}
+
+/* The largest box of the artwork's ratio (--cover-r, set from JS) that fits
+   the panel; the plain width is the fallback without container units. */
+.cover-zoom-figure {
+    position: relative;
+    width: 100%;
+    width: min(100%, calc(100cqh * var(--cover-r, 1)));
+    max-height: 100%;
+    aspect-ratio: var(--cover-r, 1);
+    margin: 0;
+    /* One rounded box clipping the picture, the caption and the progress bar:
+       the bar's own radius would be scaled down to fit its 4px height. */
+    border-radius: var(--cover-zoom-radius);
+    overflow: hidden;
+    box-shadow: 0 18px 44px rgba(0, 0, 0, 0.5);
+    /* The opening animation grows this box out of the card cover's box. */
+    transform-origin: top left;
+}
+
+.cover-zoom-img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+
+/* A plaque hugging the text, laid on the artwork near its lower edge: the
+   absolute box shrinks to its content, the auto margins centre it. */
+.cover-zoom-meta {
+    position: absolute;
+    inset: auto 0 18px 0;
+    width: fit-content;
+    max-width: calc(100% - 40px);
+    margin: 0 auto;
+    padding: 20px 46px 22px;
+    text-align: center;
+}
+
+/* The artwork's detail taken out under the text, masked to fade out inside the
+   tint: a `filter`, which would feather it, is dropped on a backdrop-filter. */
+.cover-zoom-frost {
+    position: absolute;
+    inset: 14px;
+    z-index: 0;
+    backdrop-filter: blur(22px) saturate(140%);
+    -webkit-backdrop-filter: blur(22px) saturate(140%);
+    mask-image: radial-gradient(closest-side, #000 45%, transparent);
+    -webkit-mask-image: radial-gradient(closest-side, #000 45%, transparent);
+}
+
+/* The plaque itself: a rounded box feathered by its own filter, inset so the
+   blur has room to spread past it. */
+.cover-zoom-meta::before {
+    content: "";
+    position: absolute;
+    inset: 8px;
+    z-index: 1;
+    border-radius: 18px;
+    background: rgba(0, 0, 0, 0.5);
+    filter: blur(10px);
+}
+
+/* Stacked over both layers rather than under them. */
+.cover-zoom-meta > p {
+    position: relative;
+    z-index: 2;
+}
+
+/* Playback progress on the artwork's bottom edge, inside its rounded corner. */
+.cover-zoom-progress {
+    position: absolute;
+    inset: auto 0 0 0;
+    height: 4px;
+    background: rgba(255, 255, 255, 0.22);
+    overflow: hidden;
+}
+
+.cover-zoom-progress-bar {
+    width: 0;
+    height: 100%;
+    background: var(--accent-color);
+    transition: width 0.4s linear;
+}
+
+.cover-zoom-title {
+    margin: 0;
+    font-size: var(--fs-xl);
+    font-weight: bold;
+    color: var(--text-bright);
+}
+
+.cover-zoom-artist {
+    margin: 4px 0 0 0;
+    font-size: var(--fs-lg);
+    color: var(--accent-color);
+}
+
+.cover-zoom-album {
+    margin: 2px 0 0 0;
+    font-size: var(--fs-sm);
+    color: var(--text);
+}
+
+/* Stacked layouts grow the card with the lyrics far past its own width, so
+   the enlarged cover squares the panel off and takes it edge to edge — the
+   same width as the stats panel under it. */
+@media (max-width: 860px) and (min-height: 601px) {
+    .left-panel.is-zoomed .now-playing {
+        /* Definite, so the ratio squares the card off the panel's width; left
+           auto, the animated height would drive the width instead. */
+        width: 100%;
+        aspect-ratio: 1 / 1;
+        height: auto;
+        min-height: 0;
+        overflow: hidden;
+    }
+    .cover-zoom {
+        --cover-zoom-radius: 12px;
+        padding: 0;
+    }
+    .cover-zoom-figure {
+        box-shadow: none;
+    }
+}
+
+/* Fixed, non-scrolling viewport layout — wide screens, tall or in landscape.
+   Every overflowing region scrolls internally, so nothing is clipped out of reach. */
+@media (min-width: 861px) and (min-height: 600px),
+       (min-width: 861px) and (max-height: 600px) and (orientation: landscape) {
     /* dvh (visible viewport) instead of 100vh, which is the *large* viewport on
        iOS/iPadOS Safari and overflows past the screen when the toolbars show.
        The lock must sit on <html> too: overflow:hidden on <body> alone doesn't
@@ -1046,9 +1382,6 @@ body.in-app .page-header {
         flex: 1 1 0;
         max-height: none;
         min-height: 0;
-    }
-    .np-lyrics.empty {
-        flex: 0 0 auto;
     }
     .stats-panel {
         min-height: 0;
@@ -1103,9 +1436,8 @@ body.in-app .page-header {
     }
 }
 
-/* Phones in landscape: wide enough to dodge the small-screen breakpoints, but
-   too short for a full-size cover. Shrink it and the lyrics box so more fits
-   without endless scrolling. */
+/* Phones in landscape are too short for a full-size cover: shrink it so more
+   fits on screen. */
 @media (max-height: 600px) and (orientation: landscape) {
     .now-playing {
         grid-template-columns: 160px 1fr;
@@ -1113,8 +1445,29 @@ body.in-app .page-header {
     .np-side {
         max-width: 160px;
     }
+}
+
+/* Safety valve for the fixed layout's overflow:hidden — a very short viewport
+   scrolls the card instead of clipping the controls out of reach. */
+@media (max-height: 600px) and (orientation: landscape) and (min-width: 861px) {
+    .now-playing {
+        overflow-y: auto;
+    }
+}
+
+/* Narrow landscape stays on the scrollable page: cap the lyrics box so the
+   card doesn't grow into endless scrolling. */
+@media (max-height: 600px) and (orientation: landscape) and (max-width: 860px) {
     .np-lyrics {
         max-height: 240px;
+    }
+    /* The card outgrows the screen here, so a cover anchored to it would open
+       below the fold: it takes the viewport, over a backdrop of its own. */
+    .cover-zoom {
+        position: fixed;
+        background: color-mix(in srgb, var(--tint-color) 20%, rgba(12, 12, 12, 0.93));
+        backdrop-filter: blur(24px);
+        -webkit-backdrop-filter: blur(24px);
     }
 }
 
@@ -1135,5 +1488,19 @@ body.in-app .page-header {
     }
     .np-title {
         font-size: 1.2rem;
+    }
+}
+
+/* Floor the card, per cover size, so the idle mosaic and a lyrics-less playing
+   card share a height instead of the card growing when playback starts. */
+@media (min-width: 541px) and (max-width: 860px) {
+    .now-playing {
+        min-height: 345px;
+    }
+}
+
+@media (max-width: 540px) {
+    .now-playing {
+        min-height: 275px;
     }
 }

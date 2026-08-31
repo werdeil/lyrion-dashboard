@@ -24,23 +24,30 @@
         <a class="lyrion-link" id="lyrion-link"
            href="{{ (lyrion_host ~ '/material/') if lyrion_host else '#' }}"
            target="_blank" rel="noopener noreferrer" title="{{ t.open_lyrion }}">
-            <img src="{{ url_for('static', filename='lyrion.svg') }}" alt="Logo Lyrion">
+            <img src="{{ url_for('static', filename='lyrion.svg') }}" alt="{{ t.lyrion_logo_alt }}">
         </a>
     </div>
 
     <div class="main-layout">
 
         <div class="left-panel">
+            {# App-only pull-to-refresh badge, ridden down from the card's top edge by nowplaying.js. #}
+            <div class="np-pull" id="np-pull" aria-hidden="true">
+                <svg viewBox="0 0 24 24" focusable="false">
+                    <path d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-8 8s3.57 8 8 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/>
+                </svg>
+            </div>
             <div class="now-playing is-empty" id="now-playing">
                 <div class="np-side">
                     <div class="np-cover">
-                        <img id="np-cover-img" alt="{{ t.cover_alt }}"
-                             data-fallback="{{ url_for('static', filename='no-cover.svg') }}">
+                        <button type="button" class="np-cover-button" id="np-cover-button"
+                                title="{{ t.cover_zoom }}" aria-label="{{ t.cover_zoom }}"
+                                aria-controls="cover-zoom" aria-expanded="false">
+                            <img id="np-cover-img" alt="{{ t.cover_alt }}"
+                                 data-fallback="{{ url_for('static', filename='no-cover.svg') }}">
+                        </button>
                     </div>
-                    {# Recent plays as a pile of record sleeves under the cover
-                       (desktop only, see CSS): the freshest listen on top, older
-                       ones cascading down behind it; hover/focus lifts a sleeve
-                       to the front. Filled by JS from /recent-albums.json. #}
+                    {# Recent-plays sleeve pile, filled by nowplaying.js from /recent-covers.json (desktop only). #}
                     <div class="np-recent" id="np-recent" hidden>
                         <div class="np-recent-pile" id="np-recent-pile"></div>
                     </div>
@@ -58,6 +65,10 @@
                             </svg>
                         </a>
                     </p>
+                    {# Replaces the row above when >= 2 players play; filled by
+                       nowplaying.js. #}
+                    <div class="np-player-switch" id="np-player-switch"
+                         role="group" aria-label="{{ t.choose_player }}" hidden></div>
                     <p class="np-title" id="np-title">—</p>
                     <p class="np-artist" id="np-artist"></p>
                     <p class="np-album" id="np-album"></p>
@@ -90,8 +101,7 @@
                     </div>
                 </div>
                 <div class="np-empty" id="np-empty">
-                    {# Background collage of random library covers, filled by JS
-                       from /random-covers.json. Decorative only. #}
+                    {# Decorative cover mosaic, filled by nowplaying.js from /mosaic-covers.json. #}
                     <div class="np-empty-mosaic" id="np-empty-mosaic" aria-hidden="true"></div>
                     <div class="np-empty-content">
                         <span class="np-empty-icon">&#9835;</span>
@@ -102,10 +112,70 @@
                     </div>
                 </div>
             </div>
+            {# Enlarged cover, opened by clicking the one in the card: it
+               covers this panel only, so the stats panel stays readable. #}
+            <div class="cover-zoom" id="cover-zoom" aria-label="{{ t.cover_zoom }}" hidden>
+                <figure class="cover-zoom-figure" id="cover-zoom-figure">
+                    <img class="cover-zoom-img" id="cover-zoom-img" alt="{{ t.cover_alt }}">
+                    <figcaption class="cover-zoom-meta">
+                        <span class="cover-zoom-frost" aria-hidden="true"></span>
+                        <p class="cover-zoom-title" id="cover-zoom-title"></p>
+                        <p class="cover-zoom-artist" id="cover-zoom-artist"></p>
+                        <p class="cover-zoom-album" id="cover-zoom-album"></p>
+                    </figcaption>
+                    <div class="cover-zoom-progress" aria-hidden="true">
+                        <div class="cover-zoom-progress-bar" id="cover-zoom-progress-bar"></div>
+                    </div>
+                </figure>
+            </div>
         </div>
 
         <div class="stats-panel">
             <h2>&#127928; {{ t.stats_title }}</h2>
+
+            {# Group order is by how fast the numbers move: history changes with every
+               play, completion with the library, the library block only on a scan. #}
+            {# The accent (stat-value) marks a group's total; a group without one accents nothing. #}
+            <div class="stat-group">
+                <div class="stat-group-title">
+                    <span class="stat-group-title-label">&#127911; {{ t.history }}</span>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-label">{{ t.played_last_30d }}</span>
+                    <span data-stat="velocity_30d">{{ stats.velocity_30d }}</span>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-label">{{ t.played_last_year }}</span>
+                    <span data-stat="velocity_1year">{{ stats.velocity_1year }}</span>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-label">{{ t.total_plays }}</span>
+                    <span data-stat="songs_total_plays_apc">{{ stats.songs_total_plays_apc }}</span>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-label">{{ t.total_skips }}</span>
+                    <span data-stat="songs_total_skips_apc">{{ stats.songs_total_skips_apc }}</span>
+                </div>
+            </div>
+
+            <div class="stat-group">
+                <div class="stat-group-title">
+                    <span class="stat-group-title-label">&#127926; {{ t.tracks }}</span>
+                    <span class="stat-group-total" data-stat="songs_total">{{ stats.songs_total }}</span>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-label">{{ t.total }}</span>
+                    <span class="stat-value" data-stat="songs_total">{{ stats.songs_total }}</span>
+                </div>
+                <div class="stat-row sub">
+                    <span class="stat-label">{{ t.played }}</span>
+                    <span data-stat="songs_played_apc" data-stat-pct="songs_played_pct">{{ stats.songs_played_apc }} <small>({{ stats.songs_played_pct }}%)</small></span>
+                </div>
+                <div class="stat-row sub">
+                    <span class="stat-label">{{ t.unplayed }}</span>
+                    <span data-stat="songs_unplayed_apc" data-stat-pct="songs_unplayed_apc_pct">{{ stats.songs_unplayed_apc }} <small>({{ stats.songs_unplayed_apc_pct }}%)</small></span>
+                </div>
+            </div>
 
             <div class="stat-group">
                 <div class="stat-group-title">
@@ -130,7 +200,6 @@
                 </div>
             </div>
 
-            <!-- Album Artists -->
             <div class="stat-group">
                 <div class="stat-group-title">
                     <span class="stat-group-title-label">&#127908; {{ t.album_artists }}</span>
@@ -154,7 +223,6 @@
                 </div>
             </div>
 
-            <!-- Track Artists -->
             <div class="stat-group">
                 <div class="stat-group-title">
                     <span class="stat-group-title-label">&#127917; {{ t.track_artists }}</span>
@@ -178,42 +246,13 @@
                 </div>
             </div>
 
-            <!-- Songs -->
             <div class="stat-group">
                 <div class="stat-group-title">
-                    <span class="stat-group-title-label">&#127926; {{ t.tracks }}</span>
-                    <span class="stat-group-total" data-stat="songs_total">{{ stats.songs_total }}</span>
-                </div>
-                <div class="stat-row">
-                    <span class="stat-label">{{ t.total }}</span>
-                    <span class="stat-value" data-stat="songs_total">{{ stats.songs_total }}</span>
-                </div>
-                <div class="stat-row sub">
-                    <span class="stat-label">{{ t.played }}</span>
-                    <span data-stat="songs_played_apc" data-stat-pct="songs_played_pct">{{ stats.songs_played_apc }} <small>({{ stats.songs_played_pct }}%)</small></span>
-                </div>
-                <div class="stat-row sub">
-                    <span class="stat-label">{{ t.unplayed }}</span>
-                    <span data-stat="songs_unplayed_apc" data-stat-pct="songs_unplayed_apc_pct">{{ stats.songs_unplayed_apc }} <small>({{ stats.songs_unplayed_apc_pct }}%)</small></span>
-                </div>
-                <div class="stat-row sub">
-                    <span class="stat-label">{{ t.total_plays }}</span>
-                    <span class="stat-value" data-stat="songs_total_plays_apc">{{ stats.songs_total_plays_apc }}</span>
-                </div>
-                <div class="stat-row sub">
-                    <span class="stat-label">{{ t.total_skips }}</span>
-                    <span class="stat-value" data-stat="songs_total_skips_apc">{{ stats.songs_total_skips_apc }}</span>
-                </div>
-            </div>
-
-            <!-- Divers -->
-            <div class="stat-group">
-                <div class="stat-group-title">
-                    <span class="stat-group-title-label">&#127928; {{ t.misc }}</span>
+                    <span class="stat-group-title-label">&#128191; {{ t.library }}</span>
                 </div>
                 <div class="stat-row">
                     <span class="stat-label">{{ t.genres }}</span>
-                    <span class="stat-value" data-stat="genres">{{ stats.genres }}</span>
+                    <span data-stat="genres">{{ stats.genres }}</span>
                 </div>
                 <div class="stat-row">
                     <span class="stat-label">{{ t.rated_songs }}</span>
@@ -222,14 +261,6 @@
                 <div class="stat-row">
                     <span class="stat-label">{{ t.with_lyrics }}</span>
                     <span data-stat="songs_with_lyrics" data-stat-pct="songs_with_lyrics_pct">{{ stats.songs_with_lyrics }} <small>({{ stats.songs_with_lyrics_pct }}%)</small></span>
-                </div>
-                <div class="stat-row">
-                    <span class="stat-label">{{ t.played_last_30d }}</span>
-                    <span class="stat-value" data-stat="velocity_30d">{{ stats.velocity_30d }}</span>
-                </div>
-                <div class="stat-row">
-                    <span class="stat-label">{{ t.played_last_year }}</span>
-                    <span class="stat-value" data-stat="velocity_1year">{{ stats.velocity_1year }}</span>
                 </div>
             </div>
         </div>

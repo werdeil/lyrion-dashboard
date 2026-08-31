@@ -1,18 +1,19 @@
-"""Read music metadata and embed plain-text lyrics into a file's tags.
+"""Read music metadata and embed lyrics or cover art into a file's tags.
 
 Framework-free so it can be reused from a CLI or the web app. Lyrion is never
 touched here: this works directly on the audio files via mutagen, and Lyrion
-picks any change up on its next scan. Only plain text is stored (timestamps from
-synced LRC are stripped) for maximum player compatibility.
+picks any change up on its next scan. Lyrics are stored as plain text
+(timestamps from synced LRC are stripped) for maximum player compatibility;
+cover art is stored as the JPEG bytes it was handed, never re-encoded.
 """
 
 import os
 import re
 
 import mutagen
-from mutagen.id3 import USLT
-from mutagen.flac import FLAC
-from mutagen.mp4 import MP4
+from mutagen.id3 import APIC, USLT
+from mutagen.flac import FLAC, Picture
+from mutagen.mp4 import MP4, MP4Cover
 from mutagen.mp3 import MP3
 from mutagen.aiff import AIFF
 from mutagen.wave import WAVE
@@ -33,6 +34,10 @@ _META_LINE = re.compile(r"^\[[a-zA-Z#]+:.*\]$")
 
 class LyricsTagError(Exception):
     """A user-facing failure while reading or writing tags."""
+
+
+class CoverTagError(Exception):
+    """A user-facing failure while reading or writing cover art."""
 
 
 def lrc_to_plain(text):
@@ -158,3 +163,66 @@ def clear_lyrics(path):
     except Exception as exc:
         raise LyricsTagError(f"clear failed: {exc}") from exc
     return True
+
+
+def read_cover(path):
+    """Return the raw bytes of the file's embedded cover art, or None.
+
+    The first picture found wins, which is what players show. Returns None for
+    an unreadable file or a format that carries no artwork.
+    """
+    try:
+        audio = mutagen.File(path)
+    except Exception:
+        return None
+    if audio is None or audio.tags is None:
+        return None
+
+    if isinstance(audio, (MP3, AIFF, WAVE)):
+        frames = audio.tags.getall("APIC")
+        return bytes(frames[0].data) if frames else None
+    if isinstance(audio, MP4):
+        covers = audio.tags.get("covr")
+        return bytes(covers[0]) if covers else None
+    if isinstance(audio, FLAC):
+        return bytes(audio.pictures[0].data) if audio.pictures else None
+    return None
+
+
+def write_cover(path, data, mime="image/jpeg"):
+    """Replace the cover art of `path` with `data`, the raw image bytes.
+
+    Any existing artwork is dropped first, so a file ends up with exactly one
+    picture. Raises CoverTagError on unrecognised/unsupported format or write
+    failure. Embedding rewrites the file, since artwork rarely fits the padding
+    a smaller cover left behind.
+    """
+    if not data:
+        raise CoverTagError("empty cover")
+
+    audio = mutagen.File(path)
+    if audio is None:
+        raise CoverTagError("unrecognised file format")
+    if audio.tags is None:
+        audio.add_tags()
+
+    if isinstance(audio, (MP3, AIFF, WAVE)):
+        audio.tags.delall("APIC")
+        audio.tags.add(APIC(encoding=0, mime=mime, type=3, desc="", data=data))
+    elif isinstance(audio, MP4):
+        fmt = MP4Cover.FORMAT_PNG if mime == "image/png" else MP4Cover.FORMAT_JPEG
+        audio.tags["covr"] = [MP4Cover(data, imageformat=fmt)]
+    elif isinstance(audio, FLAC):
+        picture = Picture()
+        picture.type = 3
+        picture.mime = mime
+        picture.data = data
+        audio.clear_pictures()
+        audio.add_picture(picture)
+    else:
+        raise CoverTagError("unsupported format for cover art")
+
+    try:
+        audio.save()
+    except Exception as exc:
+        raise CoverTagError(f"write failed: {exc}") from exc

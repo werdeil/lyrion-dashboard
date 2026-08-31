@@ -18,7 +18,7 @@ services:
     # command: >
     #   sh -c "apt-get update -qq && apt-get install -y -qq --no-install-recommends adb
     #   && pip install --no-cache-dir -r requirements.txt
-    #   && gunicorn -w 1 --threads 4 -b 0.0.0.0:1111 app:app --access-logfile - --error-logfile - --log-level info"
+    #   && gunicorn -w 1 --threads 8 -b 0.0.0.0:1111 app:app --access-logfile - --error-logfile - --log-level info"
 
 # Exemple d'ajout de service auxiliaire : Redis
 # services:

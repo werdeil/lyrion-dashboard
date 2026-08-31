@@ -11,6 +11,7 @@ first one that returns anything wins. LRCLIB and Musixmatch can return synced
 lyrics (LRC), so they come before Genius, which only offers plain text.
 """
 
+import logging
 import os
 import re
 import time
@@ -19,6 +20,8 @@ import unicodedata
 from collections import OrderedDict
 
 import requests
+
+log = logging.getLogger(__name__)
 
 try:
     from bs4 import BeautifulSoup
@@ -39,9 +42,8 @@ BROWSER_UA = (
 TTL_HIT = 24 * 3600
 TTL_MISS = 3600
 
-# LRCLIB can get slow under load (8-10s response times on busy evenings), which
-# silently turned every fetch into a timeout. Give it a generous, configurable
-# budget since this is a user-initiated fallback, not a hot path.
+# LRCLIB can get slow under load (8-10s on busy evenings); this is a
+# user-initiated fallback, not a hot path, so give it a generous budget.
 LRCLIB_TIMEOUT = int(os.getenv("LRCLIB_TIMEOUT", "15"))
 
 # When verifying a result against the requested track (opt-in, used by the batch
@@ -57,6 +59,10 @@ MAX_FIELD_LEN = 512
 
 _cache = OrderedDict()
 _cache_lock = threading.Lock()
+
+
+class ProviderUnavailable(Exception):
+    """A provider could not be reached, as opposed to having no match to give."""
 
 
 def _cache_get(key):
@@ -81,6 +87,10 @@ def _cache_set(key, value, ttl):
         _cache[key] = {"value": value, "expires_at": now + ttl}
 
 
+def _elapsed_ms(started):
+    return int((time.monotonic() - started) * 1000)
+
+
 def _int_duration(duration):
     """Coerce a possibly-fractional string duration to whole seconds, or None."""
     if not duration:
@@ -101,12 +111,70 @@ def _int_duration(duration):
 # fields they can and leave the rest None.
 
 
+def _duration_close(candidate, seconds):
+    """True when a candidate's own duration allows it to be the same recording.
+
+    A candidate that carries no duration, or a request that doesn't know its
+    own, can't be told apart this way and is left to the caller's other checks.
+    """
+    got = _int_duration(candidate.get("duration"))
+    return seconds is None or got is None or abs(got - seconds) <= VERIFY_DURATION_TOLERANCE
+
+
+def _lrclib_search(artist, title, album, seconds, fallback):
+    """Scan LRCLIB's `search` for a synced record of this very recording.
+
+    Returns that record, or `fallback` (the `get` hit, when there was one) if
+    the search turns up nothing better. Raises ProviderUnavailable if LRCLIB
+    can't be reached.
+    """
+    headers = {"User-Agent": USER_AGENT}
+    base = {"artist_name": artist, "track_name": title}
+    # Try an album-filtered search first for precision, then retry without the
+    # album. The search fallback exists precisely to forgive album/duration
+    # mismatches, so we must not let a differing album name (e.g. a "(Deluxe)"
+    # edition) suppress an otherwise valid hit.
+    attempts = [{**base, "album_name": album}, base] if album else [base]
+    for search_params in attempts:
+        try:
+            r = requests.get(
+                f"{LRCLIB_BASE}/search",
+                params=search_params,
+                headers=headers,
+                timeout=LRCLIB_TIMEOUT,
+            )
+        except requests.RequestException as exc:
+            raise ProviderUnavailable("lrclib") from exc
+        if r.status_code != 200:
+            log.info("lrclib: search returned HTTP %s", r.status_code)
+            continue
+        results = r.json() or []
+        close = [c for c in results if _duration_close(c, seconds)]
+        synced = [c for c in close if c.get("syncedLyrics")]
+        log.info(
+            "lrclib: search (album=%r) returned %d candidate(s), %d synced, %d of this length",
+            search_params.get("album_name"),
+            len(results), sum(1 for c in results if c.get("syncedLyrics")), len(close),
+        )
+        if synced:
+            return synced[0]
+        if fallback is None and (close or results):
+            fallback = (close or results)[0]
+    return fallback
+
+
 def _provider_lrclib(artist, title, album, duration):
-    """Ask LRCLIB for a track.
+    """Ask LRCLIB for a track, preferring a synced (LRC) record of that recording.
 
     Tries the exact `get` endpoint first (best match when artist/title/album/
     duration line up with their database), then falls back to `search` which is
-    more forgiving about album and duration mismatches.
+    more forgiving about album and duration mismatches. LRCLIB stores lyrics per
+    upload, so the signature `get` matches can hold plain text while another
+    upload of the same track carries an LRC: a plain-only hit is kept only as a
+    fallback while the search looks for a synced one. Timestamps only fit the
+    recording they were made for, so a synced candidate is taken on its duration
+    matching, and one that doesn't match still serves as plain text. Raises
+    ProviderUnavailable when LRCLIB can't be reached at all.
     """
     headers = {"User-Agent": USER_AGENT}
 
@@ -122,37 +190,28 @@ def _provider_lrclib(artist, title, album, duration):
         r = requests.get(f"{LRCLIB_BASE}/get", params=params, headers=headers, timeout=LRCLIB_TIMEOUT)
         if r.status_code == 200:
             payload = r.json()
-    except requests.RequestException:
+        else:
+            log.debug("lrclib: get returned HTTP %s, falling back to search", r.status_code)
+    except requests.RequestException as exc:
+        log.debug("lrclib: get failed (%s), falling back to search", exc)
         payload = None
 
-    if payload is None:
-        base = {"artist_name": artist, "track_name": title}
-        # Try an album-filtered search first for precision, then retry without
-        # the album. The search fallback exists precisely to forgive album/
-        # duration mismatches, so we must not let a differing album name (e.g.
-        # a "(Deluxe)" edition) suppress an otherwise valid hit.
-        attempts = [{**base, "album_name": album}, base] if album else [base]
-        for search_params in attempts:
-            try:
-                r = requests.get(
-                    f"{LRCLIB_BASE}/search",
-                    params=search_params,
-                    headers=headers,
-                    timeout=LRCLIB_TIMEOUT,
-                )
-            except requests.RequestException:
-                return None
-            if r.status_code == 200:
-                results = r.json()
-                if results:
-                    payload = results[0]
-                    break
+    if payload is None or not payload.get("syncedLyrics"):
+        payload = _lrclib_search(artist, title, album, seconds, payload)
 
     if not payload:
         return None
+    # Another recording's LRC would run against the wrong timeline, so only its
+    # words are kept; the caller then shows them as plain lyrics.
+    synced_text = payload.get("syncedLyrics") if _duration_close(payload, seconds) else None
+    log.debug(
+        "lrclib: record %s (%r, %ss), synced=%s",
+        payload.get("id"), payload.get("albumName"), payload.get("duration"),
+        bool(synced_text),
+    )
     return {
         "lyrics": payload.get("plainLyrics"),
-        "synced": payload.get("syncedLyrics"),
+        "synced": synced_text,
         "meta": {
             "artist": payload.get("artistName"),
             "title": payload.get("trackName"),
@@ -176,7 +235,8 @@ def _musixmatch_token():
 
     A token can be supplied via `MUSIXMATCH_TOKEN`; otherwise we fetch the one
     the web desktop app uses. Tokens are valid for hours, so we cache it and
-    refresh lazily.
+    refresh lazily. Returns None when Musixmatch refuses to issue a usable
+    token, and raises ProviderUnavailable when it can't be reached.
     """
     with _mxm_lock:
         if _mxm_token["value"] and _mxm_token["expires_at"] > time.time():
@@ -195,11 +255,15 @@ def _musixmatch_token():
                 timeout=5,
             )
             token = (r.json().get("message", {}).get("body", {}) or {}).get("user_token")
-        except (requests.RequestException, ValueError, AttributeError):
+        except requests.RequestException as exc:
+            raise ProviderUnavailable("musixmatch") from exc
+        except (ValueError, AttributeError) as exc:
+            log.warning("musixmatch: token endpoint returned an unusable body (%s)", exc)
             return None
 
         # Musixmatch hands out a sentinel token when rate-limiting; reject it.
         if not token or token.startswith("UpgradeOnly"):
+            log.warning("musixmatch: no usable token (rate-limited), provider skipped")
             return None
         _mxm_token.update(value=token, expires_at=time.time() + 9 * 3600)
         return token
@@ -231,7 +295,10 @@ def _provider_musixmatch(artist, title, album, duration):
         )
         calls = r.json().get("message", {}).get("body", {})
         calls = calls.get("macro_calls", {}) if isinstance(calls, dict) else {}
-    except (requests.RequestException, ValueError, AttributeError):
+    except requests.RequestException as exc:
+        raise ProviderUnavailable("musixmatch") from exc
+    except (ValueError, AttributeError) as exc:
+        log.debug("musixmatch: unreadable response (%s)", exc)
         return None
 
     def _body(call):
@@ -280,6 +347,7 @@ def _parse_genius_html(html):
 
 def _provider_genius(artist, title, album, _duration):
     if BeautifulSoup is None:
+        log.warning("genius: beautifulsoup4 is not installed, provider skipped")
         return None
 
     # Genius search is free-text only (no album field), so we fold the album
@@ -294,7 +362,10 @@ def _provider_genius(artist, title, album, _duration):
             timeout=6,
         )
         sections = r.json().get("response", {}).get("sections", [])
-    except (requests.RequestException, ValueError, AttributeError):
+    except requests.RequestException as exc:
+        raise ProviderUnavailable("genius") from exc
+    except (ValueError, AttributeError) as exc:
+        log.debug("genius: unreadable search response (%s)", exc)
         return None
 
     url = None
@@ -318,18 +389,21 @@ def _provider_genius(artist, title, album, _duration):
         if url:
             break
     if not url:
+        log.debug("genius: no song hit for %r", query)
         return None
 
     try:
         page = requests.get(url, headers={"User-Agent": BROWSER_UA}, timeout=6)
-    except requests.RequestException:
-        return None
+    except requests.RequestException as exc:
+        raise ProviderUnavailable("genius") from exc
     if page.status_code != 200:
+        log.info("genius: song page %s returned HTTP %s", url, page.status_code)
         return None
 
     text = _parse_genius_html(page.text)
     if text:
         return {"lyrics": text, "synced": None, "meta": hit_meta}
+    log.info("genius: no lyrics container found on %s (page layout changed or bot-blocked)", url)
     return None
 
 
@@ -388,11 +462,56 @@ def _matches_request(meta, artist, title, duration):
         return False
     if _normalize(meta.get("artist")) != _normalize(artist):
         return False
-    want = _int_duration(duration)
-    got = _int_duration(meta.get("duration"))
-    if want is not None and got is not None:
-        return abs(want - got) <= VERIFY_DURATION_TOLERANCE
-    return True
+    return _duration_close(meta, _int_duration(duration))
+
+
+def _search_providers(artist, title, album, duration, verify):
+    """Try each enabled provider in order and return the first usable result.
+
+    Same shape as fetch_lyrics' return value, without any caching: "unavailable"
+    means not one provider answered, which the caller must not confuse with a
+    search that ran and came up empty.
+    """
+    rejected = False
+    unreachable = 0
+    providers = _enabled_providers()
+    if not providers:
+        log.warning("lyrics: no usable provider in LYRICS_PROVIDERS=%r", os.getenv("LYRICS_PROVIDERS"))
+    for name, provider in providers:
+        started = time.monotonic()
+        try:
+            found = provider(artist, title, album, duration)
+        except ProviderUnavailable as exc:
+            unreachable += 1
+            log.warning("lyrics: %s unreachable after %d ms (%s)", name, _elapsed_ms(started), exc.__cause__ or exc)
+            continue
+        except Exception as exc:
+            # A misbehaving provider must not break the chain.
+            log.warning("lyrics: %s failed after %d ms (%s: %s)", name, _elapsed_ms(started), type(exc).__name__, exc)
+            continue
+        if not (found and (found.get("lyrics") or found.get("synced"))):
+            log.info("lyrics: %s has no match (%d ms)", name, _elapsed_ms(started))
+            continue
+        if verify and not _matches_request(found.get("meta"), artist, title, duration):
+            # A candidate came back but doesn't match the requested track; skip
+            # it rather than write the wrong lyrics, and try the next provider.
+            meta = found.get("meta") or {}
+            log.info(
+                "lyrics: %s answered with %r by %r (%ss), not %r by %r (%ss) - rejected",
+                name, meta.get("title"), meta.get("artist"), _int_duration(meta.get("duration")),
+                title, artist, _int_duration(duration),
+            )
+            rejected = True
+            continue
+        log.debug(
+            "lyrics: %s matched in %d ms (synced=%s, plain=%s)",
+            name, _elapsed_ms(started), bool(found.get("synced")), bool(found.get("lyrics")),
+        )
+        return {"lyrics": found.get("lyrics"), "synced": found.get("synced"), "source": name}
+
+    if unreachable and unreachable == len(providers):
+        return {"lyrics": None, "synced": None, "source": "unavailable"}
+    return {"lyrics": None, "synced": None, "source": "rejected" if rejected else "none"}
 
 
 def fetch_lyrics(track_id, artist, title, album=None, duration=None, force=False, verify=False):
@@ -401,8 +520,10 @@ def fetch_lyrics(track_id, artist, title, album=None, duration=None, force=False
     Tries each enabled provider in order and keeps the first non-empty result.
     Returns a dict {"lyrics": str|None, "synced": str|None, "source": str}.
     `source` is the winning provider name (kept across cache hits so the UI can
-    show where the lyrics came from), "none" when nothing was found, or
-    "rejected" when a candidate came back but failed verification.
+    show where the lyrics came from), "none" when nothing was found, "rejected"
+    when a candidate came back but failed verification, or "unavailable" when no
+    provider could be reached — the one outcome that is not cached, so a search
+    is retried as soon as they answer again.
 
     With `verify=True` (used by the batch CLI, which writes lyrics permanently
     into tags), a provider's result is only accepted when its own metadata
@@ -411,8 +532,10 @@ def fetch_lyrics(track_id, artist, title, album=None, duration=None, force=False
     the wrong song's.
     """
     if not title or not artist:
+        log.info("lyrics: search skipped, track %s has no artist or title", track_id)
         return {"lyrics": None, "synced": None, "source": "none"}
     if any(f and len(str(f)) > MAX_FIELD_LEN for f in (track_id, artist, title, album)):
+        log.info("lyrics: search skipped for track %s, a metadata field exceeds %d chars", track_id, MAX_FIELD_LEN)
         return {"lyrics": None, "synced": None, "source": "none"}
 
     # track_id alone isn't a reliable cache key: streamed "flow"/mix sources
@@ -424,32 +547,21 @@ def fetch_lyrics(track_id, artist, title, album=None, duration=None, force=False
     if not force:
         cached = _cache_get(cache_key)
         if cached is not None:
+            log.info("lyrics: cache hit for %r by %r (source=%s), no search made", title, artist, cached["source"])
             return dict(cached)
 
-    result = {"lyrics": None, "synced": None, "source": "none"}
-    rejected = False
-    for name, provider in _enabled_providers():
-        try:
-            found = provider(artist, title, album, duration)
-        except Exception:
-            # A misbehaving provider must not break the chain.
-            found = None
-        if not (found and (found.get("lyrics") or found.get("synced"))):
-            continue
-        if verify and not _matches_request(found.get("meta"), artist, title, duration):
-            # A candidate came back but doesn't match the requested track; skip
-            # it rather than write the wrong lyrics, and try the next provider.
-            rejected = True
-            continue
-        result = {
-            "lyrics": found.get("lyrics"),
-            "synced": found.get("synced"),
-            "source": name,
-        }
-        break
+    started = time.monotonic()
+    log.debug("lyrics: searching %r by %r (album=%r, duration=%s, verify=%s)", title, artist, album, duration, verify)
+    result = _search_providers(artist, title, album, duration, verify)
+    log.info(
+        "lyrics: %r by %r -> %s (synced=%s, plain=%s) in %d ms",
+        title, artist, result["source"], bool(result["synced"]), bool(result["lyrics"]), _elapsed_ms(started),
+    )
+    if result["source"] == "unavailable":
+        # Nothing was learned about the track, so caching this as a miss would
+        # fuse every search for TTL_MISS over a passing outage.
+        return result
 
     hit = bool(result["lyrics"] or result["synced"])
-    if not hit and rejected:
-        result["source"] = "rejected"
     _cache_set(cache_key, dict(result), TTL_HIT if hit else TTL_MISS)
     return result
