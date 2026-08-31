@@ -93,7 +93,8 @@ When opening a PR, follow `.github/pull_request_template.md`: fill in the proble
 - `services/database.py` — read-only SQLite access. Opens Lyrion's `library.db` in RO mode and `ATTACH`es `persist.db` (also RO) per request via a context manager. The app never writes to these DBs — they belong to Lyrion. Stats are cached single-flight for `STATS_TTL`. **See the `database` skill.**
 - `services/lyrics.py` — web lyrics fallback (LRCLIB, Musixmatch, Genius, tried in `LYRICS_PROVIDERS` order; synced-capable providers first). Results live in a process-local in-memory cache (single gunicorn worker + threads means all requests share it); hits are cached longer (`TTL_HIT`) than misses (`TTL_MISS`). Cannot be persisted — `library.db` is read-only.
 - `services/ratelimit.py` — dependency-free `RateLimiter` (per-IP sliding window) and `Cooldown` (once per interval), used to fuse the outbound lyrics searches. Idle entries are swept on every call so the maps stay bounded.
-- `services/tags.py` — framework-free lyrics-into-file-tags writer (mutagen), shared by the web app and the CLI script. Only plain text is stored.
+- `services/tags.py` — framework-free tag writer (mutagen), shared by the web app and the CLI scripts: lyrics (plain text only) and cover art (stored as handed, never re-encoded).
+- `services/artwork.py` — image dimensions from header bytes alone (JPEG/PNG/GIF/BMP/WebP), no dependencies. Lyrion shows the artwork embedded in the tags and ignores `folder.jpg`, which is what `scripts/embed_covers.py` reconciles. **See the `covers` skill.**
 
 ### Frontend
 
@@ -105,7 +106,7 @@ The UI is fully bilingual. `i18n.py` is the single source of truth for UI string
 
 ### Scripts (`scripts/`)
 
-Run outside the web app with `requirements-cli.txt` (no Flask/Lyrion). They operate directly on audio files; Lyrion picks up changes on its next scan. `embed_lyrics.py` embeds web lyrics into file tags; `embed_lyrics_cron.sh` is a cron wrapper that only re-tags files whose `ctime` changed; `generate_screenshots.py` regenerates the README images with mocked Lyrion/DB layers and headless Chromium.
+Run outside the web app with `requirements-cli.txt` (no Flask/Lyrion). They operate directly on audio files; Lyrion picks up changes on its next scan. `embed_lyrics.py` embeds web lyrics into file tags; `embed_covers.py` embeds an album folder's cover file into its tracks' tags, which is the only way to change what Lyrion displays (it shows the embedded artwork and ignores `folder.jpg`); `embed_lyrics_cron.sh` and `embed_covers_cron.sh` are cron wrappers that only revisit what changed since the last successful pass; `generate_screenshots.py` regenerates the README images with mocked Lyrion/DB layers and headless Chromium.
 
 ## Code style & comments
 
@@ -149,6 +150,7 @@ Project skills live in `.claude/skills/` (tracked in git, shared with contributo
 - **`testing`** — the `unittest`/`mock.patch` conventions (standalone files, env-before-import, where to patch, testing caches/clock).
 - **`frontend`** — the vanilla JS/CSS page (accent tint, karaoke sync, polling, i18n wiring, the Android bridge, the ESLint gate).
 - **`lyrics`** — the web fallback providers, cache/verification, and embedding lyrics into audio file tags.
+- **`covers`** — album artwork: measuring an image from its header, and embedding a folder's cover into the tags.
 - **`release`** — cutting a version (the `VERSION`/gradle mirrors, the manual Release → publish → `android.yml` chain).
 - **`android`** — the WebView wrapper (shell-only principle, signing split, static F-Droid versioning, discovery, the JS↔native bridge).
 

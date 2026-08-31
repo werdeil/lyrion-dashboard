@@ -37,9 +37,10 @@ A Flask web app for [Lyrion Music Server](https://github.com/LMS-Community/slims
 │   └── custom.py                          # Route: /files/<path>
 ├── services/
 │   ├── lyrion.py                          # Lyrion JSON-RPC client
+│   ├── artwork.py                         # Read an image's size from its header bytes
 │   ├── database.py                        # SQLite access (lyrics, stats)
 │   ├── lyrics.py                          # Web lyrics fallback (LRCLIB, Musixmatch, Genius)
-│   └── tags.py                            # Read/embed lyrics into audio file tags
+│   └── tags.py                            # Read/embed lyrics and cover art into audio file tags
 ├── templates/
 │   ├── _icons.html                        # Reusable inline SVG icons (Jinja macros)
 │   └── nowplaying.html                    # Main dashboard
@@ -47,6 +48,8 @@ A Flask web app for [Lyrion Music Server](https://github.com/LMS-Community/slims
 ├── scripts/
 │   ├── embed_lyrics.py                    # Embed web lyrics into files' tags
 │   ├── embed_lyrics_cron.sh               # Cron wrapper: only re-tags changed files
+│   ├── embed_covers.py                    # Embed folder.jpg into files' tags
+│   ├── embed_covers_cron.sh               # Cron wrapper: only re-checks changed folders
 │   └── generate_screenshots.py            # Regenerate the README screenshots (fake data)
 ├── android/                               # Android app (WebView wrapper)
 ├── tests/
@@ -226,6 +229,43 @@ scripts/embed_lyrics_cron.sh /path/to/music [MARKER] [-- OPTIONS]
 ```
 
 > `ctime` (not `mtime`) is used on purpose: it also catches in-place tag rewrites and files copied while preserving their `mtime` (`rsync -a`, `cp -p`).
+
+### Embed cover art into files (`scripts/embed_covers.py`)
+
+Walks album folders and writes each folder's cover file into the *artwork* tag of its tracks, wherever that file is sharper than what the tags already carry. Lyrion displays the embedded artwork and ignores `folder.jpg` entirely, so an album with a 1500 px sleeve on disk and a 300 px one in its tags keeps showing the small one until this runs. Lyrion is never contacted: it picks the change up on its next scan.
+
+```bash
+python scripts/embed_covers.py /path/to/music [options]
+# Shell globs work, even when quoted:
+python scripts/embed_covers.py "/path/to/music/A*" /path/to/music/B*
+```
+
+| Option | Description |
+|---|---|
+| <code>&#8209;&#8209;name&nbsp;folder.jpg</code> | Name of the cover file to look for in each album folder (default: `folder.jpg`), matched without regard to case. |
+| <code>&#8209;&#8209;dry&#8209;run</code> | Prints which albums would be re-tagged, without writing anything. |
+| <code>&#8209;&#8209;verbose</code> | Logs every album, including skipped ones. |
+
+Covers are compared on their **shortest side**, the one that decides how sharp a sleeve looks on screen: only a bigger file is embedded, and an album whose tags carry no artwork at all is always filled in. The image is stored as it is, never re-encoded. Embedding rewrites every track of the album, so the run reports how much the audio files grow — a 2 MB sleeve across a twelve-track album adds 24 MB that then has to resync and back up.
+
+### Cron: only re-check changed folders (`scripts/embed_covers_cron.sh`)
+
+Same marker mechanism as the lyrics wrapper, except the unit is the album folder: `find -cnewer` lists the files whose `ctime` changed, and it is their folders that `embed_covers.py` is handed. A replaced `folder.jpg` therefore queues its album just as a new track does.
+
+```bash
+scripts/embed_covers_cron.sh /path/to/music [MARKER] [-- OPTIONS]
+```
+
+- `MARKER`: timestamp file (default: `state/embed_covers.last_run` at the repo root). Missing → the whole library is processed (first pass).
+- Same rules as above: stamped at the **start** of the pass, advanced only **on success**, left where it is by `--dry-run`.
+- Everything after `--` is forwarded as-is to `embed_covers.py` (e.g. `-- --name cover.jpg`).
+
+```cron
+0 5 * * * /path/to/repo/scripts/embed_covers_cron.sh \
+  /path/to/music >> /tmp/embed_covers.log 2>&1
+```
+
+> Embedding a cover bumps every track's `ctime`, so the album shows up again in the next pass — which then finds the tags already right and moves on.
 
 ### Regenerate the README screenshots (`scripts/generate_screenshots.py`)
 
