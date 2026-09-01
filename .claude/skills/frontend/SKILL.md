@@ -47,17 +47,23 @@ Nothing is hardcoded in the JS that the server already knows:
 
 `catchUp()` re-syncs after the tab was backgrounded. Stats poll separately (`pollStats`).
 
+`paintProgress` runs on its own 250ms interval, extrapolating the position between network polls (and driving `syncLyrics` while there are lyrics). Both progress bars are animated with `transform: scaleX()`, never `width`: a `width` transition invalidates layout and paint on every frame of its 0.4s run, so the tick repainted the card continuously; scaleX is compositor-only and costs nothing.
+
 ## Accent color from the cover
 
 The signature visual: the page samples the cover art (served **same-origin** via `/cover/...` precisely so the canvas isn't tainted) to derive two colors — a **tint** (the average color, `FastAverageColor`) and an **accent** (the dominant vibrant swatch, `Vibrant`, normalized in HSV via `rgb2Hsv`/`hsv2Rgb`: fixed brightness `ACCENT_V`, saturation clamped into `[ACCENT_SAT_FLOOR, ACCENT_SAT_MAX]`, and swatches under `ACCENT_SAT_MIN` — greyscale covers — falling back to `ACCENT_DEFAULT`). `SWATCH_ORDER` sets swatch preference. `setTint`/`setAccent`/`resetColors` push them into CSS custom properties. If you change how covers are served, keep them same-origin or the tint breaks.
 
+`.now-playing` and `.stats-panel` carry no `backdrop-filter`, and should not get one back: the only thing painted behind them is the body's gradient, so blurring it is a visual no-op (flat fills differ by at most 1/255 with the blur removed), while the blur puts each on its own composited layer. That costs a Raspberry Pi its GPU compositing path — where a window covering the output is handed straight to the driver and Chromium's partial updates flash on screen — and makes the software fallback (`--disable-gpu-compositing`) too slow to scroll lyrics. The blur that does real work is `.cover-zoom-frost`, which blurs artwork rather than a gradient.
+
+`html` declares `color-scheme: dark`. Without it the UA paints its light widgets — the page and lyrics scrollbars above all — over the dark page, which is what a Raspberry Pi kiosk shows. `scrollbar-color` tints them from `--tint-color` alongside everything else, and inherits, so the one declaration covers every scroller on the page.
+
 ## Karaoke lyrics sync
 
-`parseLRC` turns timestamped LRC into `[{time, text}]`; `syncLyrics` (driven off the aged playback `time` from the poll) highlights the current line via `paintLine` and auto-scrolls, unless the user scrolled away (`setAutoFollow`, `updateScrollReset`, the resume-scroll button). Plain (un-timed) lyrics render as static text. The web-search switch (`setAuto`) is `off`/`auto`, persisted in `localStorage`; display always prefers synced over plain — it's never a user choice.
+`parseLRC` turns timestamped LRC into `[{time, text}]`; `syncLyrics` (driven off the aged playback `time` from the poll) highlights the current line via `paintLine` and auto-scrolls, unless the user scrolled away (`setAutoFollow`, `updateScrollReset`, the resume-scroll button). Plain (un-timed) lyrics render as static text. The glide between lines is `scroll-behavior: smooth` on the box plus a transition on `.lrc-line`, both dropped under `prefers-reduced-motion: reduce`. In synced mode the box also carries `will-change: transform`, which is what makes that glide affordable: held on its own layer it is rasterised once and the scroll moves the layer, instead of re-rasterising every line on each frame of the animation. Without it the glide costs 481ms of raster over eight scrolls under a software compositor, against 2ms with it — the difference between a Raspberry Pi that can run this page and one that cannot. The web-search switch (`setAuto`) is `off`/`auto`, persisted in `localStorage`; display always prefers synced over plain — it's never a user choice.
 
 ## Enlarged cover
 
-The card's artwork is a button (`#np-cover-button`) opening `#cover-zoom`, an overlay holding the artwork with the track's title/artist/album over its lower edge. It covers `.left-panel` — the now-playing card only, leaving the stats panel readable — and is a sibling of the card rather than a child, because the card's `backdrop-filter` would make it the containing block of any `position: fixed` descendant. Narrow landscape is the one configuration where the card outgrows the screen, so there the overlay switches to `position: fixed` and takes the viewport.
+The card's artwork is a button (`#np-cover-button`) opening `#cover-zoom`, an overlay holding the artwork with the track's title/artist/album over its lower edge. It covers `.left-panel` — the now-playing card only, leaving the stats panel readable — and is a sibling of the card rather than a child, because opening fades out the card's own children and the overlay must not fade with them. Narrow landscape is the one configuration where the card outgrows the screen, so there the overlay switches to `position: fixed` and takes the viewport.
 
 There is no close button: a click anywhere on the overlay closes it, as does Escape, and `render()` closes it when playback stops. Focus never leaves the trigger, which carries `aria-expanded`.
 
