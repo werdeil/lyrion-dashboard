@@ -351,7 +351,9 @@ hr {
     transform-origin: bottom center;
     filter: brightness(var(--np-recent-age, 1)) saturate(var(--np-recent-sat, 1));
     cursor: pointer;
-    transition: transform 200ms ease, filter 200ms ease, box-shadow 200ms ease;
+    transition-property: transform, filter, box-shadow;
+    transition-duration: var(--np-recent-ms, 200ms);
+    transition-timing-function: ease;
 }
 
 /* Lift on hover: to the front, straightened, brought up to the freshest

@@ -897,6 +897,10 @@ var RECENT_MIN = 3;
 // A hovered sleeve grows to the freshest one's size, whatever its depth; the
 // freshest, already that size, nudges by this much instead.
 var RECENT_HOVER_GROW_MIN = 1.05;
+// Lift duration, scaled between these by how far the sleeve has to travel: at
+// one duration the deepest sleeve covers its whole growth in a nudge's time.
+var RECENT_HOVER_MS_MIN = 200;
+var RECENT_HOVER_MS_MAX = 400;
 // Small tilts cycled by depth so the pile looks tossed rather than ruled.
 var RECENT_TILTS = [-2.5, 1.8, -1.4, 2.2, -1.8, 1.2];
 // The layout that leaves a free column under the cover — must match the CSS
@@ -986,6 +990,7 @@ function renderRecent() {
         return;
     }
     var count = plan.length;
+    var maxTravel = plan[0].size - plan[count - 1].size;
 
     for (i = 0; i < count; i++) {
         var size = plan[i].size;
@@ -1013,6 +1018,9 @@ function renderRecent() {
         sleeve.style.setProperty('--np-recent-sat', (1 - 0.25 * age).toFixed(3));
         sleeve.style.setProperty('--np-recent-grow',
             Math.max(plan[0].size / size, RECENT_HOVER_GROW_MIN).toFixed(3));
+        var travel = maxTravel > 0 ? (plan[0].size - size) / maxTravel : 0;
+        sleeve.style.setProperty('--np-recent-ms', Math.round(RECENT_HOVER_MS_MIN +
+            (RECENT_HOVER_MS_MAX - RECENT_HOVER_MS_MIN) * travel) + 'ms');
 
         var img = document.createElement('img');
         img.src = '/cover/' + encodeURIComponent(covers[i]) +
