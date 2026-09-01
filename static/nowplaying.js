@@ -426,8 +426,7 @@ var progress = { time: 0, duration: 0, playing: false, syncedAt: 0 };
 // Last measured now-playing round-trip latency (ms), used to back-date syncedAt.
 var pollRtt = 0;
 
-// scaleX rather than width: a compositor-only property, so this tick never
-// invalidates paint inside the card and re-runs its backdrop-filter blur.
+// scaleX rather than width: compositor-only, so this tick costs no layout or paint.
 function setProgressBar(bar, pct) {
     bar.style.transform = 'scaleX(' + pct / 100 + ')';
 }

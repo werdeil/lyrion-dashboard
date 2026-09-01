@@ -57,8 +57,7 @@ body {
 
 html {
     background: var(--base-bg);
-    /* Without this the UA paints its light widgets — scrollbars above all —
-       over a dark page. The tint below only lands where it is supported. */
+    /* Kept alongside scrollbar-color, which older engines ignore. */
     color-scheme: dark;
     scrollbar-width: thin;
     scrollbar-color: color-mix(in srgb, var(--tint-color) 30%, var(--border-color)) transparent;
@@ -138,7 +137,7 @@ hr {
 .left-panel {
     flex: 1 1 0;
     min-width: 0;
-    /* Containing block of the enlarged cover, which is its sibling. */
+    /* Containing block of the absolutely-positioned enlarged cover. */
     position: relative;
 }
 
@@ -680,8 +679,7 @@ body.in-app .np-pull {
 .np-lyrics.lrc-mode {
     white-space: normal;
     scroll-behavior: smooth;
-    /* Held on its own layer: the glide then moves the layer instead of
-       re-rasterising every line on each of its frames. */
+    /* Own layer: the glide moves it instead of re-rasterising every line per frame. */
     will-change: transform;
     /* No *vertical* padding (sides stay as inherited above): the first line
        starts at the top and the highlight descends until it reaches its
