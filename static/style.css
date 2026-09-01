@@ -361,7 +361,8 @@ hr {
    is a mouse-only flourish. */
 .np-recent-sleeve:hover {
     /* !important beats the inline transform/filter set per sleeve by JS. */
-    transform: rotate(0deg) scale(var(--np-recent-grow, 1.05)) !important;
+    transform: translateX(var(--np-recent-slide, 0px))
+               rotate(0deg) scale(var(--np-recent-grow, 1.05)) !important;
     filter: none !important;
     /* !important: each sleeve carries an inline z-index for its depth in the
        pile, and inline styles otherwise beat this rule — so without it a
