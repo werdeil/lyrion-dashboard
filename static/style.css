@@ -675,6 +675,9 @@ body.in-app .np-pull {
 .np-lyrics.lrc-mode {
     white-space: normal;
     scroll-behavior: smooth;
+    /* Held on its own layer: the glide then moves the layer instead of
+       re-rasterising every line on each of its frames. */
+    will-change: transform;
     /* No *vertical* padding (sides stay as inherited above): the first line
        starts at the top and the highlight descends until it reaches its
        anchor (~⅓), instead of opening on a big empty gap. With no bottom
@@ -711,8 +714,6 @@ body.in-app .np-pull {
 }
 
 @media (prefers-reduced-motion: reduce) {
-    /* Animating the scroll re-rasterises the box on every frame of the glide,
-       which is what a software compositor cannot keep up with. */
     .np-lyrics.lrc-mode {
         scroll-behavior: auto;
     }
