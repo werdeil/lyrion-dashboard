@@ -303,10 +303,8 @@ hr {
     border: 1px solid var(--border-color);
 }
 
-/* Recent plays under the cover, as a pile of record sleeves, freshest on top:
-   occlusion carries the order — nothing is dated. Only lives in the large
-   fixed-height layout, so it stays display:none until the media query at the
-   bottom of this file turns it on. */
+/* Recent plays as a pile of record sleeves, freshest on top. display:none
+   until the media query at the bottom of this file turns it on. */
 .np-recent {
     display: none;
     /* Deliberately NOT a stacking context: the sleeves' z-indexes must compete
@@ -335,8 +333,7 @@ hr {
     min-height: 0;
 }
 
-/* One sleeve; renderRecent sets its geometry, tilt, stacking, dimming and
-   hover growth inline, while the shared look and the lift live here. */
+/* One sleeve; renderRecent sets its geometry and per-sleeve vars inline. */
 .np-recent-sleeve {
     position: absolute;
     width: var(--np-recent-size, 150px);
@@ -346,8 +343,7 @@ hr {
     border: 1px solid var(--border-color);
     box-shadow: 0 8px 20px rgba(0, 0, 0, 0.5);
     transform: rotate(var(--np-recent-rot, 0deg));
-    /* Bottom-anchored: the card clips (overflow:hidden in the fixed layout),
-       and upwards over the pile is the only direction with room to grow. */
+    /* Grows upwards: the card clips (overflow:hidden), so there is no room below. */
     transform-origin: bottom center;
     filter: brightness(var(--np-recent-age, 1)) saturate(var(--np-recent-sat, 1));
     cursor: pointer;
@@ -356,19 +352,13 @@ hr {
     transition-timing-function: ease;
 }
 
-/* Lift on hover: to the front, straightened, brought up to the freshest
-   sleeve's size, full light. The pile is decorative (not focusable), so this
-   is a mouse-only flourish. */
+/* Mouse-only: the pile is decorative, so no sleeve is focusable. !important
+   throughout — renderRecent sets transform, filter and z-index inline. */
 .np-recent-sleeve:hover {
-    /* !important beats the inline transform/filter set per sleeve by JS. */
     transform: rotate(0deg) scale(var(--np-recent-grow, 1.05)) !important;
     filter: none !important;
-    /* !important: each sleeve carries an inline z-index for its depth in the
-       pile, and inline styles otherwise beat this rule — so without it a
-       lifted lower sleeve would stay behind the fresher ones stacked on top. */
     z-index: 50 !important;
-    /* Divided back out of the scale, which would otherwise thicken the edge,
-       round the corner and bloat the shadow along with the picture. */
+    /* Divided out of the scale, which would otherwise thicken edge and shadow. */
     border-width: calc(1px / var(--np-recent-grow, 1.05));
     border-radius: calc(8px / var(--np-recent-grow, 1.05));
     box-shadow: 0 calc(16px / var(--np-recent-grow, 1.05))

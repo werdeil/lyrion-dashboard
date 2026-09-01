@@ -894,11 +894,8 @@ var RECENT_LANE_SHIFT = 0.08;
 var RECENT_MAX = 20;
 // Fewer sleeves than this doesn't read as a pile; hide the block instead.
 var RECENT_MIN = 3;
-// A hovered sleeve grows to the freshest one's size, whatever its depth; the
-// freshest, already that size, nudges by this much instead.
 var RECENT_HOVER_GROW_MIN = 1.05;
-// Lift duration, scaled between these by how far the sleeve has to travel: at
-// one duration the deepest sleeve covers its whole growth in a nudge's time.
+// Lift duration, scaled between these two by how far the sleeve travels.
 var RECENT_HOVER_MS_MIN = 200;
 var RECENT_HOVER_MS_MAX = 400;
 // Small tilts cycled by depth so the pile looks tossed rather than ruled.
