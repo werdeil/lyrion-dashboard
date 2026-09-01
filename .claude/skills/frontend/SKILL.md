@@ -57,7 +57,7 @@ The signature visual: the page samples the cover art (served **same-origin** via
 
 ## Karaoke lyrics sync
 
-`parseLRC` turns timestamped LRC into `[{time, text}]`; `syncLyrics` (driven off the aged playback `time` from the poll) highlights the current line via `paintLine` and auto-scrolls, unless the user scrolled away (`setAutoFollow`, `updateScrollReset`, the resume-scroll button). Plain (un-timed) lyrics render as static text. The web-search switch (`setAuto`) is `off`/`auto`, persisted in `localStorage`; display always prefers synced over plain — it's never a user choice.
+`parseLRC` turns timestamped LRC into `[{time, text}]`; `syncLyrics` (driven off the aged playback `time` from the poll) highlights the current line via `paintLine` and auto-scrolls, unless the user scrolled away (`setAutoFollow`, `updateScrollReset`, the resume-scroll button). Plain (un-timed) lyrics render as static text. The glide between lines is `scroll-behavior: smooth` on the box plus a transition on `.lrc-line`, both dropped under `prefers-reduced-motion: reduce` — animating the scroll re-rasterises the box on every frame of the glide, which is a tenfold cost under a software compositor (453ms of raster against 45ms over the same eight scrolls), so that media query doubles as the switch for a machine that has to run without GPU compositing. The web-search switch (`setAuto`) is `off`/`auto`, persisted in `localStorage`; display always prefers synced over plain — it's never a user choice.
 
 ## Enlarged cover
 

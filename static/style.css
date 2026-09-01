@@ -710,6 +710,17 @@ body.in-app .np-pull {
     transform: scale(1.03);
 }
 
+@media (prefers-reduced-motion: reduce) {
+    /* Animating the scroll re-rasterises the box on every frame of the glide,
+       which is what a software compositor cannot keep up with. */
+    .np-lyrics.lrc-mode {
+        scroll-behavior: auto;
+    }
+    .lrc-line {
+        transition: none;
+    }
+}
+
 .np-lyrics.empty {
     color: var(--text-faint);
     font-style: italic;
