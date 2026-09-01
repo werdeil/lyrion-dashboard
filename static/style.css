@@ -133,8 +133,7 @@ hr {
 .left-panel {
     flex: 1 1 0;
     min-width: 0;
-    /* Containing block of the enlarged cover: not the card, whose
-       backdrop-filter would trap a fixed-position descendant. */
+    /* Containing block of the enlarged cover, which is its sibling. */
     position: relative;
 }
 
@@ -145,8 +144,6 @@ hr {
     border-radius: 10px;
     padding: 16px;
     border: 1px solid color-mix(in srgb, var(--tint-color) 24%, rgba(255, 255, 255, 0.06));
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
 }
 
 .stats-panel h2 {
@@ -253,8 +250,6 @@ hr {
     border: 1px solid color-mix(in srgb, var(--tint-color) 24%, rgba(255, 255, 255, 0.06));
     border-radius: 12px;
     padding: 20px;
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
 }
 
 /* Left column (cover + recent-plays stack). The grid placement lives here so
