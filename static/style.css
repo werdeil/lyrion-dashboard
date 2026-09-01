@@ -57,6 +57,11 @@ body {
 
 html {
     background: var(--base-bg);
+    /* Without this the UA paints its light widgets — scrollbars above all —
+       over a dark page. The tint below only lands where it is supported. */
+    color-scheme: dark;
+    scrollbar-width: thin;
+    scrollbar-color: color-mix(in srgb, var(--tint-color) 30%, var(--border-color)) transparent;
 }
 
 h1, h2 {
