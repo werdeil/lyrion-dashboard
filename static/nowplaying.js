@@ -426,6 +426,12 @@ var progress = { time: 0, duration: 0, playing: false, syncedAt: 0 };
 // Last measured now-playing round-trip latency (ms), used to back-date syncedAt.
 var pollRtt = 0;
 
+// scaleX rather than width: a compositor-only property, so this tick never
+// invalidates paint inside the card and re-runs its backdrop-filter blur.
+function setProgressBar(bar, pct) {
+    bar.style.transform = 'scaleX(' + pct / 100 + ')';
+}
+
 function paintProgress() {
     var t = progress.time;
     if (progress.playing) {
@@ -434,8 +440,8 @@ function paintProgress() {
     var pct = progress.duration > 0
         ? Math.max(0, Math.min(100, (t / progress.duration) * 100))
         : 0;
-    el.progressBar.style.width = pct + '%';
-    if (coverZoom && coverZoom.progressBar) { coverZoom.progressBar.style.width = pct + '%'; }
+    setProgressBar(el.progressBar, pct);
+    if (coverZoom && coverZoom.progressBar) { setProgressBar(coverZoom.progressBar, pct); }
     if (lrcLines) { syncLyrics(); }
 }
 
@@ -1073,7 +1079,7 @@ function render(data) {
         lrcActiveIdx = -1;
         setAutoFollow(true);
         progress = { time: 0, duration: 0, playing: false, syncedAt: 0 };
-        el.progressBar.style.width = '0';
+        setProgressBar(el.progressBar, 0);
         return;
     }
 

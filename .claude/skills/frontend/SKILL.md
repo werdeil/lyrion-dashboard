@@ -47,6 +47,8 @@ Nothing is hardcoded in the JS that the server already knows:
 
 `catchUp()` re-syncs after the tab was backgrounded. Stats poll separately (`pollStats`).
 
+`paintProgress` runs on its own 250ms interval, extrapolating the position between network polls (and driving `syncLyrics` while there are lyrics). Both progress bars are animated with `transform: scaleX()`, never `width`: they sit inside `.now-playing`, whose `backdrop-filter` has to resample and re-blur the page's fixed-attachment gradient on any paint invalidation in its subtree. A `width` transition invalidates layout and paint every frame, which the Raspberry Pi's V3D driver cannot finish in time — the compositor then shows the damaged rect cleared, a grey band flashing across the top of the card four times a second.
+
 ## Accent color from the cover
 
 The signature visual: the page samples the cover art (served **same-origin** via `/cover/...` precisely so the canvas isn't tainted) to derive two colors — a **tint** (the average color, `FastAverageColor`) and an **accent** (the dominant vibrant swatch, `Vibrant`, normalized in HSV via `rgb2Hsv`/`hsv2Rgb`: fixed brightness `ACCENT_V`, saturation clamped into `[ACCENT_SAT_FLOOR, ACCENT_SAT_MAX]`, and swatches under `ACCENT_SAT_MIN` — greyscale covers — falling back to `ACCENT_DEFAULT`). `SWATCH_ORDER` sets swatch preference. `setTint`/`setAccent`/`resetColors` push them into CSS custom properties. If you change how covers are served, keep them same-origin or the tint breaks.
