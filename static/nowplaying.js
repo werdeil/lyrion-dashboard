@@ -894,6 +894,9 @@ var RECENT_LANE_SHIFT = 0.08;
 var RECENT_MAX = 20;
 // Fewer sleeves than this doesn't read as a pile; hide the block instead.
 var RECENT_MIN = 3;
+// A hovered sleeve grows to the freshest one's size, whatever its depth; the
+// freshest, already that size, nudges by this much instead.
+var RECENT_HOVER_GROW_MIN = 1.05;
 // Small tilts cycled by depth so the pile looks tossed rather than ruled.
 var RECENT_TILTS = [-2.5, 1.8, -1.4, 2.2, -1.8, 1.2];
 // The layout that leaves a free column under the cover — must match the CSS
@@ -1008,6 +1011,8 @@ function renderRecent() {
         var age = count > 1 ? i / (count - 1) : 0;
         sleeve.style.setProperty('--np-recent-age', (0.95 - 0.5 * age).toFixed(3));
         sleeve.style.setProperty('--np-recent-sat', (1 - 0.25 * age).toFixed(3));
+        sleeve.style.setProperty('--np-recent-grow',
+            Math.max(plan[0].size / size, RECENT_HOVER_GROW_MIN).toFixed(3));
 
         var img = document.createElement('img');
         img.src = '/cover/' + encodeURIComponent(covers[i]) +
