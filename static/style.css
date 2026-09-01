@@ -303,15 +303,8 @@ hr {
     border: 1px solid var(--border-color);
 }
 
-/* Recent plays under the cover, as a pile of record sleeves: the freshest
-   listen sits on top (right under the playing cover) at full light, each
-   older one cascading down behind it, tilted and dimmer, only its lower edge
-   peeking out. Occlusion carries the order — nothing is dated. Hovering or
-   focusing a sleeve lifts it to the front, straightens and brightens it, and
-   names it in the caption line below the pile (kept at a readable size rather
-   than squeezed onto a possibly tiny sleeve). Only lives in the large
-   fixed-height layout — narrower screens have no free column under the cover —
-   so it stays display:none until the media query at the bottom turns it on. */
+/* Recent plays as a pile of record sleeves, freshest on top. display:none
+   until the media query at the bottom of this file turns it on. */
 .np-recent {
     display: none;
     /* Deliberately NOT a stacking context: the sleeves' z-indexes must compete
@@ -340,10 +333,7 @@ hr {
     min-height: 0;
 }
 
-/* One sleeve. JS sets its size (--np-recent-size), position (top/left),
-   tilt (--np-recent-rot), stacking (z-index) and age dimming
-   (--np-recent-age / --np-recent-sat) inline; the shared look and the
-   hover/focus lift live here. */
+/* One sleeve; renderRecent sets its geometry and per-sleeve vars inline. */
 .np-recent-sleeve {
     position: absolute;
     width: var(--np-recent-size, 150px);
@@ -353,22 +343,26 @@ hr {
     border: 1px solid var(--border-color);
     box-shadow: 0 8px 20px rgba(0, 0, 0, 0.5);
     transform: rotate(var(--np-recent-rot, 0deg));
+    /* Grows upwards: the card clips (overflow:hidden), so there is no room below. */
+    transform-origin: bottom center;
     filter: brightness(var(--np-recent-age, 1)) saturate(var(--np-recent-sat, 1));
     cursor: pointer;
-    transition: transform 200ms ease, filter 200ms ease, box-shadow 200ms ease;
+    transition-property: transform, filter, box-shadow;
+    transition-duration: var(--np-recent-ms, 200ms);
+    transition-timing-function: ease;
 }
 
-/* Lift on hover: to the front, straightened, a touch larger, full light.
-   !important beats the inline per-sleeve transform/filter set by JS. The pile
-   is decorative (not focusable), so this is a mouse-only flourish. */
+/* Mouse-only: the pile is decorative, so no sleeve is focusable. !important
+   throughout — renderRecent sets transform, filter and z-index inline. */
 .np-recent-sleeve:hover {
-    transform: rotate(0deg) scale(1.05) !important;
+    transform: rotate(0deg) scale(var(--np-recent-grow, 1.05)) !important;
     filter: none !important;
-    /* !important: each sleeve carries an inline z-index for its depth in the
-       pile, and inline styles otherwise beat this rule — so without it a
-       lifted lower sleeve would stay behind the fresher ones stacked on top. */
     z-index: 50 !important;
-    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.7);
+    /* Divided out of the scale, which would otherwise thicken edge and shadow. */
+    border-width: calc(1px / var(--np-recent-grow, 1.05));
+    border-radius: calc(8px / var(--np-recent-grow, 1.05));
+    box-shadow: 0 calc(16px / var(--np-recent-grow, 1.05))
+                  calc(40px / var(--np-recent-grow, 1.05)) rgba(0, 0, 0, 0.7);
 }
 
 .np-recent-sleeve img {
