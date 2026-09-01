@@ -894,15 +894,13 @@ var RECENT_LANE_SHIFT = 0.08;
 var RECENT_MAX = 20;
 // Fewer sleeves than this doesn't read as a pile; hide the block instead.
 var RECENT_MIN = 3;
-// A lifted sleeve rises to this fraction of the column and parks against its
-// right edge; the width left free beside it is what keeps the pile in view.
-var RECENT_HOVER_RATIO = 0.55;
-// A sleeve already that big just nudges by this much.
+// A hovered sleeve grows to the freshest one's size, whatever its depth; the
+// freshest, already that size, nudges by this much instead.
 var RECENT_HOVER_GROW_MIN = 1.05;
 // Lift duration, scaled between these by how far the sleeve has to travel: at
-// one duration the longest growth covers its ground in a nudge's time.
-var RECENT_HOVER_MS_MIN = 180;
-var RECENT_HOVER_MS_MAX = 300;
+// one duration the deepest sleeve covers its whole growth in a nudge's time.
+var RECENT_HOVER_MS_MIN = 200;
+var RECENT_HOVER_MS_MAX = 400;
 // Small tilts cycled by depth so the pile looks tossed rather than ruled.
 var RECENT_TILTS = [-2.5, 1.8, -1.4, 2.2, -1.8, 1.2];
 // The layout that leaves a free column under the cover — must match the CSS
@@ -992,23 +990,7 @@ function renderRecent() {
         return;
     }
     var count = plan.length;
-    // Where each sleeve lifts to. It grows from its bottom edge, so it rises
-    // over the pile: the slide is what keeps the sleeves under it in view.
-    var lift = [];
-    var maxTravel = 0;
-    for (i = 0; i < count; i++) {
-        // Centred, then nudged off-centre, alternating left/right by depth
-        // (freshest left, next right, ...): the shrinking stack keeps a tossed
-        // feel and each sleeve peeks out beside the wider one on top of it.
-        var shift = (i % 2 === 0 ? -1 : 1) * Math.round(w * RECENT_LANE_SHIFT);
-        var to = Math.max(w * RECENT_HOVER_RATIO, plan[i].size * RECENT_HOVER_GROW_MIN);
-        // Half the growth at most, so the lifted box still covers the resting
-        // one: slid any further it leaves the pointer behind and hover flickers.
-        var slide = Math.max(
-            Math.min(w / 2 - shift - to / 2, (to - plan[i].size) / 2), 0);
-        lift.push({ shift: shift, size: to, slide: slide });
-        maxTravel = Math.max(maxTravel, to - plan[i].size, slide);
-    }
+    var maxTravel = plan[0].size - plan[count - 1].size;
 
     for (i = 0; i < count; i++) {
         var size = plan[i].size;
@@ -1019,7 +1001,12 @@ function renderRecent() {
         sleeve.style.width = size + 'px';
         sleeve.style.height = size + 'px';
         sleeve.style.top = plan[i].top + 'px';
-        sleeve.style.left = Math.round((w - size) / 2 + lift[i].shift) + 'px';
+        // Centred, then nudged a little off-centre, alternating left/right by
+        // depth (freshest left, next right, …): the shrinking stack keeps a
+        // tossed feel and each sleeve peeks out to the side of the wider one on
+        // top of it, so it stays hoverable.
+        var shift = (i % 2 === 0 ? -1 : 1) * Math.round(w * RECENT_LANE_SHIFT);
+        sleeve.style.left = Math.round((w - size) / 2 + shift) + 'px';
         sleeve.style.setProperty('--np-recent-rot', RECENT_TILTS[i % RECENT_TILTS.length] + 'deg');
         // Freshest listen frontmost; z decreases with depth so each older
         // sleeve sits behind the one above it.
@@ -1029,10 +1016,9 @@ function renderRecent() {
         var age = count > 1 ? i / (count - 1) : 0;
         sleeve.style.setProperty('--np-recent-age', (0.95 - 0.5 * age).toFixed(3));
         sleeve.style.setProperty('--np-recent-sat', (1 - 0.25 * age).toFixed(3));
-        sleeve.style.setProperty('--np-recent-grow', (lift[i].size / size).toFixed(3));
-        sleeve.style.setProperty('--np-recent-slide', Math.round(lift[i].slide) + 'px');
-        var travel = maxTravel > 0
-            ? Math.max(lift[i].size - size, lift[i].slide) / maxTravel : 0;
+        sleeve.style.setProperty('--np-recent-grow',
+            Math.max(plan[0].size / size, RECENT_HOVER_GROW_MIN).toFixed(3));
+        var travel = maxTravel > 0 ? (plan[0].size - size) / maxTravel : 0;
         sleeve.style.setProperty('--np-recent-ms', Math.round(RECENT_HOVER_MS_MIN +
             (RECENT_HOVER_MS_MAX - RECENT_HOVER_MS_MIN) * travel) + 'ms');
 
