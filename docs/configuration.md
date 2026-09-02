@@ -8,6 +8,7 @@ All configuration comes from environment variables, read once at start-up. `.env
 |---|---|---|
 | `LYRION_HOST` | Lyrion server URL (e.g. `https://lyrion.local:9000`) | -- |
 | `LYRION_DATA_DIR` | Lyrion's data directory, the one holding its `prefs/` and `cache/` | -- |
+| `PLAY_COUNTS_SOURCE` | Where play counts come from: `auto` (Alternative Play Count when installed, Lyrion's own counters otherwise) or `lyrion` (always Lyrion's counters) | `auto` |
 | `CUSTOM_DATA_DIR` | Generated files directory | `/opt/scripts/custom_data` |
 | `LYRICS_PROVIDERS` | Web lyrics providers, tried in order (`lrclib`, `musixmatch`, `genius`) | `lrclib,musixmatch,genius` |
 | `MUSIXMATCH_TOKEN` | Fixed Musixmatch token (otherwise fetched automatically) | -- |

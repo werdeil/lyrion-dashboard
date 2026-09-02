@@ -1,5 +1,6 @@
-"""Tests for a Lyrion without the Alternative Play Count plugin: the stats and
-the recent covers must still compute, from Lyrion's own play counters."""
+"""Tests for play counts read from Lyrion's own counters instead of the
+Alternative Play Count plugin — because the plugin is absent, or because
+PLAY_COUNTS_SOURCE=lyrion asks for it."""
 # The temp-db + Flask-app scaffolding is intentionally the same as in the
 # other database tests; that repetition is what keeps each file standalone.
 # pylint: disable=duplicate-code
@@ -92,7 +93,7 @@ class WithoutAlternativePlayCountTest(unittest.TestCase):
         with self.app.app_context():
             self.assertEqual(get_recent_album_covers(), ["ca"])
 
-    def test_the_plugin_table_wins_when_it_exists(self):
+    def _install_plugin_table(self):
         conn = sqlite3.connect(self.tmp.name)
         conn.executescript("""
             CREATE TABLE alternativeplaycount (
@@ -107,6 +108,8 @@ class WithoutAlternativePlayCountTest(unittest.TestCase):
         conn.commit()
         conn.close()
 
+    def test_the_plugin_table_wins_when_it_exists(self):
+        self._install_plugin_table()
         with self.app.app_context():
             stats = _compute_stats()
             covers = get_recent_album_covers()
@@ -115,6 +118,17 @@ class WithoutAlternativePlayCountTest(unittest.TestCase):
         self.assertEqual(stats["songs_total_plays_apc"], 3)
         self.assertEqual(stats["songs_total_skips_apc"], 1)
         self.assertEqual(covers, ["cb", "ca"])
+
+    def test_play_counts_source_lyrion_ignores_an_installed_plugin(self):
+        self._install_plugin_table()
+        self.app.config["PLAY_COUNTS_SOURCE"] = "lyrion"
+        with self.app.app_context():
+            stats = _compute_stats()
+            covers = get_recent_album_covers()
+        self.assertFalse(stats["apc_available"])
+        self.assertEqual(stats["songs_total_plays_apc"], 5)
+        self.assertEqual(stats["songs_total_skips_apc"], 0)
+        self.assertEqual(covers, ["ca"])
 
 
 if __name__ == "__main__":

@@ -44,9 +44,9 @@ Real listening data comes from the [Alternative Play Count](https://github.com/A
 - `playcount` / `lastplayed` — genuine plays. "Played" means `playcount > 0`.
 - `skipcount` / `lastskipped` — skips.
 
-The plugin is **recommended, not required**, so no query names that table. `get_db_conn` defines a TEMP view **`play_counts`** (`urlmd5`, `playcount`, `skipcount`, `lastplayed`) over whichever source exists — the plugin's table, else `persist.tracks_persistent` with `skipcount` forced to 0 — and every query joins the view, aliased `apc`. A TEMP view is writable on a read-only connection: it lives in the connection's temp schema, never in Lyrion's files. Use the view for anything about what was played; add a column to both definitions rather than referencing a source table directly.
+The plugin is **recommended, not required**, so no query names that table. `get_db_conn` defines a TEMP view **`play_counts`** (`urlmd5`, `playcount`, `skipcount`, `lastplayed`) over whichever source `_use_apc` picks — the plugin's table, else `persist.tracks_persistent` with `skipcount` forced to 0 — and every query joins the view, aliased `apc`. `PLAY_COUNTS_SOURCE=lyrion` forces the fallback even when the plugin is installed, for a library whose history predates it. A TEMP view is writable on a read-only connection: it lives in the connection's temp schema, never in Lyrion's files. Use the view for anything about what was played; add a column to both definitions rather than referencing a source table directly.
 
-Without the plugin two things degrade, and the code says so where it matters: skips do not exist at all, and `lastplayed` is bumped on a skip too, so `get_recent_album_covers` can surface an album that was only skipped past. `_compute_stats` reports which source it used as **`apc_available`**, and the template drops the "Skips" row when it is false.
+On the fallback two things degrade, and the code says so where it matters: skips do not exist at all, and `lastplayed` is bumped on a skip too, so `get_recent_album_covers` can surface an album that was only skipped past. `_compute_stats` reports which source it used as **`apc_available`** — the plugin's table *and* not overridden — and the template drops the "Skips" row when it is false.
 
 ## The stats cache (single-flight)
 

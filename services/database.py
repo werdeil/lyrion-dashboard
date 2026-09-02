@@ -85,28 +85,31 @@ _PLAY_COUNTS_PERSIST = """
     SELECT urlmd5, playcount, 0 AS skipcount, lastplayed FROM persist.tracks_persistent
 """
 
-_apc_seen = {"value": None}
+_apc_state = {"value": None}
 
 
-def _has_apc(conn):
-    """Whether the Alternative Play Count table is present, logged on change."""
-    found = conn.execute(
+def _use_apc(conn):
+    """Whether the play counts come from the Alternative Play Count table,
+    logged whenever the answer changes."""
+    if current_app.config.get("PLAY_COUNTS_SOURCE") == "lyrion":
+        state = "disabled by PLAY_COUNTS_SOURCE"
+    elif conn.execute(
         "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'alternativeplaycount'"
-    ).fetchone() is not None
-    if found != _apc_seen["value"]:
-        _apc_seen["value"] = found
-        if found:
-            log.info("Alternative Play Count installed: play counts read from alternativeplaycount")
-        else:
-            log.info("Alternative Play Count not installed: play counts read from "
-                     "tracks_persistent, skips unavailable")
-    return found
+    ).fetchone():
+        state = "installed"
+    else:
+        state = "not installed"
+    if state != _apc_state["value"]:
+        _apc_state["value"] = state
+        log.info("Alternative Play Count %s: play counts read from %s", state,
+                 "alternativeplaycount" if state == "installed" else "tracks_persistent, skips unavailable")
+    return state == "installed"
 
 
 # A TEMP view is writable on a read-only connection: it lives in the
 # connection's temp schema, never in Lyrion's files.
 def _define_play_counts(conn):
-    conn.execute(_PLAY_COUNTS_APC if _has_apc(conn) else _PLAY_COUNTS_PERSIST)
+    conn.execute(_PLAY_COUNTS_APC if _use_apc(conn) else _PLAY_COUNTS_PERSIST)
 
 
 def get_recent_album_covers(limit=24):
@@ -170,7 +173,7 @@ def get_stats():
 def _compute_stats():
     with get_db_conn() as conn:
         cur = conn.cursor()
-        apc_available = _has_apc(conn)
+        apc_available = _use_apc(conn)
 
         def pct(part, total):
             if total == 0:
