@@ -886,7 +886,7 @@ window.addEventListener('resize', function() {
 
 // Recent plays as a pile of sleeves under the cover (desktop only): freshest
 // on top, older ones smaller and dimmer. Ratios are fractions of the column.
-var RECENT_COVER_SIZE = 300;
+var RECENT_COVER_SIZE = 512;
 // Sizes of the freshest and oldest sleeves; the ones between interpolate.
 var RECENT_TOP_RATIO = 0.70;
 var RECENT_BOTTOM_RATIO = 0.20;
