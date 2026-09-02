@@ -1,12 +1,12 @@
-[English](README.md) | [Français](README.fr.md)
+<p align="center"><a href="README.md">English</a> | <a href="README.fr.md">Français</a></p>
 
-<img src="static/favicon.svg" alt="" width="56">
+<p align="center"><img src="static/favicon.svg" alt="" width="56"></p>
 
-# Lyrion Dashboard
+<h1 align="center">Lyrion Dashboard</h1>
 
-A Flask web app for [Lyrion Music Server](https://github.com/LMS-Community/slimserver) (formerly Logitech Media Server / Squeezebox Server): a glanceable "now playing" page with synced lyrics, recent plays and library statistics, in a browser or through its companion [Android app](https://f-droid.org/packages/com.werdeil.lyriondashboard/).
+<p align="center">A Flask web app for <a href="https://github.com/LMS-Community/slimserver">Lyrion Music Server</a> (formerly Logitech Media Server / Squeezebox Server): a glanceable "now playing" page with synced lyrics, recent plays and library statistics, in a browser or through its companion <a href="https://f-droid.org/packages/com.werdeil.lyriondashboard/">Android app</a>.</p>
 
-<p>
+<p align="center">
   <img src="docs/screenshots/dashboard-en.png" alt="Dashboard" width="600">
   <img src="docs/screenshots/dashboard-app.png" alt="Android app" width="179">
 </p>
