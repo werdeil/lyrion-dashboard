@@ -102,11 +102,11 @@ Vanilla JS/CSS, no framework or bundler. `static/nowplaying.js` + `static/style.
 
 ### i18n (FR/EN)
 
-The UI is fully bilingual. `i18n.py` is the single source of truth for UI strings (`TRANSLATIONS` with `fr`/`en` sub-dicts sharing identical keys); the language is chosen per request from `Accept-Language`. The whole chosen dict is passed to the template as `t` and serialized to JS. **A user-facing string never exists in only one language, and `README.md` (EN) and `README.fr.md` (FR) are kept in lockstep.** JSON endpoints are not localized. **See the `i18n` skill.**
+The UI is fully bilingual. `i18n.py` is the single source of truth for UI strings (`TRANSLATIONS` with `fr`/`en` sub-dicts sharing identical keys); the language is chosen per request from `Accept-Language`. The whole chosen dict is passed to the template as `t` and serialized to JS. **A user-facing string never exists in only one language, and every documentation page ships as an EN/FR pair kept in lockstep — `README.md` / `README.fr.md`, and each `docs/*.md` / `docs/*.fr.md`.** JSON endpoints are not localized. **See the `i18n` skill.**
 
 ### Scripts (`scripts/`)
 
-Run outside the web app with `requirements-cli.txt` (no Flask/Lyrion). They operate directly on audio files; Lyrion picks up changes on its next scan. `embed_lyrics.py` embeds web lyrics into file tags; `embed_covers.py` embeds an album folder's cover file into its tracks' tags, which is the only way to change what Lyrion displays (it shows the embedded artwork and ignores `folder.jpg`); `embed_lyrics_cron.sh` and `embed_covers_cron.sh` are cron wrappers that only revisit what changed since the last successful pass; `generate_screenshots.py` regenerates the README images with mocked Lyrion/DB layers and headless Chromium.
+Run outside the web app with `requirements-cli.txt` (no Flask/Lyrion). They operate directly on audio files; Lyrion picks up changes on its next scan. `embed_lyrics.py` embeds web lyrics into file tags; `embed_covers.py` embeds an album folder's cover file into its tracks' tags, which is the only way to change what Lyrion displays (it shows the embedded artwork and ignores `folder.jpg`); `embed_lyrics_cron.sh` and `embed_covers_cron.sh` are cron wrappers that only revisit what changed since the last successful pass; `generate_screenshots.py` regenerates the images under `docs/screenshots/` — the README header and the demo gallery — with mocked Lyrion/DB layers and headless Chromium.
 
 ## Code style & comments
 

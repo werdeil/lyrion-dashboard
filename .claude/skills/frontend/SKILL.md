@@ -96,9 +96,9 @@ Two traps, both of which quietly yield wrong numbers rather than an error:
 
 Inside the Android WebView a native object `window.LyrionApp` is injected. The JS detects it (kept in `APP_BRIDGE`), adds `body.in-app`, reveals the header menu button, and wires it to `bridge.openMenu()` / `openSettings()`. Pull-to-refresh is app-only too: a downward drag starting in the card's cover/meta zone (`PULL_ZONE`, so never the scrolling lyrics box) rides the `#np-pull` badge down from the card's top edge and calls `bridge.reload()` past `PULL_TRIGGER`, which reloads through the shell so a server that has gone away lands on the native error view. The gesture only starts with the page and the card both at their top, and the `touchmove` listener is non-passive because suppressing the WebView's overscroll needs `preventDefault()`. On Android, the "open in Lyrion" links become `intent://` URLs targeting the LMS Material app. Guard any app-only behaviour behind the presence of the bridge, as the existing code does.
 
-## Regenerate the README screenshots after a visual change
+## Regenerate the screenshots after a visual change
 
-The README images (`docs/screenshots/`) are checked in and embedded in `README.md` (EN, `dashboard-en.png`), `README.fr.md` (FR, `dashboard-fr.png`), plus `dashboard-mobile.png` and `dashboard-app.png`. **If your change alters what the dashboard looks like** — layout, styling, colors, the empty state, the lyrics/stats panels, an icon, anything a user would see — regenerate them so the docs don't drift from the app:
+The images (`docs/screenshots/`) are checked in and embedded in the READMEs: the header row (`dashboard-en.png` in EN, `dashboard-fr.png` in FR, plus `dashboard-mobile.png` and `dashboard-app.png`) and the demo gallery below it (`demo-*.png`, shared by both languages). **If your change alters what the dashboard looks like** — layout, styling, colors, the empty state, the lyrics/stats panels, an icon, anything a user would see — regenerate them so the docs don't drift from the app:
 
 ```bash
 pip install -r requirements.txt playwright
@@ -106,7 +106,7 @@ playwright install chromium        # once
 python scripts/generate_screenshots.py
 ```
 
-The script runs the real app with the Lyrion/DB layers mocked (fake track, synced LRC, generated cover art, canned stats) and captures every image with headless Chromium — desktop in **both** languages, the mobile view, and the Android app view. No Lyrion server or database is needed. Commit the updated PNGs alongside the code change, and keep both language shots in sync (they're regenerated together). Skip this only for changes with no visual effect (pure refactors, endpoint-only tweaks).
+The script runs the real app with the Lyrion/DB layers mocked (fake track, synced LRC, generated cover art, canned stats) and captures every image with headless Chromium — desktop in **both** languages, the mobile view, the Android app view, and the demo gallery (enlarged cover, karaoke lyrics, recent-plays pile, statistics panel, empty-state mosaic). Each capture is one `Shot` entry in the script's `SHOTS` map, so a new one is a single declarative line. No Lyrion server or database is needed. Commit the updated PNGs alongside the code change, and keep both language shots in sync (they're regenerated together). Skip this only for changes with no visual effect (pure refactors, endpoint-only tweaks).
 
 ## Checklist
 

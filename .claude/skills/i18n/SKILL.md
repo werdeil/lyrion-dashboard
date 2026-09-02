@@ -4,9 +4,9 @@ description: >-
   Add, change, or translate user-facing text in the Lyrion Dashboard, which
   ships bilingual FR/EN. Use this whenever a task introduces a new visible
   string (a label, tooltip, aria-label, empty state, stat name), changes
-  wording, or touches the README — so every string lands in both languages and
-  the two READMEs stay in sync. Covers `i18n.py`, how templates and JS consume
-  translations, and the README parity rule.
+  wording, or touches the README or a `docs/` page — so every string lands in
+  both languages and the EN/FR documentation pairs stay in sync. Covers
+  `i18n.py`, how templates and JS consume translations, and the parity rule.
 ---
 
 # Internationalization (FR/EN)
@@ -41,12 +41,12 @@ return render_template("nowplaying.html", lang=lang, t=TRANSLATIONS[lang], ...)
 
 **Keys are stable identifiers, not English text** — snake_case describing the role (`retry_lyrics`, `empty_state`), so the English wording can change without renaming the key.
 
-## README parity
+## Documentation parity
 
-Two READMEs are kept in lockstep, linked to each other at the top:
+Every documentation page exists twice, linked to its counterpart at the top:
 
-- `README.md` — English (primary)
-- `README.fr.md` — French
+- `README.md` (EN, primary) / `README.fr.md` (FR) — the landing page: features, demo gallery, install, security.
+- `docs/configuration.md`, `docs/endpoints.md`, `docs/scripts.md` and their `.fr.md` counterparts — the detail the README links to.
 
 Any change to one — a new feature bullet, a changed requirement, a restructured section — must be mirrored in the other in the same place. They should differ only in language, never in content or structure. When you edit one, edit the other in the same change.
 
@@ -55,4 +55,4 @@ Any change to one — a new feature bullet, a changed requirement, a restructure
 - [ ] New UI string → key added to **both** `fr` and `en` in `i18n.py`.
 - [ ] Keys are snake_case role names, present in both sub-dicts in the same order.
 - [ ] Template/JS reads the string through `t`, nothing hardcoded.
-- [ ] README edited? The other README got the same edit.
+- [ ] README or `docs/` page edited? Its counterpart in the other language got the same edit.

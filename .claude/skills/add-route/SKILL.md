@@ -84,13 +84,13 @@ Every endpoint gets a `tests/test_<name>_route.py` using `unittest` + `unittest.
 
 `tests/test_now_playing_route.py` is the reference example — mirror its shape.
 
-## Keep the README in sync
+## Keep the docs in sync
 
-The public surface is documented in the READMEs, and they must not drift from the app. When your endpoint changes that surface, update **both** `README.md` (EN) and `README.fr.md` (FR) in lockstep (see the `i18n` skill's README parity rule):
+The public surface is documented in the READMEs and under `docs/`, and they must not drift from the app. Each page is an EN/FR pair edited together (see the `i18n` skill's documentation parity rule):
 
-- **New/changed route** → the **Endpoints** table (Method / Route / Description).
-- **New config env var** the route relies on → the **Configuration** table **and** `.env.example` (with a short comment), so operators can discover it.
-- **User-visible feature** → the **Features** list.
+- **New/changed route** → the **Endpoints** table in `docs/endpoints.md` (Method / Route / Description).
+- **New config env var** the route relies on → the table in `docs/configuration.md` **and** `.env.example` (with a short comment), so operators can discover it.
+- **User-visible feature** → the **Features** list in the README.
 
 ## Checklist
 
@@ -100,5 +100,5 @@ The public surface is documented in the READMEs, and they must not drift from th
 4. Set `Cache-Control` on cacheable responses; rely on the global security headers unless overriding.
 5. Localize page strings in both `fr` and `en`; leave JSON unlocalized.
 6. Add `tests/test_<name>_route.py` patching the imported services.
-7. Public surface changed? Update the Endpoints/Configuration/Features docs in **both** READMEs (and `.env.example` for a new env var).
+7. Public surface changed? Update `docs/endpoints.md`, `docs/configuration.md` or the README Features list — each in **both** languages (and `.env.example` for a new env var).
 8. Run `python -m unittest discover` and `pylint app.py config.py i18n.py routes services scripts tests` — both gate CI (`.github/workflows/python-ci.yml`).
