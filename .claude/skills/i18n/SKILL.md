@@ -46,7 +46,7 @@ return render_template("nowplaying.html", lang=lang, t=TRANSLATIONS[lang], ...)
 Every documentation page exists twice, linked to its counterpart at the top:
 
 - `README.md` (EN, primary) / `README.fr.md` (FR) — the landing page: features, demo gallery, install, security.
-- `docs/configuration.md`, `docs/endpoints.md`, `docs/scripts.md` and their `.fr.md` counterparts — the detail the README links to.
+- `docs/configuration.md`, `docs/logs.md`, `docs/endpoints.md`, `docs/scripts.md` and their `.fr.md` counterparts — the detail the README links to.
 
 Any change to one — a new feature bullet, a changed requirement, a restructured section — must be mirrored in the other in the same place. They should differ only in language, never in content or structure. When you edit one, edit the other in the same change.
 
