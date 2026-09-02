@@ -6,7 +6,6 @@ Application web Flask pour [Lyrion Music Server](https://github.com/LMS-Communit
 
 <p>
   <img src="docs/screenshots/dashboard-fr.png" alt="Tableau de bord" width="600">
-  <img src="docs/screenshots/dashboard-mobile.png" alt="Vue mobile" width="180">
   <img src="docs/screenshots/dashboard-app.png" alt="Application Android" width="179">
 </p>
 
@@ -23,14 +22,15 @@ Application web Flask pour [Lyrion Music Server](https://github.com/LMS-Communit
 ## Démo
 
 <p>
-  <a href="docs/screenshots/demo-cover-zoom.png"><img src="docs/screenshots/demo-cover-zoom.png" alt="Pochette agrandie" title="Un clic sur la pochette : elle remplit la carte, la progression sur son arête basse" width="230"></a>
-  <a href="docs/screenshots/demo-empty.png"><img src="docs/screenshots/demo-empty.png" alt="État vide" title="Rien ne joue : une mosaïque lente des albums écoutés récemment" width="230"></a>
-  <a href="docs/screenshots/demo-lyrics.png"><img src="docs/screenshots/demo-lyrics.png" alt="Paroles synchronisées" title="Paroles karaoké : la ligne en cours est surlignée, la source teintée si synchronisée" width="145"></a>
-  <a href="docs/screenshots/demo-recent.png"><img src="docs/screenshots/demo-recent.png" alt="Dernières écoutes" title="La pile des pochettes récemment écoutées" width="90"></a>
-  <a href="docs/screenshots/demo-stats.png"><img src="docs/screenshots/demo-stats.png" alt="Statistiques de la bibliothèque" title="Le panneau de statistiques de la bibliothèque" width="90"></a>
+  <a href="docs/screenshots/demo-cover-zoom.png"><img src="docs/screenshots/demo-cover-zoom.png" alt="Pochette agrandie" title="Un clic sur la pochette : elle remplit la carte, la progression sur son arête basse" width="210"></a>
+  <a href="docs/screenshots/demo-empty.png"><img src="docs/screenshots/demo-empty.png" alt="État vide" title="Rien ne joue : une mosaïque lente des albums écoutés récemment" width="210"></a>
+  <a href="docs/screenshots/demo-lyrics.png"><img src="docs/screenshots/demo-lyrics.png" alt="Paroles synchronisées" title="Paroles karaoké : la ligne en cours est surlignée, la source teintée si synchronisée" width="135"></a>
+  <a href="docs/screenshots/dashboard-mobile.png"><img src="docs/screenshots/dashboard-mobile.png" alt="Vue mobile" title="La mise en page mobile responsive" width="85"></a>
+  <a href="docs/screenshots/demo-recent.png"><img src="docs/screenshots/demo-recent.png" alt="Dernières écoutes" title="La pile des pochettes récemment écoutées" width="85"></a>
+  <a href="docs/screenshots/demo-stats.png"><img src="docs/screenshots/demo-stats.png" alt="Statistiques de la bibliothèque" title="Le panneau de statistiques de la bibliothèque" width="85"></a>
 </p>
 
-De gauche à droite, cliquez pour la version pleine taille : la pochette agrandie, la mosaïque des albums récemment écoutés de l'état vide, les paroles karaoké, la pile des dernières écoutes et le panneau de statistiques.
+De gauche à droite, cliquez pour la version pleine taille : la pochette agrandie, la mosaïque des albums récemment écoutés de l'état vide, les paroles karaoké, la vue mobile, la pile des dernières écoutes et le panneau de statistiques.
 
 ## Prérequis
 

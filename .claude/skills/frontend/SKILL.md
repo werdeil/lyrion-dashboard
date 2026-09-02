@@ -98,7 +98,7 @@ Inside the Android WebView a native object `window.LyrionApp` is injected. The J
 
 ## Regenerate the screenshots after a visual change
 
-The images (`docs/screenshots/`) are checked in and embedded in the READMEs: the header row (`dashboard-en.png` in EN, `dashboard-fr.png` in FR, plus `dashboard-mobile.png` and `dashboard-app.png`) and the demo gallery below it (`demo-*.png`, shared by both languages). **If your change alters what the dashboard looks like** — layout, styling, colors, the empty state, the lyrics/stats panels, an icon, anything a user would see — regenerate them so the docs don't drift from the app:
+The images (`docs/screenshots/`) are checked in and embedded in the READMEs: the header pair (`dashboard-en.png` in EN, `dashboard-fr.png` in FR, plus `dashboard-app.png`) and the row of thumbnails below it (`demo-*.png` and `dashboard-mobile.png`, shared by both languages). **If your change alters what the dashboard looks like** — layout, styling, colors, the empty state, the lyrics/stats panels, an icon, anything a user would see — regenerate them so the docs don't drift from the app:
 
 ```bash
 pip install -r requirements.txt playwright
