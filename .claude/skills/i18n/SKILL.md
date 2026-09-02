@@ -50,7 +50,7 @@ Every documentation page exists twice, linked to its counterpart at the top:
 
 Any change to one — a new feature bullet, a changed requirement, a restructured section — must be mirrored in the other in the same place. They should differ only in language, never in content or structure. When you edit one, edit the other in the same change.
 
-`android/README.md` is deliberately English-only: it is contributor documentation (Gradle build, signing, CI, F-Droid packaging), and what a French user actually reads about the app is translated elsewhere — the READMEs, the UI, and the store listing under `fastlane/metadata/android/`. The FR README flags the language where it links to the page. Don't create a `.fr.md` for it; do keep that flag if the link moves.
+`android/README.md` is deliberately English-only: it is contributor documentation (Gradle build, signing, CI, F-Droid packaging), and what a French user actually reads about the app is translated elsewhere — the READMEs, the UI, and the store listing under `fastlane/metadata/android/`. Every link to it from the FR README carries an "(en anglais)" flag — there are three, in the features list, the install section and the documentation list. Don't create a `.fr.md` for it; do keep that flag if the link moves.
 
 ## Checklist
 

@@ -17,7 +17,7 @@ Application web Flask pour [Lyrion Music Server](https://github.com/LMS-Communit
 - **Recherche web de paroles** -- Un interrupteur de recherche automatique interroge LRCLIB, Musixmatch et Genius pour chaque morceau joué : il complète les paroles absentes de la bibliothèque et convertit son texte simple en version synchronisée quand elle existe.
 - **Statistiques de la bibliothèque** -- Albums, artistes, morceaux joués/non joués, genres, notes, paroles, vélocité d'écoute sur 30 jours.
 - **Serveur de fichiers** -- Sert les fichiers depuis un répertoire configurable.
-- **Application Android** -- Une fine surcouche WebView (même principe que [lms-material-app](https://github.com/CDrummond/lms-material-app)) avec découverte automatique du serveur LMS, publiée sur [F-Droid](https://f-droid.org/packages/com.werdeil.lyriondashboard/), voir [`android/`](android/README.md).
+- **Application Android** -- Une fine surcouche WebView (même principe que [lms-material-app](https://github.com/CDrummond/lms-material-app)) avec découverte automatique du serveur LMS, publiée sur [F-Droid](https://f-droid.org/packages/com.werdeil.lyriondashboard/), voir [`android/`](android/README.md) (en anglais).
 
 ## Démo
 
@@ -68,14 +68,14 @@ L'application compagnon est publiée sur F-Droid :
 
 [<img src="https://fdroid.gitlab.io/artwork/badge/get-it-on.png" alt="Disponible sur F-Droid" height="70">](https://f-droid.org/packages/com.werdeil.lyriondashboard/)
 
-Un APK signé est aussi attaché à chaque [release GitHub](https://github.com/werdeil/lyrion-dashboard/releases). Au premier lancement, laissez-la découvrir le serveur Lyrion sur le réseau local ou saisissez vous-même l'URL du dashboard — voir [`android/`](android/README.md).
+Un APK signé est aussi attaché à chaque [release GitHub](https://github.com/werdeil/lyrion-dashboard/releases). Au premier lancement, laissez-la découvrir le serveur Lyrion sur le réseau local ou saisissez vous-même l'URL du dashboard — voir [`android/`](android/README.md) (en anglais).
 
 ## Documentation
 
 - [Configuration](docs/configuration.fr.md) — variables d'environnement, personnalisation Compose locale, logs.
 - [Endpoints](docs/endpoints.fr.md) — les routes HTTP, et le widget Homepage alimenté par `/stats.json`.
 - [Scripts](docs/scripts.fr.md) — intégration des paroles et des pochettes dans les tags, wrappers cron, régénération de ces captures.
-- [Application Android](android/README.md) — la surcouche WebView : installation, build, découverte. Cette page est en anglais.
+- [Application Android](android/README.md) — la surcouche WebView : installation, build, découverte (en anglais).
 
 ## Sécurité
 
