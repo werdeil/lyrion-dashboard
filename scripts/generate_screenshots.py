@@ -344,13 +344,10 @@ def capture(browser, base_url, track, *, locale, viewport, dpr, android=False):
     page = ctx.new_page()
     page.goto(base_url)
     page.wait_for_function(READY_JS)
-    # Let the smooth lyrics scroll settle, and the pile's debounced resize
-    # re-render (300ms) fire before its sleeves are waited on below.
+    # Past the lyrics scroll settling and the pile's 300ms debounced re-render.
     page.wait_for_timeout(400)
-    # The recent-plays pile only renders in the wide desktop layout (its CSS
-    # media query is min-width 1081px and min-height 600px); wait for it there
-    # so the capture includes it. Each sleeve decodes asynchronously, so a
-    # loaded cover still has to be decoded or it paints blank.
+    # The pile renders only in the wide desktop layout (CSS min-width 1081px,
+    # min-height 600px), and a loaded sleeve paints blank until decoded.
     if viewport["width"] >= 1081 and viewport["height"] >= 600:
         page.wait_for_function(
             "() => { const s = document.querySelectorAll('.np-recent-sleeve img');"
@@ -358,7 +355,7 @@ def capture(browser, base_url, track, *, locale, viewport, dpr, android=False):
         page.evaluate(
             "() => Promise.all([...document.querySelectorAll('.np-recent-sleeve img')]"
             ".map(i => i.decode().catch(() => {})))")
-        page.wait_for_timeout(300)  # a frame for the decoded sleeves to paint
+        page.wait_for_timeout(300)
     shot = page.screenshot()
     ctx.close()
     return shot
