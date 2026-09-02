@@ -2,7 +2,7 @@
 
 # Lyrion Dashboard
 
-A Flask web app for [Lyrion Music Server](https://github.com/LMS-Community/slimserver) (formerly Logitech Media Server / Squeezebox Server): a glanceable "now playing" page with synced lyrics, recent plays and library statistics.
+A Flask web app for [Lyrion Music Server](https://github.com/LMS-Community/slimserver) (formerly Logitech Media Server / Squeezebox Server): a glanceable "now playing" page with synced lyrics, recent plays and library statistics, in a browser or through its companion [Android app](https://f-droid.org/packages/com.werdeil.lyriondashboard/).
 
 <p>
   <img src="docs/screenshots/dashboard-en.png" alt="Dashboard" width="600">
