@@ -75,7 +75,7 @@ Un APK signé est aussi attaché à chaque [release GitHub](https://github.com/w
 - [Configuration](docs/configuration.fr.md) — variables d'environnement, personnalisation Compose locale, logs.
 - [Endpoints](docs/endpoints.fr.md) — les routes HTTP, et le widget Homepage alimenté par `/stats.json`.
 - [Scripts](docs/scripts.fr.md) — intégration des paroles et des pochettes dans les tags, wrappers cron, régénération de ces captures.
-- [Application Android](android/README.md) — la surcouche WebView : installation, build, découverte.
+- [Application Android](android/README.md) — la surcouche WebView : installation, build, découverte. Cette page est en anglais.
 
 ## Sécurité
 

@@ -102,7 +102,7 @@ Vanilla JS/CSS, no framework or bundler. `static/nowplaying.js` + `static/style.
 
 ### i18n (FR/EN)
 
-The UI is fully bilingual. `i18n.py` is the single source of truth for UI strings (`TRANSLATIONS` with `fr`/`en` sub-dicts sharing identical keys); the language is chosen per request from `Accept-Language`. The whole chosen dict is passed to the template as `t` and serialized to JS. **A user-facing string never exists in only one language, and every documentation page ships as an EN/FR pair kept in lockstep — `README.md` / `README.fr.md`, and each `docs/*.md` / `docs/*.fr.md`.** JSON endpoints are not localized. **See the `i18n` skill.**
+The UI is fully bilingual. `i18n.py` is the single source of truth for UI strings (`TRANSLATIONS` with `fr`/`en` sub-dicts sharing identical keys); the language is chosen per request from `Accept-Language`. The whole chosen dict is passed to the template as `t` and serialized to JS. **A user-facing string never exists in only one language, and every documentation page ships as an EN/FR pair kept in lockstep — `README.md` / `README.fr.md`, and each `docs/*.md` / `docs/*.fr.md`.** `android/README.md` is the exception: it documents the Gradle build, the CI and the F-Droid packaging, so it stays English like commit messages and PRs, and the FR README says so where it links to it. JSON endpoints are not localized. **See the `i18n` skill.**
 
 ### Scripts (`scripts/`)
 
