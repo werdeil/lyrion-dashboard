@@ -13,6 +13,11 @@ library stats), then captures it with headless Chromium via Playwright:
 - dashboard-app.png  phone 390x844 in a device frame, English, ember cover,
                      with the Android bridge injected so the in-app settings
                      button shows
+- demo-cover-zoom.png   desktop, the cover clicked open over the panel
+- demo-lyrics.png    the now-playing card alone, karaoke line highlighted
+- demo-recent.png    the cover and the pile of recently played sleeves
+- demo-stats.png     the library statistics panel alone
+- demo-empty.png     desktop with nothing playing: the recently-played mosaic
 
 Three different covers on purpose: the accent colour (progress bar, artist
 name, switch, source line) is sampled from the artwork, so varied covers
@@ -33,6 +38,7 @@ import math
 import os
 import sys
 import threading
+from typing import NamedTuple
 
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, REPO_ROOT)
@@ -193,6 +199,12 @@ TRACKS = {
             "On le ranime à chaque heure",
         ], hold_after="Les étincelles montent, la nuit se brise"),
     },
+    # Nothing playing: the page falls back to its empty state, whose backdrop
+    # is a mosaic of the recently played covers.
+    "idle": {
+        "now": {"playing": False, "mode": "stop", "player_name": None},
+        "lyrics": None,
+    },
 }
 
 
@@ -255,16 +267,17 @@ COVER_SVGS = {
 }
 
 
-# Recently played album covers for the pile under the cover (shown on
-# desktop). Each is a small generated cover keyed by a hex id like the tracks
-# above. (hex id, gradient stops)
+# Recently played albums: a pile of sleeves under the cover on the desktop
+# shots, and the whole backdrop of the empty state's mosaic — which tiles a
+# belt several rows deep, hence a set this size. Hues are spread by a step
+# coprime with 360 so neighbours never repeat a colour. (hex id, gradient stops)
 RECENT_COVERS = [
-    ("dd0a01", [(0, "#1a2b4a"), (0.55, "#3d5a8a"), (1, "#7fa8d8")]),
-    ("dd0a02", [(0, "#12302a"), (0.55, "#2f7a5d"), (1, "#7ecbb0")]),
-    ("dd0a03", [(0, "#3a1414"), (0.55, "#9a3f2c"), (1, "#e0895f")]),
-    ("dd0a04", [(0, "#20301a"), (0.55, "#4f7a2f"), (1, "#9ccb6f")]),
-    ("dd0a05", [(0, "#2a2540"), (0.55, "#5f4f8a"), (1, "#a58fd8")]),
-    ("dd0a06", [(0, "#402a20"), (0.55, "#8a5f3f"), (1, "#d8a87f")]),
+    (f"dd{i:04x}", [
+        (0, f"hsl({(i * 47) % 360} 45% 14%)"),
+        (0.55, f"hsl({(i * 47) % 360} 42% 38%)"),
+        (1, f"hsl({(i * 47) % 360} 55% 68%)"),
+    ])
+    for i in range(36)
 ]
 
 for _cid, _stops in RECENT_COVERS:
@@ -283,7 +296,7 @@ SCENARIO = {}      # mutated between captures
 COVER_PNGS = {}    # coverid -> PNG bytes, filled once Chromium is up
 
 np_routes.get_active_now_playing = lambda selected_id=None: dict(SCENARIO["now"])
-np_routes.get_track_lyrics = lambda track_id: SCENARIO["lyrics"]
+np_routes.get_track_lyrics = lambda track_id: SCENARIO.get("lyrics")
 np_routes.get_stats = lambda: FAKE_STATS
 np_routes.fetch_cover = lambda coverid, size=None: (COVER_PNGS[coverid], "image/png")
 # Recently played covers feed the pile under the cover on the desktop shots.
@@ -323,32 +336,71 @@ READY_JS = """
 }
 """
 
+# Nothing playing: the empty state's mosaic laid out, every tile loaded and
+# revealed (they fade in one by one).
+MOSAIC_READY_JS = """
+() => {
+    const tiles = document.querySelectorAll('.np-mosaic-tile');
+    return document.getElementById('now-playing').classList.contains('is-empty')
+        && tiles.length > 0
+        && [...tiles].every(i => i.complete && i.classList.contains('is-shown'));
+}
+"""
+
+PLAYING_JS = "() => !document.getElementById('now-playing').classList.contains('is-empty')"
+OPEN_ZOOM_JS = "() => document.getElementById('np-cover-button').click()"
+
 AUTO_MODE_JS = "try { localStorage.setItem('np-lyrics-mode', 'auto'); } catch (e) {}"
 ANDROID_BRIDGE_JS = (
     "window.LyrionApp = { openMenu: function () {}, openSettings: function () {} };"
 )
 
+# Margin left around an element-only capture.
+CROP_PAD = 14
 
-def capture(browser, base_url, track, *, locale, viewport, dpr, android=False):
-    """Point a fresh browser context at the app showing `track` and return a
-    PNG screenshot; `android` injects the WebView bridge so the in-app
-    menu button appears."""
+DESKTOP = {"width": 1440, "height": 820}
+PHONE = {"width": 390, "height": 844}
+
+
+class Shot(NamedTuple):
+    """One capture: which scenario, in what browser, and what to shoot.
+
+    `action` is JS run once the page is ready (opening the enlarged cover, for
+    one), `settle` the pause that follows it, `element` a selector to shoot
+    instead of the viewport, and `frame` wraps the result in the phone bezel.
+    """
+    track: str
+    locale: str = "en-US"
+    viewport: dict = DESKTOP
+    dpr: int = 1
+    android: bool = False
+    ready: str = READY_JS
+    action: str = ""
+    settle: int = 0
+    element: str = ""
+    frame: bool = False
+
+
+def capture(browser, base_url, shot):
+    """Point a fresh browser context at the app showing `shot` and return its
+    PNG screenshot."""
     SCENARIO.clear()
-    SCENARIO.update(TRACKS[track])
+    SCENARIO.update(TRACKS[shot.track])
     ctx = browser.new_context(
-        locale=locale, viewport=viewport, device_scale_factor=dpr,
+        locale=shot.locale, viewport=shot.viewport, device_scale_factor=shot.dpr,
     )
     ctx.add_init_script(AUTO_MODE_JS)
-    if android:
+    if shot.android:
         ctx.add_init_script(ANDROID_BRIDGE_JS)
     page = ctx.new_page()
     page.goto(base_url)
-    page.wait_for_function(READY_JS)
+    page.wait_for_function(shot.ready)
     # Past the lyrics scroll settling and the pile's 300ms debounced re-render.
     page.wait_for_timeout(400)
     # The pile renders only in the wide desktop layout (CSS min-width 1081px,
     # min-height 600px), and a loaded sleeve paints blank until decoded.
-    if viewport["width"] >= 1081 and viewport["height"] >= 600:
+    wide = shot.viewport["width"] >= 1081 and shot.viewport["height"] >= 600
+    if wide and page.evaluate(PLAYING_JS):
         page.wait_for_function(
             "() => { const s = document.querySelectorAll('.np-recent-sleeve img');"
             " return s.length > 0 && [...s].every(i => i.complete && i.naturalWidth > 0); }")
@@ -356,9 +408,27 @@ def capture(browser, base_url, track, *, locale, viewport, dpr, android=False):
             "() => Promise.all([...document.querySelectorAll('.np-recent-sleeve img')]"
             ".map(i => i.decode().catch(() => {})))")
         page.wait_for_timeout(300)
-    shot = page.screenshot()
+    if shot.action:
+        page.evaluate(shot.action)
+        page.wait_for_timeout(shot.settle)
+    png = crop(page, shot.element) if shot.element else page.screenshot()
     ctx.close()
-    return shot
+    return frame_phone(browser, png) if shot.frame else png
+
+
+def crop(page, selector):
+    """Screenshot one element with a margin on three sides, so text sitting
+    flush against its box (the lyrics source line) isn't shaved by the edge.
+    The top edge is kept as it is: every element captured here has a
+    neighbouring line right above it, which a margin would drag in."""
+    box = page.locator(selector).bounding_box()
+    view = page.viewport_size
+    x = max(box["x"] - CROP_PAD, 0)
+    return page.screenshot(clip={
+        "x": x, "y": box["y"],
+        "width": min(box["width"] + 2 * CROP_PAD, view["width"] - x),
+        "height": min(box["height"] + CROP_PAD, view["height"] - box["y"]),
+    })
 
 
 def render_cover(browser, svg):
@@ -413,7 +483,21 @@ def frame_phone(browser, screenshot_png):
     return png
 
 
-def main():  # pylint: disable=too-many-locals
+SHOTS = {
+    "dashboard-en.png": Shot("rose"),
+    "dashboard-fr.png": Shot("rose", locale="fr-FR"),
+    "dashboard-mobile.png": Shot("teal", locale="fr-FR", viewport=PHONE, dpr=2),
+    "dashboard-app.png": Shot("ember", viewport=PHONE, dpr=2, android=True, frame=True),
+    # Demo gallery: one feature per capture, cropped to what it shows.
+    "demo-cover-zoom.png": Shot("rose", action=OPEN_ZOOM_JS, settle=600),
+    "demo-lyrics.png": Shot("teal", locale="fr-FR", dpr=2, element=".np-lyrics-block"),
+    "demo-recent.png": Shot("rose", dpr=2, element=".np-side"),
+    "demo-stats.png": Shot("ember", dpr=2, element=".stats-panel"),
+    "demo-empty.png": Shot("idle", ready=MOSAIC_READY_JS),
+}
+
+
+def main():
     """Serve the mocked app on a random port and write every screenshot."""
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument(
@@ -436,22 +520,8 @@ def main():  # pylint: disable=too-many-locals
         for coverid, svg in COVER_SVGS.items():
             COVER_PNGS[coverid] = render_cover(browser, svg)
 
-        desktop = {"width": 1440, "height": 820}
-        phone = {"width": 390, "height": 844}
-
         shots = {
-            "dashboard-en.png": capture(
-                browser, base_url, "rose",
-                locale="en-US", viewport=desktop, dpr=1),
-            "dashboard-fr.png": capture(
-                browser, base_url, "rose",
-                locale="fr-FR", viewport=desktop, dpr=1),
-            "dashboard-mobile.png": capture(
-                browser, base_url, "teal",
-                locale="fr-FR", viewport=phone, dpr=2),
-            "dashboard-app.png": frame_phone(browser, capture(
-                browser, base_url, "ember",
-                locale="en-US", viewport=phone, dpr=2, android=True)),
+            name: capture(browser, base_url, shot) for name, shot in SHOTS.items()
         }
         browser.close()
 

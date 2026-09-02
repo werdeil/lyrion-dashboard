@@ -56,7 +56,7 @@ That's why `get_recent_album_covers` orders by `MAX(apc.lastplayed)` filtered on
 
 1. Add the aggregation to the right query in `_compute_stats` (reuse the `track_play` CTE pattern; scan once, don't add a query per number).
 2. Add the key to the `stats` dict (coalesce to `0`); add a `_pct` via `pct()` if it's a proportion.
-3. Surface it: the `/stats.json` route returns the whole dict, and the template renders named fields — a new stat shown on the page needs an `i18n.py` label (both `fr` and `en`) and a README **Configuration/stats** mention if it's part of the documented surface (see the `i18n` and `add-route` skills).
+3. Surface it: the `/stats.json` route returns the whole dict, and the template renders named fields — a new stat shown on the page needs an `i18n.py` label (both `fr` and `en`) and a mention in `docs/endpoints.md` or `docs/configuration.md` if it's part of the documented surface (see the `i18n` and `add-route` skills).
 4. Test it: build a small temp SQLite DB with the tables/rows you need and assert the computed number (see `tests/test_get_recent_album_covers.py`, `tests/test_stats_cache.py`, `tests/test_get_track_lyrics.py`). Don't hit a real Lyrion DB. See the `testing` skill.
 
 ## Rules
