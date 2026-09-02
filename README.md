@@ -22,16 +22,15 @@ A Flask web app for [Lyrion Music Server](https://github.com/LMS-Community/slims
 
 ## Demo
 
-<table>
-  <tr>
-    <td width="50%"><img src="docs/screenshots/demo-cover-zoom.png" alt="Enlarged cover" width="100%"><br><sub>Click the cover: it fills the panel, playback progress on its bottom edge.</sub></td>
-    <td width="50%"><img src="docs/screenshots/demo-empty.png" alt="Empty state" width="100%"><br><sub>Nothing playing: a slow mosaic of the albums played recently.</sub></td>
-  </tr>
-  <tr>
-    <td width="50%"><img src="docs/screenshots/demo-lyrics.png" alt="Synced lyrics" width="100%"><br><sub>Karaoke lyrics: the current line is highlighted, the source tinted when synced.</sub></td>
-    <td width="50%" align="center"><img src="docs/screenshots/demo-recent.png" alt="Recent plays" height="330"> <img src="docs/screenshots/demo-stats.png" alt="Library statistics" height="330"><br><sub>The pile of recently played sleeves, and the library statistics panel.</sub></td>
-  </tr>
-</table>
+<p>
+  <a href="docs/screenshots/demo-cover-zoom.png"><img src="docs/screenshots/demo-cover-zoom.png" alt="Enlarged cover" title="Click the cover: it fills the panel, playback progress on its bottom edge" width="230"></a>
+  <a href="docs/screenshots/demo-empty.png"><img src="docs/screenshots/demo-empty.png" alt="Empty state" title="Nothing playing: a slow mosaic of the albums played recently" width="230"></a>
+  <a href="docs/screenshots/demo-lyrics.png"><img src="docs/screenshots/demo-lyrics.png" alt="Synced lyrics" title="Karaoke lyrics: the current line is highlighted, the source tinted when synced" width="145"></a>
+  <a href="docs/screenshots/demo-recent.png"><img src="docs/screenshots/demo-recent.png" alt="Recent plays" title="The pile of recently played sleeves" width="90"></a>
+  <a href="docs/screenshots/demo-stats.png"><img src="docs/screenshots/demo-stats.png" alt="Library statistics" title="The library statistics panel" width="90"></a>
+</p>
+
+Left to right, click any of them for the full-size image: the enlarged cover, the empty state's mosaic of recently played albums, the karaoke lyrics, the pile of recent sleeves and the statistics panel.
 
 ## Requirements
 

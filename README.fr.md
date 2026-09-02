@@ -22,16 +22,15 @@ Application web Flask pour [Lyrion Music Server](https://github.com/LMS-Communit
 
 ## Démo
 
-<table>
-  <tr>
-    <td width="50%"><img src="docs/screenshots/demo-cover-zoom.png" alt="Pochette agrandie" width="100%"><br><sub>Un clic sur la pochette : elle remplit la carte, la progression sur son arête basse.</sub></td>
-    <td width="50%"><img src="docs/screenshots/demo-empty.png" alt="État vide" width="100%"><br><sub>Rien ne joue : une mosaïque lente des albums écoutés récemment.</sub></td>
-  </tr>
-  <tr>
-    <td width="50%"><img src="docs/screenshots/demo-lyrics.png" alt="Paroles synchronisées" width="100%"><br><sub>Paroles karaoké : la ligne en cours est surlignée, la source teintée si synchronisée.</sub></td>
-    <td width="50%" align="center"><img src="docs/screenshots/demo-recent.png" alt="Dernières écoutes" height="330"> <img src="docs/screenshots/demo-stats.png" alt="Statistiques de la bibliothèque" height="330"><br><sub>La pile des pochettes récemment écoutées, et le panneau de statistiques.</sub></td>
-  </tr>
-</table>
+<p>
+  <a href="docs/screenshots/demo-cover-zoom.png"><img src="docs/screenshots/demo-cover-zoom.png" alt="Pochette agrandie" title="Un clic sur la pochette : elle remplit la carte, la progression sur son arête basse" width="230"></a>
+  <a href="docs/screenshots/demo-empty.png"><img src="docs/screenshots/demo-empty.png" alt="État vide" title="Rien ne joue : une mosaïque lente des albums écoutés récemment" width="230"></a>
+  <a href="docs/screenshots/demo-lyrics.png"><img src="docs/screenshots/demo-lyrics.png" alt="Paroles synchronisées" title="Paroles karaoké : la ligne en cours est surlignée, la source teintée si synchronisée" width="145"></a>
+  <a href="docs/screenshots/demo-recent.png"><img src="docs/screenshots/demo-recent.png" alt="Dernières écoutes" title="La pile des pochettes récemment écoutées" width="90"></a>
+  <a href="docs/screenshots/demo-stats.png"><img src="docs/screenshots/demo-stats.png" alt="Statistiques de la bibliothèque" title="Le panneau de statistiques de la bibliothèque" width="90"></a>
+</p>
+
+De gauche à droite, cliquez pour la version pleine taille : la pochette agrandie, la mosaïque des albums récemment écoutés de l'état vide, les paroles karaoké, la pile des dernières écoutes et le panneau de statistiques.
 
 ## Prérequis
 
