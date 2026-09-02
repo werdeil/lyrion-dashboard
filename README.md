@@ -14,7 +14,7 @@
 ## Features
 
 - **Now Playing** -- The player currently playing is detected automatically and its track shown live (cover art, title, artist, album), with the accent color sampled from the cover. Clicking the cover grows it over the panel.
-- **Recent plays** -- On wide screens the recently played albums stack up as a pile of sleeves under the cover, newest on top. Built from the Alternative Play Count history, one cover per album, skips excluded.
+- **Recent plays** -- On wide screens the recently played albums stack up as a pile of sleeves under the cover, newest on top. Built from the play history, one cover per album; with the Alternative Play Count plugin installed, skips are excluded.
 - **Synced lyrics** -- Lyrics with LRC timestamps scroll line by line in time with playback, karaoke-style.
 - **Web lyrics fallback** -- An auto-search switch queries LRCLIB, Musixmatch and Genius for every playing track: it fills in what the library is missing and upgrades plain text to a synced version when one exists.
 - **Library statistics** -- Albums, artists, played/unplayed tracks, genres, ratings, lyrics, 30-day listening velocity.
@@ -38,7 +38,7 @@ Left to right, click any of them for the full-size image: the enlarged cover, th
 
 - Python 3.12+
 - An accessible Lyrion Music Server
-- The [Alternative Play Count](https://github.com/AF-1/lms-alternativeplaycount) plugin installed on Lyrion
+- Optional: the [Alternative Play Count](https://github.com/AF-1/lms-alternativeplaycount) plugin on Lyrion. Without it the dashboard reads Lyrion's own play counters instead: the skip count disappears from the statistics, and since Lyrion bumps a track's last-played time on a skip too, an album that was only skipped past can surface in the recent plays.
 
 ## Installation
 

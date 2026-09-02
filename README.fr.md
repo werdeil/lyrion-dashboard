@@ -14,7 +14,7 @@
 ## Fonctionnalités
 
 - **Now Playing** -- Le lecteur en cours de lecture est détecté automatiquement et sa piste affichée en direct (pochette, titre, artiste, album), la couleur d'accent étant échantillonnée sur la pochette. Un clic sur la pochette l'agrandit jusqu'à remplir la carte.
-- **Dernières écoutes** -- Sur grand écran, les albums récemment écoutés s'empilent comme des pochettes de disque sous la cover, le plus récent au-dessus. Construit à partir de l'historique Alternative Play Count, une pochette par album, sauts exclus.
+- **Dernières écoutes** -- Sur grand écran, les albums récemment écoutés s'empilent comme des pochettes de disque sous la cover, le plus récent au-dessus. Construit à partir de l'historique d'écoute, une pochette par album ; avec le plugin Alternative Play Count installé, les sauts sont exclus.
 - **Paroles synchronisées** -- Les paroles avec timestamps LRC défilent ligne par ligne au rythme de la lecture, façon karaoké.
 - **Recherche web de paroles** -- Un interrupteur de recherche automatique interroge LRCLIB, Musixmatch et Genius pour chaque morceau joué : il complète les paroles absentes de la bibliothèque et convertit son texte simple en version synchronisée quand elle existe.
 - **Statistiques de la bibliothèque** -- Albums, artistes, morceaux joués/non joués, genres, notes, paroles, vélocité d'écoute sur 30 jours.
@@ -38,7 +38,7 @@ De gauche à droite, cliquez pour la version pleine taille : la pochette agrandi
 
 - Python 3.12+
 - Un serveur Lyrion Music Server accessible
-- Le plugin [Alternative Play Count](https://github.com/AF-1/lms-alternativeplaycount) installé sur Lyrion
+- Optionnel : le plugin [Alternative Play Count](https://github.com/AF-1/lms-alternativeplaycount) sur Lyrion. Sans lui, le tableau de bord lit les compteurs d'écoute de Lyrion : le nombre de sauts disparaît des statistiques et, comme Lyrion met aussi à jour la date de dernière écoute sur un saut, un album seulement zappé peut apparaître dans les dernières écoutes.
 
 ## Installation
 

@@ -152,10 +152,12 @@
                     <span class="stat-label">{{ t.total_plays }}</span>
                     <span data-stat="songs_total_plays_apc">{{ stats.songs_total_plays_apc }}</span>
                 </div>
+                {% if stats.apc_available %}
                 <div class="stat-row">
                     <span class="stat-label">{{ t.total_skips }}</span>
                     <span data-stat="songs_total_skips_apc">{{ stats.songs_total_skips_apc }}</span>
                 </div>
+                {% endif %}
             </div>
 
             <div class="stat-group">
