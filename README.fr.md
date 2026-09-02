@@ -1,6 +1,8 @@
 [English](README.md) | [Français](README.fr.md)
 
-# <img src="static/favicon.svg" alt="" width="28"> Lyrion Dashboard
+<img src="static/favicon.svg" alt="" width="56">
+
+# Lyrion Dashboard
 
 Application web Flask pour [Lyrion Music Server](https://github.com/LMS-Community/slimserver) (anciennement Logitech Media Server / Squeezebox Server) : une page « en cours de lecture » consultable d'un coup d'œil, avec paroles synchronisées, dernières écoutes et statistiques de la bibliothèque, dans un navigateur ou via son [application Android](https://f-droid.org/packages/com.werdeil.lyriondashboard/) compagnon.
 
