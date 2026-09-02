@@ -34,7 +34,7 @@ The DB paths come from config (`DB_PATH`, `DB_PERSIST_PATH`), derived from `DB_D
 
 - `tracks` — one row per track. `id` (the Lyrion track id used everywhere, e.g. lyrics lookup), `url`, `urlmd5` (join key to `alternativeplaycount`), `album` (→ `albums.id`), `audio` (filter `audio = 1` for real tracks), `lyrics`, `year`, `coverid`.
 - `albums` — `id`, `artwork` (the **coverid** of the album's artwork track, the same id `/cover/<coverid>.jpg` serves).
-- `contributor_track` — track↔artist links with a `role`: **role 5 = ALBUMARTIST**, **role 1 = ARTIST** (track artist). "Album artists" filter `role = 5`; "track artists" filter `role IN (1, 5)`.
+- `contributor_track` — track↔artist links with a `role`: **role 5 = ALBUMARTIST**, **role 1 = ARTIST** (track artist). "Album artists" filter `role = 5`; the `track_artists_*` stats filter `role IN (1, 5)` — the union, shown in the UI as "All artists".
 - `persist.tracks_persistent` — `rating`, `lastplayed` (unix seconds; **bumped on skips too**, so don't use it to mean "really played").
 
 ## Alternative Play Count (the plugin that matters)
