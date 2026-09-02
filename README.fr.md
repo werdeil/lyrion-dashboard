@@ -83,7 +83,6 @@ Le dashboard n'a **pas d'authentification, par conception** : c'est un affichage
 
 - Ne jamais exposer le port directement sur Internet (pas de redirection de port, pas de reverse proxy public).
 - Pour l'accès distant, rejoignez le LAN plutôt que d'ouvrir le dashboard : un VPN type WireGuard ou Tailscale le garde "LAN only" pendant que vos appareils s'y connectent d'où vous voulez.
-- La revue complète sécurité & performance est dans la [PR #15](https://github.com/werdeil/lyrion-dashboard/pull/15).
 
 ## Sponsor
 
