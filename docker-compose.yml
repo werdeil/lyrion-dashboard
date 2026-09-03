@@ -1,11 +1,10 @@
 services:
   lyrion-dashboard:
-    image: python:3.12-slim
+    image: ghcr.io/werdeil/lyrion-dashboard:latest
+    # To run this checkout's sources instead of the published image, uncomment:
+    # build: .
     container_name: lyrion-dashboard
     restart: unless-stopped
-    working_dir: /app
-    command: >
-      sh -c "pip install --no-cache-dir -r requirements.txt && gunicorn -w 1 --threads 8 -b 0.0.0.0:1111 app:app --access-logfile - --error-logfile - --log-level info"
     ports:
       - "1111:1111"
     environment:
@@ -20,13 +19,6 @@ services:
       - LOG_LEVEL=${LOG_LEVEL:-INFO}
       - DEV=${DEV:-}
       - TZ=${TZ:-UTC}
-    healthcheck:
-      test: ["CMD-SHELL", "python -c 'import os, urllib.request as u; u.urlopen(f\"http://127.0.0.1:1111/health\")'"
-      ]
-      interval: 30s
-      timeout: 10s
-      retries: 3
     volumes:
-      - .:/app:ro
       - ${LYRION_DATA_DIR}:${LYRION_DATA_DIR}:ro
       - ${CUSTOM_DATA_DIR}:/opt/scripts/custom_data

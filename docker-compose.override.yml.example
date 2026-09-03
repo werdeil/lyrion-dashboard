@@ -4,13 +4,18 @@
 
 services:
   lyrion-dashboard:
-    environment:
-      # Exemple : activer un mode debug local
-      - DEBUG=1
-      - EXTRA_ENV=value
+    # Construire depuis les sources de ce dépôt au lieu de tirer l'image
+    # publiée : `docker compose up -d --build`.
+    build: .
     volumes:
-      # Exemple : monter un répertoire local en lecture-écriture
-      - ./local_data:/opt/scripts/custom_data:rw
+      - .:/app:ro
+    environment:
+      - DEV=1
+      - LOG_LEVEL=DEBUG
+
+    # Si les fichiers de Lyrion ne sont pas lisibles par l'uid 1000 de l'image,
+    # lancer le conteneur sous l'utilisateur qui les possède.
+    # user: "0:0"
 
 # Exemple d'ajout de service auxiliaire : Redis
 # services:

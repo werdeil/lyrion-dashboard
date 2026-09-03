@@ -3,9 +3,8 @@ import os
 
 def _read_version():
     # Single source of truth for the web app's version, kept in sync with the
-    # Android versionName by the release workflow. Read once at import; the
-    # source tree is mounted read-only in the container so this never changes
-    # under a running process.
+    # Android versionName by the release workflow. Read once at import: the
+    # image ships the file, so it never changes under a running process.
     version_file = os.path.join(os.path.dirname(__file__), "VERSION")
     try:
         with open(version_file, encoding="utf-8") as handle:

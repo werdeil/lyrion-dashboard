@@ -1,0 +1,111 @@
+name: Docker image
+
+# Publishing a release fires this alongside android.yml, building the
+# multi-arch image and pushing it to GHCR. Version tags stay immutable: the
+# weekly run only refreshes `latest`, so base image fixes reach users without
+# a release and without changing the digest a pinned tag resolves to.
+on:
+  release:
+    types: [published]
+  pull_request:
+    paths:
+      - "Dockerfile"
+      - ".dockerignore"
+      - "requirements.txt"
+      - ".github/workflows/docker.yml"
+  schedule:
+    - cron: "0 4 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+concurrency:
+  group: docker-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  build:
+    name: Build and publish
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Check the tag matches VERSION
+        if: github.event_name == 'release'
+        run: |
+          tag="${GITHUB_REF_NAME#v}"
+          version="$(cat VERSION)"
+          if [ "$tag" != "$version" ]; then
+            echo "::error::Tag v$tag does not match VERSION ($version)"
+            exit 1
+          fi
+
+      - name: Set up QEMU
+        if: github.event_name != 'pull_request'
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Log in to GHCR
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Compute tags
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository }}
+          tags: |
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=raw,value=latest,enable=${{ github.event_name != 'pull_request' }}
+            type=ref,event=pr
+
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: ${{ github.event_name == 'pull_request' && 'linux/amd64' || 'linux/amd64,linux/arm64' }}
+          push: ${{ github.event_name != 'pull_request' }}
+          load: ${{ github.event_name == 'pull_request' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      # /health needs neither Lyrion nor the databases, so it exercises the
+      # image end to end (gunicorn boots, VERSION shipped) with no fixtures.
+      - name: Smoke-test the image
+        if: github.event_name == 'pull_request'
+        env:
+          IMAGE: ${{ steps.meta.outputs.tags }}
+        run: |
+          docker run -d --name smoke -p 1111:1111 "$IMAGE"
+          for _ in $(seq 30); do
+            if curl -fsS http://127.0.0.1:1111/health | grep -q '"version"'; then
+              echo "Image answers on /health"
+              docker rm -f smoke
+              exit 0
+            fi
+            sleep 1
+          done
+          docker logs smoke
+          exit 1
+
+      - name: Summarise
+        if: github.event_name != 'pull_request'
+        run: |
+          {
+            echo "## Image published :whale:"
+            echo
+            echo '```'
+            echo "${{ steps.meta.outputs.tags }}"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"

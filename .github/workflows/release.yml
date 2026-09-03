@@ -2,7 +2,8 @@ name: Release
 
 # Manually cut a new release: bump the Android version, tag it, and open a
 # draft GitHub release with auto-generated notes. Publishing that draft fires
-# android.yml (release: published), which builds and attaches the signed APK.
+# android.yml and docker.yml (release: published), which build and attach the
+# signed APK and push the image to GHCR.
 on:
   workflow_dispatch:
     inputs:
@@ -98,7 +99,7 @@ jobs:
             echo "## Draft release v$VERSION created :rocket:"
             echo
             echo "Review the auto-generated notes and **Publish** the release."
-            echo "Publishing triggers \`android.yml\`, which builds and attaches the APK."
+            echo "Publishing triggers \`android.yml\` (signed APK) and \`docker.yml\` (GHCR image)."
             echo
             gh release view "v$VERSION" --json url --jq .url
           } >> "$GITHUB_STEP_SUMMARY"
