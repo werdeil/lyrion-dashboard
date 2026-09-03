@@ -50,19 +50,9 @@ Téléchargez [`docker-compose.yml`](docker-compose.yml), renseignez-y l'URL de 
 docker compose up -d
 ```
 
-Cela tire `ghcr.io/werdeil/lyrion-dashboard:latest`, construite pour amd64 et arm64 à chaque release. Épingler une version, mettre à jour ou construire depuis les sources : tout est sur la page [Docker](docs/docker.fr.md).
+Cela tire `ghcr.io/werdeil/lyrion-dashboard:latest`, construite pour amd64 et arm64 à chaque release. L'application est ensuite accessible sur `http://localhost:1111`. Épingler une version et mettre à jour : voir la page [Docker](docs/docker.fr.md).
 
-### Sans Docker
-
-```bash
-pip install -r requirements.txt
-cp .env.example .env
-# Éditer .env avec vos valeurs
-source .env
-python app.py
-```
-
-L'application est accessible sur `http://localhost:1111`.
+Faire tourner l'application depuis les sources — pour développer, ou sur une machine où l'on ne veut pas de Docker — est sur la page [Développement](docs/development.fr.md).
 
 ### Application Android
 
@@ -75,7 +65,8 @@ Un APK signé est aussi attaché à chaque [release GitHub](https://github.com/w
 ## Documentation
 
 - [Configuration](docs/configuration.fr.md) — variables d'environnement.
-- [Docker](docs/docker.fr.md) — tags d'image, mise à jour et construction depuis les sources.
+- [Docker](docs/docker.fr.md) — tags d'image, mise à jour, droits sur les fichiers.
+- [Développement](docs/development.fr.md) — exécution depuis les sources, image `dev`, construction locale de l'image.
 - [Logs](docs/logs.fr.md) — ce que l'application écrit à chaque niveau, et comment lire une recherche de paroles restée vide.
 - [Endpoints](docs/endpoints.fr.md) — les routes HTTP, et le widget Homepage alimenté par `/stats.json`.
 - [Scripts](docs/scripts.fr.md) — intégration des paroles et des pochettes dans les tags, wrappers cron, régénération de ces captures.

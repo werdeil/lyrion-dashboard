@@ -34,4 +34,4 @@ Sans Docker il n'y a pas de montage pour le faire : nommez alors le vrai chemin 
 
 Mise à jour depuis un `.env` qui ne définissait que `DB_DIR` et `DB_PERSIST_DIR` : nommez plutôt leur parent — monté sur `/lyrion` sous Docker, ou dans `LYRION_DATA_DIR` depuis un clone.
 
-Les tags d'image, la mise à jour et la construction depuis les sources sont sur la page [Docker](docker.fr.md).
+Les tags d'image et la mise à jour sont sur la page [Docker](docker.fr.md) ; l'exécution depuis les sources est sur la page [Développement](development.fr.md).

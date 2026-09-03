@@ -50,19 +50,9 @@ Download [`docker-compose.yml`](docker-compose.yml), set your Lyrion URL and the
 docker compose up -d
 ```
 
-This pulls `ghcr.io/werdeil/lyrion-dashboard:latest`, built for amd64 and arm64 on every release. Pinning a version, updating, and building from source instead are all on the [Docker](docs/docker.md) page.
+This pulls `ghcr.io/werdeil/lyrion-dashboard:latest`, built for amd64 and arm64 on every release. The app is then available at `http://localhost:1111`. Pinning a version and updating are on the [Docker](docs/docker.md) page.
 
-### Without Docker
-
-```bash
-pip install -r requirements.txt
-cp .env.example .env
-# Edit .env with your values
-source .env
-python app.py
-```
-
-The app is available at `http://localhost:1111`.
+Running from the sources instead — to develop, or on a host where Docker is not wanted — is on the [Development](docs/development.md) page.
 
 ### Android app
 
@@ -75,7 +65,8 @@ A signed APK is also attached to each [GitHub release](https://github.com/werdei
 ## Documentation
 
 - [Configuration](docs/configuration.md) — environment variables.
-- [Docker](docs/docker.md) — image tags, updating, and building from source.
+- [Docker](docs/docker.md) — image tags, updating, filesystem permissions.
+- [Development](docs/development.md) — running from the sources, the `dev` image, building the image locally.
 - [Logs](docs/logs.md) — what the app prints at each level, and how to read a lyrics search that found nothing.
 - [Endpoints](docs/endpoints.md) — the HTTP routes, and the Homepage widget fed by `/stats.json`.
 - [Scripts](docs/scripts.md) — embedding lyrics and cover art into audio file tags, their cron wrappers, and regenerating these screenshots.

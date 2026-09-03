@@ -34,4 +34,4 @@ Running without Docker there is no mount to do that, so name the real path in `D
 
 Upgrading from a `.env` that only set `DB_DIR` and `DB_PERSIST_DIR`: name their parent instead — mounted on `/lyrion` under Docker, or in `LYRION_DATA_DIR` from a checkout.
 
-Image tags, updating and building from source are on the [Docker](docker.md) page.
+Image tags and updating are on the [Docker](docker.md) page; running from the sources is on the [Development](development.md) page.
