@@ -52,7 +52,7 @@ Note the ref subtlety: on a `release` event GitHub runs the workflow **as it exi
 
 The same `release: published` event builds the container image and pushes it to `ghcr.io/werdeil/lyrion-dashboard` for `linux/amd64` and `linux/arm64`, tagged `X.Y.Z`, `X.Y` and `latest`. It re-checks the tag against `VERSION` first, the way `android.yml` checks it against `versionName`. Authentication is the job's own `GITHUB_TOKEN` with `packages: write` — there is no secret to provision.
 
-**Version tags are immutable**: nothing ever rebuilds `X.Y.Z`, so a pinned deployment resolves to the same digest forever. A weekly scheduled run rebuilds `latest` only, which is how Debian security fixes reach users between releases. `docker.yml` also builds (without pushing) on any PR touching the `Dockerfile` or `requirements.txt`, and smoke-tests that image against `/health`.
+**No released tag is ever rebuilt**, `latest` included: each is built once from the tagged commit, so a tag always resolves to the code of the release it names, and a base image fix ships with the next release rather than under a tag users already run. A merge to master publishes `dev` from unreleased code — never `latest`. `docker.yml` also builds (without pushing) on any PR touching the `Dockerfile` or `requirements.txt`, and smoke-tests that image against `/health`.
 
 ## Doing a release
 
