@@ -10,11 +10,14 @@ Ce fichier compose vous appartient une fois téléchargé : changez le port, les
 
 | Tag | Pointe vers | Reconstruit |
 |---|---|---|
-| `latest` | la release la plus récente | à chaque release, plus une fois par semaine pour les correctifs du base image |
+| `latest` | la release la plus récente | à chaque release |
 | `X.Y` | le dernier patch de cette mineure (ex: `0.2`) | à chaque release de cette série |
 | `X.Y.Z` | cette release exacte (ex: `0.2.6`) | jamais — le digest est immuable |
+| `dev` | la branche `master` | à chaque merge — du code non publié, dans aucune release |
 
-Les images sont construites pour `linux/amd64` et `linux/arm64` : un Raspberry Pi ou un NAS ARM tire le même tag qu'un PC. Épinglez `X.Y.Z` pour un déploiement qui ne bouge que sur votre décision ; `latest` récupère en plus la reconstruction hebdomadaire qui fait entrer les correctifs de sécurité Debian dans l'image.
+Les images sont construites pour `linux/amd64` et `linux/arm64` : un Raspberry Pi ou un NAS ARM tire le même tag qu'un PC. Épinglez `X.Y.Z` pour un déploiement qui ne bouge que sur votre décision ; `latest` suit les releases. Aucun tag publié n'est jamais reconstruit : un correctif de sécurité du base image Debian vous parvient donc avec la release suivante, et non sous le tag que vous faites déjà tourner.
+
+`dev` sert à essayer un correctif avant sa publication ou à reproduire un bug sur le code courant. Il est instable par définition — n'y pointez pas un dashboard dont vous dépendez.
 
 ## Mise à jour
 

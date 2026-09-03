@@ -1,20 +1,30 @@
 name: Docker image
 
 # Publishing a release fires this alongside android.yml, building the
-# multi-arch image and pushing it to GHCR. Version tags stay immutable: the
-# weekly run only refreshes `latest`, so base image fixes reach users without
-# a release and without changing the digest a pinned tag resolves to.
+# multi-arch image and pushing it to GHCR. Every released tag, `latest`
+# included, is built once from the tagged commit and never rebuilt, so a tag
+# always resolves to the code of the release it names. A merge to master
+# publishes `dev` instead — the same image built from unreleased code.
 on:
   release:
     types: [published]
+  push:
+    branches:
+      - master
+    paths-ignore:
+      - "docs/**"
+      - "android/**"
+      - "fastlane/**"
+      - "scripts/**"
+      - "tests/**"
+      - ".claude/**"
+      - "**.md"
   pull_request:
     paths:
       - "Dockerfile"
       - ".dockerignore"
       - "requirements.txt"
       - ".github/workflows/docker.yml"
-  schedule:
-    - cron: "0 4 * * 1"
   workflow_dispatch:
 
 permissions:
@@ -23,7 +33,7 @@ permissions:
 
 concurrency:
   group: docker-${{ github.ref }}
-  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+  cancel-in-progress: ${{ github.event_name != 'release' }}
 
 jobs:
   build:
@@ -65,7 +75,8 @@ jobs:
           tags: |
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
-            type=raw,value=latest,enable=${{ github.event_name != 'pull_request' }}
+            type=raw,value=latest,enable=${{ github.event_name == 'release' }}
+            type=raw,value=dev,enable=${{ github.event_name == 'push' || github.event_name == 'workflow_dispatch' }}
             type=ref,event=pr
 
       - name: Build and push
