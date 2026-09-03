@@ -44,11 +44,9 @@ De gauche à droite, cliquez pour la version pleine taille : la pochette agrandi
 
 ### Avec Docker (recommandé)
 
-Récupérez [`docker-compose.yml`](docker-compose.yml) et [`.env.example`](.env.example), puis :
+Téléchargez [`docker-compose.yml`](docker-compose.yml), renseignez-y l'URL de votre Lyrion et le chemin de son répertoire de données, puis :
 
 ```bash
-cp .env.example .env
-# Éditer .env avec vos valeurs
 docker compose up -d
 ```
 

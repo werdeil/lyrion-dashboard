@@ -2,7 +2,7 @@
 
 # Docker
 
-The dashboard ships as a container image on the GitHub Container Registry: `ghcr.io/werdeil/lyrion-dashboard`. Installing it needs no clone of this repository — a `docker-compose.yml`, a filled-in `.env`, and `docker compose up -d`.
+The dashboard ships as a container image on the GitHub Container Registry: `ghcr.io/werdeil/lyrion-dashboard`. Installing it needs no clone of this repository — one `docker-compose.yml` carrying your Lyrion URL and data directory, and `docker compose up -d`.
 
 That compose file is yours once downloaded: change the port, the volumes, the restart policy, drop the service into a larger stack. Nothing has to stay in sync with this repository.
 
@@ -38,7 +38,7 @@ For development, running the app directly with `DEV=1` reloads templates and sta
 
 ## Filesystem permissions
 
-The container runs as uid 1000, not root. If Lyrion's files under `LYRION_DATA_DIR` are not readable by it, the dashboard starts but logs that it cannot open the databases; run it as the user owning them instead:
+The container runs as uid 1000, not root. If Lyrion's files under the directory you mount on `/lyrion` are not readable by it, the dashboard starts but logs that it cannot open the databases; run it as the user owning them instead:
 
 ```yaml
 services:
