@@ -13,9 +13,9 @@ It is designed for a **trusted home LAN and has no authentication by design** �
 The app targets **Python 3.12** and ships as a container image built by `docker.yml`, which installs the pinned dependencies into it. The frontend has no build step — no bundler, no transpiler.
 
 ```bash
-# Run locally (needs a reachable Lyrion + its SQLite files; see docs/development.md)
+# Run locally (needs a reachable Lyrion + its SQLite files, and a hand-written
+# .env: LYRION_HOST and LYRION_DATA_DIR are enough — see docs/development.md)
 pip install -r requirements.txt
-$EDITOR .env              # LYRION_HOST and LYRION_DATA_DIR are enough
 source .env
 python app.py             # http://localhost:1111
 
