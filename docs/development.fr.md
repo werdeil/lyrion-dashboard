@@ -19,7 +19,7 @@ puis, avec Python 3.12+ :
 
 ```bash
 pip install -r requirements.txt
-source .env
+set -a; source .env; set +a
 DEV=1 python app.py
 ```
 
