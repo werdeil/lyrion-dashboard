@@ -35,7 +35,7 @@ Pour développer, lancer l'application directement avec `DEV=1` recharge les tem
 
 ## Droits sur les fichiers
 
-Le conteneur tourne sous l'uid 1000, pas root. Si les fichiers `library.db` et `persist.db` de Lyrion ne sont pas lisibles par tous, le dashboard démarre mais écrit dans ses logs qu'il ne peut pas les ouvrir ; lancez-le alors sous l'utilisateur qui les possède :
+Le conteneur tourne sous l'uid 1000, pas root. Si les fichiers de Lyrion sous `LYRION_DATA_DIR` ne lui sont pas lisibles, le dashboard démarre mais écrit dans ses logs qu'il ne peut pas ouvrir les bases ; lancez-le alors sous l'utilisateur qui les possède :
 
 ```yaml
 services:
