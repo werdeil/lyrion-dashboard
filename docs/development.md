@@ -33,13 +33,11 @@ The app is available at `http://localhost:1111`. This is also the way to run the
 
 ## Building the image from a checkout
 
-`docker-compose.yml` carries a commented `build: .`. Uncomment it and Compose builds the image locally instead of pulling it:
-
 ```bash
-docker compose up -d --build
+docker build -t lyrion-dashboard:local .
 ```
 
-This is how to check a change to the `Dockerfile` itself. It is a poor loop for application code: the image ships its own copy of the sources, so every edit needs a rebuild.
+Point the compose file's `image:` at that tag to run it. This is how to check a change to the `Dockerfile` itself. It is a poor loop for application code: the image ships its own copy of the sources, so every edit needs a rebuild.
 
 ## Checks
 

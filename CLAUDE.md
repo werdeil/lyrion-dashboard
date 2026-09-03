@@ -22,7 +22,7 @@ python app.py             # http://localhost:1111
 # Live-reload templates/static while developing
 DEV=1 python app.py
 
-# Docker (how it actually deploys: the published image, or `--build` from a checkout)
+# Docker (how it actually deploys: the published image; see docs/development.md to build one)
 docker compose up -d
 ```
 
