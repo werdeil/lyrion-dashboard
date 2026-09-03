@@ -8,11 +8,11 @@ Ce fichier compose vous appartient une fois téléchargé : changez le port, les
 
 ## Tags d'image
 
-| Tag | Pointe vers | Reconstruit |
+| Tag | Pointe vers | Bouge quand |
 |---|---|---|
-| `latest` | la release la plus récente | à chaque release |
-| `X.Y` | le dernier patch de cette mineure (ex: `0.2`) | à chaque release de cette série |
-| `X.Y.Z` | cette release exacte (ex: `0.2.6`) | jamais — le digest est immuable |
+| `latest` | la release stable la plus récente | une release est publiée |
+| `X.Y` | le dernier patch de cette mineure (ex: `0.2`) | une release de cette série est publiée |
+| `X.Y.Z` | cette release exacte (ex: `0.2.6`) | jamais — construite une fois, elle garde son digest |
 | `dev` | la branche `master` | à chaque merge — du code non publié, voir [Développement](development.fr.md) |
 
 Les images sont construites pour `linux/amd64` et `linux/arm64` : un Raspberry Pi ou un NAS ARM tire le même tag qu'un PC. Épinglez `X.Y.Z` pour un déploiement qui ne bouge que sur votre décision ; `latest` suit les releases. Aucun tag publié n'est jamais reconstruit : un correctif de sécurité du base image Debian vous parvient donc avec la release suivante, et non sous le tag que vous faites déjà tourner. Une release marquée comme pre-release ne publie que son tag `X.Y.Z` : `latest` et `X.Y` continuent de pointer sur la dernière stable.
