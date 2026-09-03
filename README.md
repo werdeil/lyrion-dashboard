@@ -44,9 +44,11 @@ Left to right, click any of them for the full-size image: the enlarged cover, th
 
 ### With Docker (recommended)
 
-Download [`docker-compose.yml`](docker-compose.yml), set your Lyrion URL and the path to its data directory in it, then:
+Fetch [`docker-compose.yml`](docker-compose.yml), set your Lyrion URL and the path to its data directory in it, then start it:
 
 ```bash
+curl -O https://raw.githubusercontent.com/werdeil/lyrion-dashboard/master/docker-compose.yml
+$EDITOR docker-compose.yml
 docker compose up -d
 ```
 

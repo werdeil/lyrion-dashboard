@@ -44,9 +44,11 @@ De gauche à droite, cliquez pour la version pleine taille : la pochette agrandi
 
 ### Avec Docker (recommandé)
 
-Téléchargez [`docker-compose.yml`](docker-compose.yml), renseignez-y l'URL de votre Lyrion et le chemin de son répertoire de données, puis :
+Récupérez [`docker-compose.yml`](docker-compose.yml), renseignez-y l'URL de votre Lyrion et le chemin de son répertoire de données, puis lancez-le :
 
 ```bash
+curl -O https://raw.githubusercontent.com/werdeil/lyrion-dashboard/master/docker-compose.yml
+$EDITOR docker-compose.yml
 docker compose up -d
 ```
 
