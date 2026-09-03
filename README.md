@@ -77,7 +77,7 @@ A signed APK is also attached to each [GitHub release](https://github.com/werdei
 ## Documentation
 
 - [Configuration](docs/configuration.md) — environment variables.
-- [Docker](docs/docker.md) — image tags, updating, building from source, local Compose customization.
+- [Docker](docs/docker.md) — image tags, updating, and building from source.
 - [Logs](docs/logs.md) — what the app prints at each level, and how to read a lyrics search that found nothing.
 - [Endpoints](docs/endpoints.md) — the HTTP routes, and the Homepage widget fed by `/stats.json`.
 - [Scripts](docs/scripts.md) — embedding lyrics and cover art into audio file tags, their cron wrappers, and regenerating these screenshots.

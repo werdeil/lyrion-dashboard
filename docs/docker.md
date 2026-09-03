@@ -4,6 +4,8 @@
 
 The dashboard ships as a container image on the GitHub Container Registry: `ghcr.io/werdeil/lyrion-dashboard`. Installing it needs no clone of this repository — a `docker-compose.yml`, a filled-in `.env`, and `docker compose up -d`.
 
+That compose file is yours once downloaded: change the port, the volumes, the restart policy, drop the service into a larger stack. Nothing has to stay in sync with this repository.
+
 ## Image tags
 
 | Tag | Points to | Rebuilt |
@@ -23,18 +25,13 @@ docker compose up -d
 
 ## Building from source
 
-Copy the override template and let Compose build this checkout instead of pulling:
+`docker-compose.yml` carries a commented `build: .`. Uncomment it in a checkout of this repository and Compose builds the image locally instead of pulling it:
 
 ```bash
-cp docker-compose.override.yml.example docker-compose.override.yml
 docker compose up -d --build
 ```
 
-The template also mounts the sources read-only and sets `DEV=1`, so template and CSS edits show up on a page refresh — that is the development setup. Drop those lines if you only want a locally built image.
-
-## Local Compose customization
-
-`docker-compose.override.yml` is where local changes belong — an auxiliary service, an extra volume, a different port — so that `git pull` never conflicts with them. Compose loads it automatically on top of `docker-compose.yml`, and `.gitignore` keeps it out of the repository.
+For development, running the app directly with `DEV=1` reloads templates and static files on a page refresh — a built image cannot, since it ships its own copy of the sources.
 
 ## Filesystem permissions
 
