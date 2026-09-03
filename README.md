@@ -44,11 +44,9 @@ Left to right, click any of them for the full-size image: the enlarged cover, th
 
 ### With Docker (recommended)
 
-Grab [`docker-compose.yml`](docker-compose.yml) and [`.env.example`](.env.example), then:
+Download [`docker-compose.yml`](docker-compose.yml), set your Lyrion URL and the path to its data directory in it, then:
 
 ```bash
-cp .env.example .env
-# Edit .env with your values
 docker compose up -d
 ```
 
