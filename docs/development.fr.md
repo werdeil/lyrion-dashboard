@@ -15,7 +15,7 @@ LYRION_HOST=https://lyrion.local:9000
 LYRION_DATA_DIR=/var/lib/squeezeboxserver
 ```
 
-puis :
+puis, avec Python 3.12+ :
 
 ```bash
 pip install -r requirements.txt
