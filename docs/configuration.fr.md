@@ -2,7 +2,7 @@
 
 # Configuration
 
-Toute la configuration vient de variables d'environnement, lues une fois au démarrage. Sous Docker, elles sont posées dans `docker-compose.yml` lui-même. Depuis un clone, `.env.example` sert de modèle : copiez-le en `.env` et faites `source` — les scripts CLI lisent ce fichier d'eux-mêmes.
+Toute la configuration vient de variables d'environnement, lues une fois au démarrage. Sous Docker, elles sont posées dans `docker-compose.yml` lui-même ; en exécution depuis les sources, elles viennent de `.env`, comme décrit sur la page [Développement](development.fr.md).
 
 | Variable | Description | Défaut |
 |---|---|---|
@@ -22,7 +22,7 @@ Ce que chaque `LOG_LEVEL` écrit réellement est sur la page [Logs](logs.fr.md).
 
 ## Où vivent les bases de données
 
-Le dashboard lit deux fichiers SQLite que Lyrion garde côte à côte sous un même répertoire de données : `cache/library.db` (la bibliothèque musicale) et `prefs/persist.db` (notes et historique d'écoute). Ce répertoire est `/config` pour l'image Docker de Lyrion et `/var/lib/squeezeboxserver` pour le paquet Debian. Sous Docker, montez-le en lecture seule sur `/lyrion`, où l'image le cherche ; depuis un clone, nommez-le dans `LYRION_DATA_DIR`.
+Le dashboard lit deux fichiers SQLite que Lyrion garde côte à côte sous un même répertoire de données : `cache/library.db` (la bibliothèque musicale) et `prefs/persist.db` (notes et historique d'écoute). Ce répertoire est `/config` pour l'image Docker de Lyrion et `/var/lib/squeezeboxserver` pour le paquet Debian. Sous Docker, montez-le en lecture seule sur `/lyrion`, où l'image le cherche ; sinon, `LYRION_DATA_DIR` le nomme directement.
 
 Lyrion permet de déplacer son cache (vers un SSD, un volume plus grand). Sous Docker, remontez-le à sa place dans `docker-compose.yml` et rien d'autre ne change :
 
@@ -32,6 +32,6 @@ Lyrion permet de déplacer son cache (vers un SSD, un volume plus grand). Sous D
 
 Sans Docker il n'y a pas de montage pour le faire : nommez alors le vrai chemin dans `DB_DIR` — ou dans `DB_PERSIST_DIR` pour un répertoire de prefs déplacé. Chacune ne remplace que le chemin qu'elle nomme, et une installation standard n'a besoin d'aucune des deux.
 
-Mise à jour depuis un `.env` qui ne définissait que `DB_DIR` et `DB_PERSIST_DIR` : nommez plutôt leur parent — monté sur `/lyrion` sous Docker, ou dans `LYRION_DATA_DIR` depuis un clone.
+Mise à jour depuis un `.env` qui ne définissait que `DB_DIR` et `DB_PERSIST_DIR` : nommez plutôt leur parent — monté sur `/lyrion` sous Docker, ou nommé dans `LYRION_DATA_DIR` sinon.
 
-Les tags d'image et la mise à jour sont sur la page [Docker](docker.fr.md) ; l'exécution depuis les sources est sur la page [Développement](development.fr.md).
+Les tags d'image et la mise à jour sont sur la page [Docker](docker.fr.md).

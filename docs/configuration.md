@@ -2,7 +2,7 @@
 
 # Configuration
 
-All configuration comes from environment variables, read once at start-up. Under Docker they are set in `docker-compose.yml` itself. Running from a checkout, `.env.example` is the template: copy it to `.env` and `source` it — the CLI scripts read that file on their own.
+All configuration comes from environment variables, read once at start-up. Under Docker they are set in `docker-compose.yml` itself; run from the sources, they come from `.env`, as described on the [Development](development.md) page.
 
 | Variable | Description | Default |
 |---|---|---|
@@ -22,7 +22,7 @@ What each `LOG_LEVEL` actually prints is on the [Logs](logs.md) page.
 
 ## Where the databases live
 
-The dashboard reads two SQLite files Lyrion keeps side by side under one data directory: `cache/library.db` (the music library) and `prefs/persist.db` (ratings and play history). That directory is `/config` for Lyrion's own Docker image and `/var/lib/squeezeboxserver` for the Debian package. Under Docker, mount it read-only on `/lyrion`, where the image looks for it; from a checkout, name it in `LYRION_DATA_DIR`.
+The dashboard reads two SQLite files Lyrion keeps side by side under one data directory: `cache/library.db` (the music library) and `prefs/persist.db` (ratings and play history). That directory is `/config` for Lyrion's own Docker image and `/var/lib/squeezeboxserver` for the Debian package. Under Docker, mount it read-only on `/lyrion`, where the image looks for it; otherwise `LYRION_DATA_DIR` names it directly.
 
 Lyrion lets its cache be relocated (to an SSD, a larger volume). Under Docker, mount it back into place in `docker-compose.yml` and nothing else changes:
 
@@ -32,6 +32,6 @@ Lyrion lets its cache be relocated (to an SSD, a larger volume). Under Docker, m
 
 Running without Docker there is no mount to do that, so name the real path in `DB_DIR` instead — or in `DB_PERSIST_DIR` for a relocated prefs directory. Each replaces only the path it names, and neither is needed by a standard install.
 
-Upgrading from a `.env` that only set `DB_DIR` and `DB_PERSIST_DIR`: name their parent instead — mounted on `/lyrion` under Docker, or in `LYRION_DATA_DIR` from a checkout.
+Upgrading from a `.env` that only set `DB_DIR` and `DB_PERSIST_DIR`: name their parent instead — mounted on `/lyrion` under Docker, or in `LYRION_DATA_DIR` otherwise.
 
-Image tags and updating are on the [Docker](docker.md) page; running from the sources is on the [Development](development.md) page.
+Image tags and updating are on the [Docker](docker.md) page.
