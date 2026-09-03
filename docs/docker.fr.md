@@ -24,6 +24,10 @@ docker compose pull
 docker compose up -d
 ```
 
+## Migrer depuis l'installation bind-montée
+
+Avant cette image, le fichier compose lançait un `python:3.12-slim` nu sur un clone de ce dépôt et lisait ses réglages dans un `.env` posé à côté. Ni l'un ni l'autre ne servent désormais. Reprenez le fichier compose du [README](../README.fr.md), reportez-y votre `LYRION_HOST`, et montez sur `/lyrion` ce que `LYRION_DATA_DIR` désignait. Le clone peut disparaître ; ne gardez le `.env` que si vous faites tourner les [scripts](scripts.fr.md), qui le lisent toujours.
+
 ## Droits sur les fichiers
 
 Le conteneur tourne sous l'uid 1000, pas root. Si les fichiers de Lyrion sous le répertoire que vous montez sur `/lyrion` ne lui sont pas lisibles, le dashboard démarre mais écrit dans ses logs qu'il ne peut pas ouvrir les bases ; lancez-le alors sous l'utilisateur qui les possède. `stat -c '%u:%g' /var/lib/squeezeboxserver` affiche le couple à utiliser :

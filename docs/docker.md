@@ -24,6 +24,10 @@ docker compose pull
 docker compose up -d
 ```
 
+## Coming from the bind-mounted install
+
+Before this image existed, the compose file ran a bare `python:3.12-slim` over a clone of this repository and read its settings from a `.env` beside it. Neither is used any more. Take the compose file from the [README](../README.md), carry your `LYRION_HOST` into it, and mount on `/lyrion` what `LYRION_DATA_DIR` used to name. The clone can go; keep the `.env` only if you run the [scripts](scripts.md), which still read it.
+
 ## Filesystem permissions
 
 The container runs as uid 1000, not root. If Lyrion's files under the directory you mount on `/lyrion` are not readable by it, the dashboard starts but logs that it cannot open the databases; run it as the user owning them instead. `stat -c '%u:%g' /var/lib/squeezeboxserver` prints the pair to use:
