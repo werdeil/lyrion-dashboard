@@ -15,9 +15,7 @@ scripts
 tests
 Dockerfile
 .dockerignore
-docker-compose.yml
-docker-compose.override.yml
-docker-compose.override.yml.example
+docker-compose*.yml
 eslint.config.mjs
 requirements-cli.txt
 CLAUDE.md

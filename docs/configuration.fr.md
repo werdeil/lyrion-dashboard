@@ -24,7 +24,7 @@ Ce que chaque `LOG_LEVEL` écrit réellement est sur la page [Logs](logs.fr.md).
 
 Le dashboard lit deux fichiers SQLite que Lyrion garde côte à côte sous un même répertoire de données : `cache/library.db` (la bibliothèque musicale) et `prefs/persist.db` (notes et historique d'écoute). Ce répertoire est `/config` pour l'image Docker et `/var/lib/squeezeboxserver` pour le paquet Debian — pointez `LYRION_DATA_DIR` dessus et les deux fichiers sont trouvés, et Compose le monte en lecture seule en une ligne.
 
-Lyrion permet de déplacer son cache (vers un SSD, un volume plus grand). Sous Docker, remontez-le à sa place dans `docker-compose.override.yml` et rien d'autre ne change :
+Lyrion permet de déplacer son cache (vers un SSD, un volume plus grand). Sous Docker, remontez-le à sa place dans `docker-compose.yml` et rien d'autre ne change :
 
 ```yaml
 - /mnt/ssd/cache:${LYRION_DATA_DIR}/cache:ro
@@ -34,4 +34,4 @@ Sans Docker il n'y a pas de montage pour le faire : nommez alors le vrai chemin 
 
 Mise à jour depuis un `.env` qui ne définissait que `DB_DIR` et `DB_PERSIST_DIR` : Compose monte désormais `LYRION_DATA_DIR` et refuse de démarrer sans lui, il faut donc l'ajouter — en général le parent des deux répertoires que vous aviez déjà.
 
-La personnalisation locale de Compose — fichier d'override, construction depuis les sources, tags d'image — est sur la page [Docker](docker.fr.md).
+Les tags d'image, la mise à jour et la construction depuis les sources sont sur la page [Docker](docker.fr.md).
