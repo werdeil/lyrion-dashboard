@@ -10,7 +10,7 @@ It is designed for a **trusted home LAN and has no authentication by design** �
 
 ## Commands
 
-The app targets **Python 3.12**. There is no build step — dependencies install at container start.
+The app targets **Python 3.12** and ships as a container image built by `docker.yml`, which installs the pinned dependencies into it. The frontend has no build step — no bundler, no transpiler.
 
 ```bash
 # Run locally (needs a reachable Lyrion + its SQLite files; see docs/development.md)
