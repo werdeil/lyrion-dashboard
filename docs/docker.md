@@ -35,7 +35,7 @@ For development, running the app directly with `DEV=1` reloads templates and sta
 
 ## Filesystem permissions
 
-The container runs as uid 1000, not root. If Lyrion's `library.db` and `persist.db` are not world-readable, the dashboard starts but logs that it cannot open them; run it as the user owning those files instead:
+The container runs as uid 1000, not root. If Lyrion's files under `LYRION_DATA_DIR` are not readable by it, the dashboard starts but logs that it cannot open the databases; run it as the user owning them instead:
 
 ```yaml
 services:
