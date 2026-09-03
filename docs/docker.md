@@ -26,10 +26,12 @@ docker compose up -d
 
 ## Filesystem permissions
 
-The container runs as uid 1000, not root. If Lyrion's files under the directory you mount on `/lyrion` are not readable by it, the dashboard starts but logs that it cannot open the databases; run it as the user owning them instead:
+The container runs as uid 1000, not root. If Lyrion's files under the directory you mount on `/lyrion` are not readable by it, the dashboard starts but logs that it cannot open the databases; run it as the user owning them instead. `stat -c '%u:%g' /var/lib/squeezeboxserver` prints the pair to use:
 
 ```yaml
 services:
   lyrion-dashboard:
-    user: "0:0"
+    user: "999:999"
 ```
+
+`user: "0:0"` is root and reads anything, which makes it the fix of last resort rather than the first thing to try.
