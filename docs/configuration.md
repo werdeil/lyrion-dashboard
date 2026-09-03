@@ -34,14 +34,4 @@ Running without Docker there is no mount to do that, so name the real path in `D
 
 Upgrading from a `.env` that only set `DB_DIR` and `DB_PERSIST_DIR`: Compose now mounts `LYRION_DATA_DIR` and refuses to start without it, so add it — usually the parent of the two directories you already had.
 
-## Local Docker Compose customization
-
-To add services or local options without polluting Git changes, copy the override template:
-
-```bash
-cp docker-compose.override.yml.example docker-compose.override.yml
-# Edit docker-compose.override.yml to suit your needs
-docker compose up -d
-```
-
-Docker Compose automatically loads `docker-compose.override.yml` on top of the main file.
+Local Compose customization — an override file, building from source, image tags — is on the [Docker](docker.md) page.

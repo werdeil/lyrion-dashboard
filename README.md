@@ -44,13 +44,15 @@ Left to right, click any of them for the full-size image: the enlarged cover, th
 
 ### With Docker (recommended)
 
+Grab [`docker-compose.yml`](docker-compose.yml) and [`.env.example`](.env.example), then:
+
 ```bash
 cp .env.example .env
 # Edit .env with your values
 docker compose up -d
 ```
 
-This deploys straight from `python:3.12-slim` and installs pinned dependencies on each start — no custom image to build or publish, at the cost of a few seconds and network access on every restart.
+This pulls `ghcr.io/werdeil/lyrion-dashboard:latest`, built for amd64 and arm64 on every release. Pinning a version, updating, and building from source instead are all on the [Docker](docs/docker.md) page.
 
 ### Without Docker
 
@@ -74,7 +76,8 @@ A signed APK is also attached to each [GitHub release](https://github.com/werdei
 
 ## Documentation
 
-- [Configuration](docs/configuration.md) — environment variables and local Compose customization.
+- [Configuration](docs/configuration.md) — environment variables.
+- [Docker](docs/docker.md) — image tags, updating, building from source, local Compose customization.
 - [Logs](docs/logs.md) — what the app prints at each level, and how to read a lyrics search that found nothing.
 - [Endpoints](docs/endpoints.md) — the HTTP routes, and the Homepage widget fed by `/stats.json`.
 - [Scripts](docs/scripts.md) — embedding lyrics and cover art into audio file tags, their cron wrappers, and regenerating these screenshots.

@@ -22,7 +22,7 @@ python app.py             # http://localhost:1111
 # Live-reload templates/static while developing
 DEV=1 python app.py
 
-# Docker (how it actually deploys)
+# Docker (how it actually deploys: the published image, or `--build` with the override)
 docker compose up -d
 ```
 
@@ -83,7 +83,7 @@ When opening a PR, follow `.github/pull_request_template.md`: fill in the proble
 **routes → services → (Lyrion | SQLite | web providers).** Routes parse the request and shape the response; they never build JSON-RPC payloads or open the DB inline. All real work lives in `services/`. Keep handlers thin — if a handler grows domain logic, that logic belongs in a service.
 
 - `app.py` — the app factory (`create_app`). Registers blueprints, the `/health` endpoint, and one `after_request` that sets app-wide security headers (`CSP default-src 'self'`, `nosniff`, `SAMEORIGIN`) via `setdefault`, so a route only sets a header itself to **override** the default for one route (as `/files/` does with `CSP: sandbox`).
-- `config.py` — all configuration from env vars, read once at import (the source tree is mounted read-only). `DEV=1` enables template auto-reload and disables static caching. `VERSION` is read from the `VERSION` file.
+- `config.py` — all configuration from env vars, read once at import (the image ships the source tree). `DEV=1` enables template auto-reload and disables static caching. `VERSION` is read from the `VERSION` file.
 - `logsetup.py` — `configure_logging()` (called once by `create_app`) points the root logger at stdout, so `docker logs` is the single place to look; `LOG_LEVEL` sets the level (`DEBUG` under `DEV=1`, else `INFO`). Modules log through `logging.getLogger(__name__)` with lazy `%s` formatting. The rule of thumb: **INFO for an outcome the operator would ask about** (a lyrics search and each provider's verdict, a track with no lyrics in the library, a throttled request, a stats recompute), **WARNING/ERROR for a degraded dependency** (a provider down, Lyrion unreachable, a DB that won't open), **DEBUG for detail that only matters once you're already looking** (HTTP statuses, cache internals, per-call timings). The ceiling is repetition, not importance: **anything that repeats on the 2s now-playing poll stays DEBUG** (the Lyrion calls, the player enumeration), while a per-track-change line may be INFO. Never log lyrics or cover bodies, only their size and provenance.
 - `routes/nowplaying.py` (`nowplaying_bp`) — the dashboard page and its JSON endpoints. `routes/custom.py` (`custom_bp`) — the sandboxed `/files/` server.
 

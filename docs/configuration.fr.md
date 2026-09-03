@@ -34,14 +34,4 @@ Sans Docker il n'y a pas de montage pour le faire : nommez alors le vrai chemin 
 
 Mise à jour depuis un `.env` qui ne définissait que `DB_DIR` et `DB_PERSIST_DIR` : Compose monte désormais `LYRION_DATA_DIR` et refuse de démarrer sans lui, il faut donc l'ajouter — en général le parent des deux répertoires que vous aviez déjà.
 
-## Personnalisation locale de Docker Compose
-
-Pour ajouter des services ou des options locales sans polluer les changements Git, copiez le modèle d'override :
-
-```bash
-cp docker-compose.override.yml.example docker-compose.override.yml
-# Éditer docker-compose.override.yml selon vos besoins
-docker compose up -d
-```
-
-Docker Compose charge automatiquement `docker-compose.override.yml` par-dessus le fichier principal.
+La personnalisation locale de Compose — fichier d'override, construction depuis les sources, tags d'image — est sur la page [Docker](docker.fr.md).

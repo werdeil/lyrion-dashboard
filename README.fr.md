@@ -44,13 +44,15 @@ De gauche à droite, cliquez pour la version pleine taille : la pochette agrandi
 
 ### Avec Docker (recommandé)
 
+Récupérez [`docker-compose.yml`](docker-compose.yml) et [`.env.example`](.env.example), puis :
+
 ```bash
 cp .env.example .env
 # Éditer .env avec vos valeurs
 docker compose up -d
 ```
 
-Le déploiement part directement de `python:3.12-slim` et installe les dépendances épinglées à chaque démarrage — aucune image custom à construire ni à publier, au prix de quelques secondes et d'un accès réseau à chaque redémarrage.
+Cela tire `ghcr.io/werdeil/lyrion-dashboard:latest`, construite pour amd64 et arm64 à chaque release. Épingler une version, mettre à jour ou construire depuis les sources : tout est sur la page [Docker](docs/docker.fr.md).
 
 ### Sans Docker
 
@@ -74,7 +76,8 @@ Un APK signé est aussi attaché à chaque [release GitHub](https://github.com/w
 
 ## Documentation
 
-- [Configuration](docs/configuration.fr.md) — variables d'environnement et personnalisation Compose locale.
+- [Configuration](docs/configuration.fr.md) — variables d'environnement.
+- [Docker](docs/docker.fr.md) — tags d'image, mise à jour, construction depuis les sources, personnalisation Compose locale.
 - [Logs](docs/logs.fr.md) — ce que l'application écrit à chaque niveau, et comment lire une recherche de paroles restée vide.
 - [Endpoints](docs/endpoints.fr.md) — les routes HTTP, et le widget Homepage alimenté par `/stats.json`.
 - [Scripts](docs/scripts.fr.md) — intégration des paroles et des pochettes dans les tags, wrappers cron, régénération de ces captures.
