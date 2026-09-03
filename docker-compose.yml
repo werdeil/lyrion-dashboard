@@ -16,4 +16,5 @@ services:
       # - LOG_LEVEL=INFO
     volumes:
       - /var/lib/squeezeboxserver:/lyrion:ro
-      - /opt/scripts/custom_data:/opt/scripts/custom_data:ro
+      # Only for /files/, which serves what other tools generate:
+      # - /opt/scripts/custom_data:/opt/scripts/custom_data:ro

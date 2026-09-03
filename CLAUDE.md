@@ -16,7 +16,7 @@ The app targets **Python 3.12** and ships as a container image built by `docker.
 # Run locally (needs a reachable Lyrion + its SQLite files, and a hand-written
 # .env: LYRION_HOST and LYRION_DATA_DIR are enough — see docs/development.md)
 pip install -r requirements.txt
-source .env
+set -a; source .env; set +a
 python app.py             # http://localhost:1111
 
 # Live-reload templates/static while developing
