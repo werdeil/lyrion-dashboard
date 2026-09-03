@@ -15,7 +15,7 @@ That compose file is yours once downloaded: change the port, the volumes, the re
 | `X.Y.Z` | that exact release (e.g. `0.2.6`) | never — the digest is immutable |
 | `dev` | the `master` branch | on every merge — unreleased code, see [Development](development.md) |
 
-Images are built for `linux/amd64` and `linux/arm64`, so a Raspberry Pi or an ARM NAS pulls the same tag as a PC. Pin `X.Y.Z` for a deployment that only ever changes when you say so; `latest` follows the releases. No released tag is ever rebuilt, so a security fix in the Debian base image reaches you with the next release rather than under the tag you already run.
+Images are built for `linux/amd64` and `linux/arm64`, so a Raspberry Pi or an ARM NAS pulls the same tag as a PC. Pin `X.Y.Z` for a deployment that only ever changes when you say so; `latest` follows the releases. No released tag is ever rebuilt, so a security fix in the Debian base image reaches you with the next release rather than under the tag you already run. A release marked as a pre-release publishes its `X.Y.Z` tag alone: `latest` and `X.Y` keep pointing at the last stable one.
 
 ## Updating
 

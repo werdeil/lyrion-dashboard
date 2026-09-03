@@ -15,7 +15,7 @@ Ce fichier compose vous appartient une fois téléchargé : changez le port, les
 | `X.Y.Z` | cette release exacte (ex: `0.2.6`) | jamais — le digest est immuable |
 | `dev` | la branche `master` | à chaque merge — du code non publié, voir [Développement](development.fr.md) |
 
-Les images sont construites pour `linux/amd64` et `linux/arm64` : un Raspberry Pi ou un NAS ARM tire le même tag qu'un PC. Épinglez `X.Y.Z` pour un déploiement qui ne bouge que sur votre décision ; `latest` suit les releases. Aucun tag publié n'est jamais reconstruit : un correctif de sécurité du base image Debian vous parvient donc avec la release suivante, et non sous le tag que vous faites déjà tourner.
+Les images sont construites pour `linux/amd64` et `linux/arm64` : un Raspberry Pi ou un NAS ARM tire le même tag qu'un PC. Épinglez `X.Y.Z` pour un déploiement qui ne bouge que sur votre décision ; `latest` suit les releases. Aucun tag publié n'est jamais reconstruit : un correctif de sécurité du base image Debian vous parvient donc avec la release suivante, et non sous le tag que vous faites déjà tourner. Une release marquée comme pre-release ne publie que son tag `X.Y.Z` : `latest` et `X.Y` continuent de pointer sur la dernière stable.
 
 ## Mise à jour
 

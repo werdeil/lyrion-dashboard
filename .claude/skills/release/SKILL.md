@@ -50,7 +50,7 @@ Note the ref subtlety: on a `release` event GitHub runs the workflow **as it exi
 
 ## Publishing → the image (`.github/workflows/docker.yml`)
 
-The same `release: published` event builds the container image and pushes it to `ghcr.io/werdeil/lyrion-dashboard` for `linux/amd64` and `linux/arm64`, tagged `X.Y.Z`, `X.Y` and `latest`. It re-checks the tag against `VERSION` first, the way `android.yml` checks it against `versionName`. Authentication is the job's own `GITHUB_TOKEN` with `packages: write` — there is no secret to provision.
+The same `release: published` event builds the container image and pushes it to `ghcr.io/werdeil/lyrion-dashboard` for `linux/amd64` and `linux/arm64`, tagged `X.Y.Z`, `X.Y` and `latest` — or `X.Y.Z` alone when the release is marked as a pre-release, so the moving tags stay on the last stable one. It re-checks the tag against `VERSION` first, the way `android.yml` checks it against `versionName`. Authentication is the job's own `GITHUB_TOKEN` with `packages: write` — there is no secret to provision.
 
 **No released tag is ever rebuilt**, `latest` included: each is built once from the tagged commit, so a tag always resolves to the code of the release it names, and a base image fix ships with the next release rather than under a tag users already run. A merge to master publishes `dev` from unreleased code — never `latest`. `docker.yml` also builds (without pushing) on any PR touching the `Dockerfile` or `requirements.txt`, and smoke-tests that image against `/health`.
 
@@ -69,4 +69,4 @@ Prefer this path over hand-editing versions: doing it manually risks the three m
 - [ ] Tag `vX.Y.Z` matches `versionName` (else `android.yml` fails).
 - [ ] Release cut via the workflow, reviewed as a draft, then published.
 - [ ] Signed APK attached (signing secrets present) — verify on the release.
-- [ ] Image pushed to GHCR for both architectures, with the `X.Y.Z`, `X.Y` and `latest` tags.
+- [ ] Image pushed to GHCR for both architectures, with the `X.Y.Z`, `X.Y` and `latest` tags (`X.Y.Z` alone for a pre-release).
