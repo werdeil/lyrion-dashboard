@@ -15,7 +15,5 @@ services:
       # - LRCLIB_TIMEOUT=15
       # - LOG_LEVEL=INFO
     volumes:
-      # Left of each colon: a path on your machine. The first is Lyrion's data
-      # directory, the one holding its prefs/ and cache/.
       - /var/lib/squeezeboxserver:/lyrion:ro
       - /opt/scripts/custom_data:/opt/scripts/custom_data
