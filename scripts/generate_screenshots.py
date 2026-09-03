@@ -74,7 +74,7 @@ def _stats():
         "track_artists_partially_played": 279, "track_artists_unplayed": 35,
         "songs_total": 11284, "songs_played_apc": 8930,
         "songs_unplayed_apc": 2354, "songs_total_plays_apc": 46215,
-        "songs_total_skips_apc": 1873,
+        "songs_total_skips_apc": 1873, "apc_available": True,
         "genres": 58, "rated_songs": 1024, "songs_with_lyrics": 6725,
         "velocity_30d": 412, "velocity_1year": 3980,
     }

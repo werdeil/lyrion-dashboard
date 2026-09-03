@@ -8,6 +8,7 @@ Toute la configuration vient de variables d'environnement, lues une fois au dém
 |---|---|---|
 | `LYRION_HOST` | URL du serveur Lyrion (ex: `https://lyrion.local:9000`) | -- |
 | `LYRION_DATA_DIR` | Répertoire de données de Lyrion, celui qui contient ses sous-répertoires `prefs/` et `cache/` | -- |
+| `PLAY_COUNTS_SOURCE` | Origine des compteurs d'écoute : `auto` (Alternative Play Count s'il est installé, sinon les compteurs de Lyrion) ou `lyrion` (toujours ceux de Lyrion) | `auto` |
 | `CUSTOM_DATA_DIR` | Répertoire des fichiers générés | `/opt/scripts/custom_data` |
 | `LYRICS_PROVIDERS` | Fournisseurs de paroles web, essayés dans l'ordre (`lrclib`, `musixmatch`, `genius`) | `lrclib,musixmatch,genius` |
 | `MUSIXMATCH_TOKEN` | Jeton Musixmatch fixe (sinon récupéré automatiquement) | -- |

@@ -30,6 +30,7 @@ def get_db_conn():
     conn.execute("PRAGMA cache_size = -32000")
     conn.execute("PRAGMA temp_store = MEMORY")
     conn.execute("BEGIN DEFERRED")
+    _define_play_counts(conn)
     try:
         yield conn
     finally:
@@ -73,25 +74,60 @@ def get_random_cover_ids(limit=24):
     return [row["artwork"] for row in rows]
 
 
+# The plugin's table is the only source that keeps skips apart from plays: in
+# Lyrion's own counters skipcount does not exist and lastplayed moves on a skip.
+_PLAY_COUNTS_APC = """
+    CREATE TEMP VIEW play_counts AS
+    SELECT urlmd5, playcount, skipcount, lastplayed FROM alternativeplaycount
+"""
+_PLAY_COUNTS_PERSIST = """
+    CREATE TEMP VIEW play_counts AS
+    SELECT urlmd5, playcount, 0 AS skipcount, lastplayed FROM persist.tracks_persistent
+"""
+
+_apc_state = {"value": None}
+
+
+def _use_apc(conn):
+    """Whether the play counts come from the Alternative Play Count table,
+    logged whenever the answer changes."""
+    if current_app.config.get("PLAY_COUNTS_SOURCE") == "lyrion":
+        state = "disabled by PLAY_COUNTS_SOURCE"
+    elif conn.execute(
+        "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'alternativeplaycount'"
+    ).fetchone():
+        state = "installed"
+    else:
+        state = "not installed"
+    if state != _apc_state["value"]:
+        _apc_state["value"] = state
+        log.info("Alternative Play Count %s: play counts read from %s", state,
+                 "alternativeplaycount" if state == "installed" else "tracks_persistent, skips unavailable")
+    return state == "installed"
+
+
+# A TEMP view is writable on a read-only connection: it lives in the
+# connection's temp schema, never in Lyrion's files.
+def _define_play_counts(conn):
+    conn.execute(_PLAY_COUNTS_APC if _use_apc(conn) else _PLAY_COUNTS_PERSIST)
+
+
 def get_recent_album_covers(limit=24):
     """Cover ids of the most recently played albums, newest first, for the
     empty-state mosaic and the recent-plays pile under the now-playing cover.
 
-    Uses the Alternative Play Count table rather than tracks_persistent.
-    tracks_persistent.lastplayed is bumped on skips too, so it would surface
-    albums that were only skipped past; alternativeplaycount keeps real plays
-    (playcount / lastplayed) separate from skips (skipcount / lastskipped).
-    So we count only tracks with an actual play (playcount > 0) and order by
-    their real last-play time. Grouping by the album's artwork gives one cover
-    per album — an album whose tracks were played several times appears once,
-    so callers never see the same cover twice.
+    Only tracks with an actual play (playcount > 0) count, ordered by their
+    last-play time. Grouping by the album's artwork gives one cover per album,
+    so callers never see the same cover twice. Without the Alternative Play
+    Count plugin lastplayed moves on a skip too, so an album that was only
+    skipped past can surface.
     """
     with get_db_conn() as conn:
         rows = conn.execute(
             """
             SELECT al.artwork AS artwork
             FROM tracks t
-            JOIN alternativeplaycount apc ON apc.urlmd5 = t.urlmd5
+            JOIN play_counts apc ON apc.urlmd5 = t.urlmd5
             JOIN albums al ON al.id = t.album
             WHERE t.audio = 1
               AND al.artwork IS NOT NULL
@@ -137,13 +173,14 @@ def get_stats():
 def _compute_stats():
     with get_db_conn() as conn:
         cur = conn.cursor()
+        apc_available = _use_apc(conn)
 
         def pct(part, total):
             if total == 0:
                 return 0
             return round(part * 100 / total, 1)
 
-        # Query 1: albums + songs — single scan of tracks JOIN alternativeplaycount
+        # Query 1: albums + songs — single scan of tracks JOIN play_counts
         row = cur.execute("""
             WITH track_play AS (
                 SELECT
@@ -153,7 +190,7 @@ def _compute_stats():
                     COALESCE(apc.playcount, 0)      AS playcount,
                     COALESCE(apc.skipcount, 0)      AS skipcount
                 FROM tracks t
-                LEFT JOIN alternativeplaycount apc ON t.urlmd5 = apc.urlmd5
+                LEFT JOIN play_counts apc ON t.urlmd5 = apc.urlmd5
                 WHERE t.audio = 1
             ),
             album_agg AS (
@@ -185,6 +222,7 @@ def _compute_stats():
             "songs_unplayed_apc":    row["songs_unplayed_apc"] or 0,
             "songs_total_plays_apc": row["songs_total_plays_apc"] or 0,
             "songs_total_skips_apc": row["songs_total_skips_apc"] or 0,
+            "apc_available":         apc_available,
         }
 
         # Query 2: artists (album artists) — single scan via contributor_track
@@ -192,7 +230,7 @@ def _compute_stats():
             WITH track_play AS (
                 SELECT t.id, COALESCE(apc.playcount, 0) > 0 AS is_played
                 FROM tracks t
-                LEFT JOIN alternativeplaycount apc ON t.urlmd5 = apc.urlmd5
+                LEFT JOIN play_counts apc ON t.urlmd5 = apc.urlmd5
                 WHERE t.audio = 1
             ),
             artist_agg AS (
@@ -223,7 +261,7 @@ def _compute_stats():
             WITH track_play AS (
                 SELECT t.id, COALESCE(apc.playcount, 0) > 0 AS is_played
                 FROM tracks t
-                LEFT JOIN alternativeplaycount apc ON t.urlmd5 = apc.urlmd5
+                LEFT JOIN play_counts apc ON t.urlmd5 = apc.urlmd5
                 WHERE t.audio = 1
             ),
             track_artist_agg AS (

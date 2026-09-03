@@ -35,6 +35,9 @@ class Config:
     DB_PATH = os.path.join(_db_dir("DB_DIR", "cache"), "library.db")
     DB_PERSIST_PATH = os.path.join(_db_dir("DB_PERSIST_DIR", "prefs"), "persist.db")
 
+    # "lyrion" forces Lyrion's own counters over the Alternative Play Count plugin.
+    PLAY_COUNTS_SOURCE = os.getenv("PLAY_COUNTS_SOURCE", "auto").strip().lower()
+
     # Custom data directory
     CUSTOM_DATA_DIR = os.getenv("CUSTOM_DATA_DIR", "/opt/scripts/custom_data")
 
