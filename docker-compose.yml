@@ -10,8 +10,9 @@ services:
       - "1111:1111"
     environment:
       - LYRION_HOST=${LYRION_HOST}
-      - DB_DIR=${DB_DIR}
-      - DB_PERSIST_DIR=${DB_PERSIST_DIR}
+      - LYRION_DATA_DIR=${LYRION_DATA_DIR}
+      - DB_DIR=${DB_DIR:-}
+      - DB_PERSIST_DIR=${DB_PERSIST_DIR:-}
       - CUSTOM_DATA_DIR=${CUSTOM_DATA_DIR:-/opt/scripts/custom_data}
       - LYRICS_PROVIDERS=${LYRICS_PROVIDERS:-lrclib,musixmatch,genius}
       - MUSIXMATCH_TOKEN=${MUSIXMATCH_TOKEN:-}
@@ -28,6 +29,5 @@ services:
       retries: 3
     volumes:
       - .:/app:ro
-      - ${DB_DIR}:${DB_DIR}:ro
-      - ${DB_PERSIST_DIR}:${DB_PERSIST_DIR}:ro
+      - ${LYRION_DATA_DIR}:${LYRION_DATA_DIR}:ro
       - ${CUSTOM_DATA_DIR}:/opt/scripts/custom_data

@@ -29,7 +29,8 @@ def _log_startup(flask_app):
         ("persist.db", flask_app.config["DB_PERSIST_PATH"]),
     ):
         if not os.path.isfile(path):
-            log.error("%s not found at %s: check DB_DIR/DB_PERSIST_DIR and the volume mounts", label, path)
+            log.error("%s not found at %s: check LYRION_DATA_DIR (or DB_DIR/DB_PERSIST_DIR) and the volume mounts",
+                      label, path)
         elif not os.access(path, os.R_OK):
             log.error("%s at %s is not readable by the container user", label, path)
         else:
