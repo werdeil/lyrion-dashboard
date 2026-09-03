@@ -13,9 +13,9 @@ It is designed for a **trusted home LAN and has no authentication by design** â€
 The app targets **Python 3.12**. There is no build step â€” dependencies install at container start.
 
 ```bash
-# Run locally (needs a reachable Lyrion + its SQLite files; see .env.example)
+# Run locally (needs a reachable Lyrion + its SQLite files; see docs/development.md)
 pip install -r requirements.txt
-cp .env.example .env      # then edit
+$EDITOR .env              # LYRION_HOST and LYRION_DATA_DIR are enough
 source .env
 python app.py             # http://localhost:1111
 

@@ -8,10 +8,17 @@ Three ways to run something other than the released image, from the lightest to 
 
 The loop to write code in: templates and static files are re-read on every request under `DEV=1`, so an HTML or CSS edit shows up on a page refresh.
 
+Two settings are enough to start. Put them in a `.env` at the repository root:
+
+```
+LYRION_HOST=https://lyrion.local:9000
+LYRION_DATA_DIR=/var/lib/squeezeboxserver
+```
+
+then:
+
 ```bash
 pip install -r requirements.txt
-cp .env.example .env
-# Edit .env with your values
 source .env
 DEV=1 python app.py
 ```

@@ -8,10 +8,17 @@ Trois façons de faire tourner autre chose que l'image publiée, de la plus lég
 
 La boucle dans laquelle écrire du code : sous `DEV=1`, les templates et les fichiers statiques sont relus à chaque requête, donc une modification HTML ou CSS apparaît à un simple rafraîchissement.
 
+Deux réglages suffisent pour démarrer. Placez-les dans un `.env` à la racine du dépôt :
+
+```
+LYRION_HOST=https://lyrion.local:9000
+LYRION_DATA_DIR=/var/lib/squeezeboxserver
+```
+
+puis :
+
 ```bash
 pip install -r requirements.txt
-cp .env.example .env
-# Éditer .env avec vos valeurs
 source .env
 DEV=1 python app.py
 ```
