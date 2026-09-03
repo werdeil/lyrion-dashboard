@@ -33,13 +33,11 @@ C'est `.env` qui alimente l'application ici (`config.py` lit l'environnement une
 
 ## Construire l'image depuis un clone
 
-`docker-compose.yml` contient un `build: .` commenté. Décommentez-le et Compose construit l'image localement au lieu de la tirer :
-
 ```bash
-docker compose up -d --build
+docker build -t lyrion-dashboard:local .
 ```
 
-C'est ainsi qu'on vérifie une modification du `Dockerfile` lui-même. C'est une mauvaise boucle pour le code applicatif : l'image embarque sa propre copie des sources, donc chaque modification demande une reconstruction.
+Pointez l'`image:` du fichier compose sur ce tag pour la lancer. C'est ainsi qu'on vérifie une modification du `Dockerfile` lui-même. C'est une mauvaise boucle pour le code applicatif : l'image embarque sa propre copie des sources, donc chaque modification demande une reconstruction.
 
 ## Vérifications
 

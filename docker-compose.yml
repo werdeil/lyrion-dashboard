@@ -1,8 +1,6 @@
 services:
   lyrion-dashboard:
     image: ghcr.io/werdeil/lyrion-dashboard:latest
-    # To run this checkout's sources instead of the published image, uncomment:
-    # build: .
     container_name: lyrion-dashboard
     restart: unless-stopped
     ports:
