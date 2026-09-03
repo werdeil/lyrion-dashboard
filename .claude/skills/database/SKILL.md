@@ -28,7 +28,7 @@ It opens `library.db` in read-only URI mode (`file:...?mode=ro`), **`ATTACH`es**
 - **`library.db`** (default schema) — the music library: `tracks`, `albums`, `contributor_track`, `genres`, and the Alternative Play Count table `alternativeplaycount`.
 - **`persist.db`** (referenced as `persist.<table>`) — persistent per-track state: `persist.tracks_persistent` (ratings, `lastplayed`, …).
 
-The DB paths come from config (`DB_PATH`, `DB_PERSIST_PATH`), derived from `DB_DIR`/`DB_PERSIST_DIR` env vars.
+The DB paths come from config (`DB_PATH`, `DB_PERSIST_PATH`). They are derived from `LYRION_DATA_DIR`, the directory holding Lyrion's own `prefs/` and `cache/` — `{dir}/cache/library.db` and `{dir}/prefs/persist.db` — which `DB_DIR` and `DB_PERSIST_DIR` override one at a time when either was relocated. Tests set the two overrides directly (see the `testing` skill), so they never depend on that layout.
 
 ## Key tables and columns
 

@@ -14,6 +14,16 @@ def _read_version():
         return "unknown"
 
 
+def _db_dir(override_var, subdir):
+    # Lyrion keeps `prefs/` and `cache/` side by side under one data directory;
+    # an override names whichever of the two was moved out of it.
+    override = os.getenv(override_var)
+    if override:
+        return override
+    data_dir = os.getenv("LYRION_DATA_DIR")
+    return os.path.join(data_dir, subdir) if data_dir else ""
+
+
 class Config:
     # Application version, exposed on /health for support and debugging.
     VERSION = _read_version()
@@ -22,8 +32,8 @@ class Config:
     LYRION_HOST = os.getenv("LYRION_HOST")
 
     # Database paths
-    DB_PATH = os.path.join(os.getenv("DB_DIR", ""), "library.db")
-    DB_PERSIST_PATH = os.path.join(os.getenv("DB_PERSIST_DIR", ""), "persist.db")
+    DB_PATH = os.path.join(_db_dir("DB_DIR", "cache"), "library.db")
+    DB_PERSIST_PATH = os.path.join(_db_dir("DB_PERSIST_DIR", "prefs"), "persist.db")
 
     # Custom data directory
     CUSTOM_DATA_DIR = os.getenv("CUSTOM_DATA_DIR", "/opt/scripts/custom_data")
