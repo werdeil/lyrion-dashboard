@@ -26,10 +26,12 @@ docker compose up -d
 
 ## Droits sur les fichiers
 
-Le conteneur tourne sous l'uid 1000, pas root. Si les fichiers de Lyrion sous le répertoire que vous montez sur `/lyrion` ne lui sont pas lisibles, le dashboard démarre mais écrit dans ses logs qu'il ne peut pas ouvrir les bases ; lancez-le alors sous l'utilisateur qui les possède :
+Le conteneur tourne sous l'uid 1000, pas root. Si les fichiers de Lyrion sous le répertoire que vous montez sur `/lyrion` ne lui sont pas lisibles, le dashboard démarre mais écrit dans ses logs qu'il ne peut pas ouvrir les bases ; lancez-le alors sous l'utilisateur qui les possède. `stat -c '%u:%g' /var/lib/squeezeboxserver` affiche le couple à utiliser :
 
 ```yaml
 services:
   lyrion-dashboard:
-    user: "0:0"
+    user: "999:999"
 ```
+
+`user: "0:0"`, c'est root, qui lit tout : un recours de dernier ressort, pas la première chose à essayer.
