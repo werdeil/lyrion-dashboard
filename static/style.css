@@ -1497,6 +1497,19 @@ body.in-app .page-header {
     }
 }
 
+/* Shorter still, on the stacked layouts where the cover sets the card's first
+   row: 100px is the floor, under which the meta beside it takes over anyway.
+   Above 1080px the cover has a column of its own and the meta sets that row,
+   so shrinking it there would buy the lyrics nothing. */
+@media (max-height: 500px) and (orientation: landscape) and (max-width: 1080px) {
+    .now-playing {
+        grid-template-columns: 100px 1fr;
+    }
+    .np-side {
+        max-width: 100px;
+    }
+}
+
 /* Narrow landscape keeps the scrollable page — the stats panel is below the
    fold — but fits the card to the visible viewport so nothing is cut off. */
 @media (max-height: 600px) and (orientation: landscape) and (max-width: 860px) {
