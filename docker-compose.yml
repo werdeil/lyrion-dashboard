@@ -1,32 +1,20 @@
 services:
   lyrion-dashboard:
-    image: python:3.12-slim
+    image: ghcr.io/werdeil/lyrion-dashboard:latest
     container_name: lyrion-dashboard
     restart: unless-stopped
-    working_dir: /app
-    command: >
-      sh -c "pip install --no-cache-dir -r requirements.txt && gunicorn -w 1 --threads 8 -b 0.0.0.0:1111 app:app --access-logfile - --error-logfile - --log-level info"
     ports:
       - "1111:1111"
     environment:
-      - LYRION_HOST=${LYRION_HOST}
-      - LYRION_DATA_DIR=${LYRION_DATA_DIR}
-      - PLAY_COUNTS_SOURCE=${PLAY_COUNTS_SOURCE:-auto}
-      - CUSTOM_DATA_DIR=${CUSTOM_DATA_DIR:-/opt/scripts/custom_data}
-      - LYRICS_PROVIDERS=${LYRICS_PROVIDERS:-lrclib,musixmatch,genius}
-      - MUSIXMATCH_TOKEN=${MUSIXMATCH_TOKEN:-}
-      - LRCLIB_TIMEOUT=${LRCLIB_TIMEOUT:-15}
-      - LYRICS_VERIFY_DURATION_TOLERANCE=${LYRICS_VERIFY_DURATION_TOLERANCE:-3}
-      - LOG_LEVEL=${LOG_LEVEL:-INFO}
-      - DEV=${DEV:-}
-      - TZ=${TZ:-UTC}
-    healthcheck:
-      test: ["CMD-SHELL", "python -c 'import os, urllib.request as u; u.urlopen(f\"http://127.0.0.1:1111/health\")'"
-      ]
-      interval: 30s
-      timeout: 10s
-      retries: 3
+      - LYRION_HOST=https://lyrion.local:9000
+      - TZ=Europe/Paris
+      # Optional, all documented on docs/configuration.md:
+      # - PLAY_COUNTS_SOURCE=auto
+      # - LYRICS_PROVIDERS=lrclib,musixmatch,genius
+      # - MUSIXMATCH_TOKEN=
+      # - LRCLIB_TIMEOUT=15
+      # - LOG_LEVEL=INFO
     volumes:
-      - .:/app:ro
-      - ${LYRION_DATA_DIR}:${LYRION_DATA_DIR}:ro
-      - ${CUSTOM_DATA_DIR}:/opt/scripts/custom_data
+      - /var/lib/squeezeboxserver:/lyrion:ro
+      # Only for /files/, which serves what other tools generate:
+      # - /opt/scripts/custom_data:/opt/scripts/custom_data:ro
