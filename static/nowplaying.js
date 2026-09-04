@@ -1000,26 +1000,31 @@ function renderRecent() {
         // so it isn't focusable — the lift is a mouse-hover flourish only.
         var sleeve = document.createElement('div');
         sleeve.className = 'np-recent-sleeve';
-        sleeve.style.width = size + 'px';
-        sleeve.style.height = size + 'px';
-        sleeve.style.top = plan[i].top + 'px';
         // Centred, then nudged a little off-centre, alternating left/right by
         // depth (freshest left, next right, …): the shrinking stack keeps a
         // tossed feel and each sleeve peeks out to the side of the wider one on
         // top of it, so it stays hoverable.
         var shift = (i % 2 === 0 ? -1 : 1) * Math.round(w * RECENT_LANE_SHIFT);
-        sleeve.style.left = Math.round((w - size) / 2 + shift) + 'px';
+        var left = Math.round((w - size) / 2 + shift);
+        sleeve.style.setProperty('--np-recent-w', size + 'px');
+        sleeve.style.setProperty('--np-recent-x', left + 'px');
+        sleeve.style.setProperty('--np-recent-y', plan[i].top + 'px');
+        // The lifted box, on the sleeve's bottom edge and centre. Laid out
+        // rather than scaled: a scaled raster settles softer, and by depth.
+        var lifted = Math.max(plan[0].size, Math.round(size * RECENT_HOVER_GROW_MIN));
+        sleeve.style.setProperty('--np-recent-w2', lifted + 'px');
+        sleeve.style.setProperty('--np-recent-x2',
+            Math.round(left + (size - lifted) / 2) + 'px');
+        sleeve.style.setProperty('--np-recent-y2', (plan[i].top + size - lifted) + 'px');
         sleeve.style.setProperty('--np-recent-rot', RECENT_TILTS[i % RECENT_TILTS.length] + 'deg');
         // Freshest listen frontmost; z decreases with depth so each older
         // sleeve sits behind the one above it.
-        sleeve.style.zIndex = String(count - i);
+        sleeve.style.setProperty('--np-recent-z', String(count - i));
         // Older sleeves sink into the shadow too: full light for the freshest
         // fading towards ~half brightness for the oldest visible one.
         var age = count > 1 ? i / (count - 1) : 0;
         sleeve.style.setProperty('--np-recent-age', (0.95 - 0.5 * age).toFixed(3));
         sleeve.style.setProperty('--np-recent-sat', (1 - 0.25 * age).toFixed(3));
-        sleeve.style.setProperty('--np-recent-grow',
-            Math.max(plan[0].size / size, RECENT_HOVER_GROW_MIN).toFixed(3));
         var travel = maxTravel > 0 ? (plan[0].size - size) / maxTravel : 0;
         sleeve.style.setProperty('--np-recent-ms', Math.round(RECENT_HOVER_MS_MIN +
             (RECENT_HOVER_MS_MAX - RECENT_HOVER_MS_MIN) * travel) + 'ms');
