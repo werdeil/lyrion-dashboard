@@ -35,6 +35,7 @@
     --text-faint: #828282;     /* tertiary: placeholders, source line */
     --text-on-accent: #1a1a1a; /* dark glyphs/labels on accent-filled controls */
     --border-color: #3a3a3a;   /* hairlines: rules, cover edge */
+    --page-pad: 16px;          /* body gutter, subtracted by the viewport-fitting calc */
     --surface: #303030;        /* raised neutral fills: progress track, cards */
     transition: --tint-color 900ms ease, --accent-color 900ms ease;
 }
@@ -42,7 +43,7 @@
 body {
     margin: 0;
     min-height: 100vh;
-    padding: 16px;
+    padding: var(--page-pad);
     font-family: Arial, sans-serif;
     color: var(--text);
     background:
@@ -1462,25 +1463,9 @@ body.in-app .page-header {
     }
 }
 
-/* Narrow landscape stays on the scrollable page: cap the lyrics box so the
-   card doesn't grow into endless scrolling. */
-@media (max-height: 600px) and (orientation: landscape) and (max-width: 860px) {
-    .np-lyrics {
-        max-height: 240px;
-    }
-    /* The card outgrows the screen here, so a cover anchored to it would open
-       below the fold: it takes the viewport, over a backdrop of its own. */
-    .cover-zoom {
-        position: fixed;
-        background: color-mix(in srgb, var(--tint-color) 20%, rgba(12, 12, 12, 0.93));
-        backdrop-filter: blur(24px);
-        -webkit-backdrop-filter: blur(24px);
-    }
-}
-
 @media (max-width: 540px) {
-    body {
-        padding: 12px;
+    :root {
+        --page-pad: 12px;
     }
     .now-playing {
         grid-template-columns: 120px 1fr;
@@ -1509,5 +1494,50 @@ body.in-app .page-header {
 @media (max-width: 540px) {
     .now-playing {
         min-height: 275px;
+    }
+}
+
+/* Shorter still, on the stacked layouts where the cover sets the card's first
+   row: 100px is the floor, under which the meta beside it takes over anyway.
+   Above 1080px the cover has a column of its own and the meta sets that row,
+   so shrinking it there would buy the lyrics nothing. */
+@media (max-height: 500px) and (orientation: landscape) and (max-width: 1080px) {
+    .now-playing {
+        grid-template-columns: 100px 1fr;
+    }
+    .np-side {
+        max-width: 100px;
+    }
+}
+
+/* Narrow landscape keeps the scrollable page — the stats panel is below the
+   fold — but fits the card to the visible viewport so nothing is cut off. */
+@media (max-height: 600px) and (orientation: landscape) and (max-width: 860px) {
+    .left-panel {
+        display: flex;
+        flex-direction: column;
+        /* dvh, as in the fixed layout above: 100vh is iOS Safari's *large*
+           viewport and would push the card's bottom under the toolbars. */
+        height: calc(100vh - 2 * var(--page-pad));
+        height: calc(100dvh - 2 * var(--page-pad));
+    }
+    .now-playing {
+        flex: 1 1 auto;
+        /* After the card's min-height floors above, which this overrides. */
+        min-height: 0;
+        grid-template-rows: auto 1fr;
+        overflow: hidden;
+    }
+    .np-lyrics-block {
+        display: flex;
+        flex-direction: column;
+        min-height: 0;
+        /* The card's align-items:start would size this to its content. */
+        align-self: stretch;
+    }
+    .np-lyrics {
+        /* basis 0, as in the fixed layout: grow from nothing into the leftover
+           space, not from the synced lyrics' own content height. */
+        flex: 1 1 0;
     }
 }
