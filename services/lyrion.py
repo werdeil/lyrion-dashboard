@@ -121,6 +121,16 @@ def get_players():
     return data.get("result", {}).get("players_loop", [])
 
 
+def _year(value):
+    # Lyrion reports an unknown year as 0 (sometimes the string "0"), never as
+    # a missing tag.
+    try:
+        year = int(value)
+    except (TypeError, ValueError):
+        return None
+    return year or None
+
+
 def get_now_playing(player_id):
     """Return the current track + transport state of a player.
 
@@ -165,7 +175,7 @@ def get_now_playing(player_id):
         "title": track.get("title"),
         "artist": track.get("trackartist") or track.get("artist") or track.get("albumartist"),
         "album": track.get("album"),
-        "year": track.get("year"),
+        "year": _year(track.get("year")),
         "coverid": track.get("coverid"),
         "artwork_url": artwork_url,
     }
