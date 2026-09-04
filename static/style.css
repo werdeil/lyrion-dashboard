@@ -336,33 +336,34 @@ hr {
 /* One sleeve; renderRecent sets its geometry and per-sleeve vars inline. */
 .np-recent-sleeve {
     position: absolute;
-    width: var(--np-recent-size, 150px);
-    height: var(--np-recent-size, 150px);
+    width: var(--np-recent-w, 150px);
+    height: var(--np-recent-w, 150px);
+    left: var(--np-recent-x, 0);
+    top: var(--np-recent-y, 0);
+    z-index: var(--np-recent-z, 1);
     border-radius: 8px;
     overflow: hidden;
     border: 1px solid var(--border-color);
     box-shadow: 0 8px 20px rgba(0, 0, 0, 0.5);
     transform: rotate(var(--np-recent-rot, 0deg));
-    /* Grows upwards: the card clips (overflow:hidden), so there is no room below. */
-    transform-origin: bottom center;
     filter: brightness(var(--np-recent-age, 1)) saturate(var(--np-recent-sat, 1));
     cursor: pointer;
-    transition-property: transform, filter, box-shadow;
+    transition-property: width, height, left, top, transform, filter, box-shadow;
     transition-duration: var(--np-recent-ms, 200ms);
     transition-timing-function: ease;
 }
 
-/* Mouse-only: the pile is decorative, so no sleeve is focusable. !important
-   throughout — renderRecent sets transform, filter and z-index inline. */
+/* Mouse-only: the pile is decorative, so no sleeve is focusable. The lift is
+   laid out, not scaled, so the picture stays sharp while it grows. */
 .np-recent-sleeve:hover {
-    transform: rotate(0deg) scale(var(--np-recent-grow, 1.05)) !important;
-    filter: none !important;
-    z-index: 50 !important;
-    /* Divided out of the scale, which would otherwise thicken edge and shadow. */
-    border-width: calc(1px / var(--np-recent-grow, 1.05));
-    border-radius: calc(8px / var(--np-recent-grow, 1.05));
-    box-shadow: 0 calc(16px / var(--np-recent-grow, 1.05))
-                  calc(40px / var(--np-recent-grow, 1.05)) rgba(0, 0, 0, 0.7);
+    width: var(--np-recent-w2);
+    height: var(--np-recent-w2);
+    left: var(--np-recent-x2);
+    top: var(--np-recent-y2);
+    z-index: 50;
+    transform: rotate(0deg);
+    filter: none;
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.7);
 }
 
 .np-recent-sleeve img {
