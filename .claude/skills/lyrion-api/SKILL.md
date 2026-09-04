@@ -44,7 +44,7 @@ data = lyrion_request(payload)
 | `a` | artist | |
 | `A` | role-keyed artist lists | multiple artists joined by `", "` under a role key (`trackartist`, `artist`) |
 | `l` | album | |
-| `y` | year | |
+| `y` | year | `0` when unknown, normalized to `None` |
 | `d` | duration | |
 | `c` | coverid | absent for remote/streamed tracks |
 | `K` | artwork_url | remote streams (Deezer/Spotify/radio); may be relative to the host |
