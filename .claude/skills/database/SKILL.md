@@ -25,8 +25,8 @@ with get_db_conn() as conn:
 
 It opens `library.db` in read-only URI mode (`file:...?mode=ro`), **`ATTACH`es** `persist.db` (also RO) as the `persist` schema, sets `row_factory = sqlite3.Row` (access columns by name), applies read-tuning pragmas (mmap/cache/temp), wraps the work in `BEGIN DEFERRED` … `COMMIT`, and defines the `play_counts` TEMP view (see below). Two databases, one connection:
 
-- **`library.db`** (default schema) — the music library: `tracks`, `albums`, `contributor_track`, `genres`, and, when the plugin is installed, the Alternative Play Count table `alternativeplaycount`.
-- **`persist.db`** (referenced as `persist.<table>`) — persistent per-track state: `persist.tracks_persistent` (ratings, `lastplayed`, …).
+- **`library.db`** (default schema) — the music library: `tracks`, `albums`, `contributor_track`, `genres`.
+- **`persist.db`** (referenced as `persist.<table>`) — persistent per-track state: `persist.tracks_persistent` (ratings, `lastplayed`, …), and the Alternative Play Count table `alternativeplaycount` when the plugin is installed.
 
 The DB paths come from config (`DB_PATH`, `DB_PERSIST_PATH`). They are derived from `LYRION_DATA_DIR`, the directory holding Lyrion's own `prefs/` and `cache/` — `{dir}/cache/library.db` and `{dir}/prefs/persist.db` — which `DB_DIR` and `DB_PERSIST_DIR` override one at a time when either was relocated. Tests set the two overrides directly (see the `testing` skill), so they never depend on that layout.
 
@@ -44,7 +44,7 @@ Real listening data comes from the [Alternative Play Count](https://github.com/A
 - `playcount` / `lastplayed` — genuine plays. "Played" means `playcount > 0`.
 - `skipcount` / `lastskipped` — skips.
 
-The plugin is **recommended, not required**, so no query names that table. `get_db_conn` defines a TEMP view **`play_counts`** (`urlmd5`, `playcount`, `skipcount`, `lastplayed`) over whichever source `_use_apc` picks — the plugin's table, else `persist.tracks_persistent` with `skipcount` forced to 0 — and every query joins the view, aliased `apc`. `PLAY_COUNTS_SOURCE=lyrion` forces the fallback even when the plugin is installed, for a library whose history predates it. A TEMP view is writable on a read-only connection: it lives in the connection's temp schema, never in Lyrion's files. Use the view for anything about what was played; add a column to both definitions rather than referencing a source table directly.
+The plugin is **recommended, not required**, so no query names that table. `get_db_conn` defines a TEMP view **`play_counts`** (`urlmd5`, `playcount`, `skipcount`, `lastplayed`) over whichever source `_use_apc` picks — it looks for the table in **both** schemas, since the plugin keeps it in `persist.db` so a library rescan cannot drop it, and the view's unqualified name then resolves to whichever holds it — the plugin's table, else `persist.tracks_persistent` with `skipcount` forced to 0 — and every query joins the view, aliased `apc`. `PLAY_COUNTS_SOURCE=lyrion` forces the fallback even when the plugin is installed, for a library whose history predates it. A TEMP view is writable on a read-only connection: it lives in the connection's temp schema, never in Lyrion's files. Use the view for anything about what was played; add a column to both definitions rather than referencing a source table directly.
 
 On the fallback two things degrade, and the code says so where it matters: skips do not exist at all, and `lastplayed` is bumped on a skip too, so `get_recent_album_covers` can surface an album that was only skipped past. `_compute_stats` reports which source it used as **`apc_available`** — the plugin's table *and* not overridden — and the template drops the "Skips" row when it is false.
 

@@ -93,8 +93,11 @@ def _use_apc(conn):
     logged whenever the answer changes."""
     if current_app.config.get("PLAY_COUNTS_SOURCE") == "lyrion":
         state = "disabled by PLAY_COUNTS_SOURCE"
+    # The view's unqualified name resolves to whichever schema holds the table.
     elif conn.execute(
-        "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'alternativeplaycount'"
+        "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'alternativeplaycount' "
+        "UNION ALL "
+        "SELECT 1 FROM persist.sqlite_master WHERE type = 'table' AND name = 'alternativeplaycount'"
     ).fetchone():
         state = "installed"
     else:
