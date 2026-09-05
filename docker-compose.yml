@@ -7,8 +7,8 @@ services:
       - "1111:1111"
     environment:
       - LYRION_HOST=https://lyrion.local:9000
-      - TZ=Europe/Paris
       # Optional, all documented on docs/configuration.md:
+      # - TZ=Europe/Paris
       # - PLAY_COUNTS_SOURCE=auto
       # - LYRICS_PROVIDERS=lrclib,musixmatch,genius
       # - MUSIXMATCH_TOKEN=
