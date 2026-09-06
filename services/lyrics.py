@@ -269,11 +269,26 @@ def _musixmatch_token():
         return token
 
 
-def _provider_musixmatch(artist, title, album, duration):
-    token = _musixmatch_token()
-    if not token:
-        return None
+def _mxm_subtitle(subtitle_list, language):
+    """Return a subtitle body from Musixmatch's list, skipping other languages.
 
+    A track can carry several subtitles, translations among them; one that
+    declares a language other than the lyrics' would swap out the words.
+    """
+    for entry in subtitle_list or []:
+        subtitle = entry.get("subtitle", {}) if isinstance(entry, dict) else {}
+        body = subtitle.get("subtitle_body")
+        declared = subtitle.get("subtitle_language")
+        if body and (not language or not declared or declared == language):
+            return body
+    return None
+
+
+def _mxm_macro_calls(artist, title, album, duration, token):
+    """Run the desktop macro and return its `macro_calls` map, or None.
+
+    Raises ProviderUnavailable when Musixmatch can't be reached.
+    """
     params = {
         "format": "json",
         "namespace": "lyrics_richsynched",
@@ -293,12 +308,21 @@ def _provider_musixmatch(artist, title, album, duration):
         r = requests.get(
             f"{MXM_BASE}/macro.subtitles.get", params=params, headers=_MXM_HEADERS, timeout=6
         )
-        calls = r.json().get("message", {}).get("body", {})
-        calls = calls.get("macro_calls", {}) if isinstance(calls, dict) else {}
+        body = r.json().get("message", {}).get("body", {})
     except requests.RequestException as exc:
         raise ProviderUnavailable("musixmatch") from exc
     except (ValueError, AttributeError) as exc:
         log.debug("musixmatch: unreadable response (%s)", exc)
+        return None
+    return body.get("macro_calls", {}) if isinstance(body, dict) else {}
+
+
+def _provider_musixmatch(artist, title, album, duration):
+    token = _musixmatch_token()
+    if not token:
+        return None
+    calls = _mxm_macro_calls(artist, title, album, duration, token)
+    if calls is None:
         return None
 
     def _body(call):
@@ -306,27 +330,31 @@ def _provider_musixmatch(artist, title, album, duration):
         body = node.get("message", {}).get("body") if isinstance(node, dict) else None
         return body if isinstance(body, dict) else {}
 
-    synced = None
-    subtitle_list = _body("track.subtitles.get").get("subtitle_list")
-    if subtitle_list:
-        synced = subtitle_list[0].get("subtitle", {}).get("subtitle_body") or None
+    track = _body("matcher.track.get").get("track", {})
+    meta = {
+        "artist": track.get("artist_name"),
+        "title": track.get("track_name"),
+        "album": track.get("album_name"),
+        "duration": track.get("track_length"),
+    }
+    # Musixmatch's matcher is fuzzy and answers even when nothing really fits,
+    # so a track it doesn't carry comes back as the nearest song it does.
+    if not _matches_request(meta, artist, title, duration):
+        log.info(
+            "musixmatch: matched %r by %r (%ss), not %r by %r (%ss) - dropped",
+            meta["title"], meta["artist"], _int_duration(meta["duration"]),
+            title, artist, _int_duration(duration),
+        )
+        return None
 
-    lyrics = _body("track.lyrics.get").get("lyrics", {}).get("lyrics_body") or None
+    lyrics_node = _body("track.lyrics.get").get("lyrics", {})
+    lyrics = lyrics_node.get("lyrics_body") or None
+    synced = _mxm_subtitle(
+        _body("track.subtitles.get").get("subtitle_list"), lyrics_node.get("lyrics_language")
+    )
 
     if lyrics or synced:
-        # The matcher echoes the track it actually matched; keep it so the
-        # caller can confirm it lines up with what we asked for.
-        track = _body("matcher.track.get").get("track", {})
-        return {
-            "lyrics": lyrics,
-            "synced": synced,
-            "meta": {
-                "artist": track.get("artist_name"),
-                "title": track.get("track_name"),
-                "album": track.get("album_name"),
-                "duration": track.get("track_length"),
-            },
-        }
+        return {"lyrics": lyrics, "synced": synced, "meta": meta}
     return None
 
 

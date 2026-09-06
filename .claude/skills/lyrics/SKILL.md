@@ -35,6 +35,8 @@ Providers live in `services/lyrics.py`: `_provider_lrclib`, `_provider_musixmatc
 
 **But a synced record only counts if it is the same recording.** An LRC's timestamps belong to the upload they were made for, so a live or extended version scrolls against the wrong timeline — the karaoke sits idle, then jumps. `_duration_close` (the same tolerance `_matches_request` verifies with) filters the `/search` candidates before the synced preference applies, and a record of another length still serves its `plainLyrics`: right words with no karaoke beat a karaoke that's wrong.
 
+**A fuzzy matcher's own answer has to be checked inside the provider.** Musixmatch's `matcher.track.get` always returns its nearest hit, so a track absent from its catalogue comes back as a different song — often in another language, since that is what "nearest" reaches for once the title stops matching. `_provider_musixmatch` runs the matched track through `_matches_request` and returns `None` when it doesn't line up, whatever the caller's `verify` setting: unlike LRCLIB's signature `/get`, there is no upstream "no match" to fall back on. It also picks the subtitle by language (`_mxm_subtitle`) rather than taking `subtitle_list[0]`, since a translation among the subtitles would swap out the words; when only translations are on offer the plain lyrics stand alone.
+
 **Adding a provider:** write `_provider_<name>(artist, title, album, duration)` returning the dict above (set the `meta` fields you can, leave the rest `None`), add it to `PROVIDERS`, and — since a provider must never break the chain — catch its own network/parse exceptions and return `None` on failure. `fetch_lyrics` already wraps each call in a `try/except`, but keep provider-internal failures from raising too. Use a browser-like UA where a service blocks default agents (see `BROWSER_UA`).
 
 ## fetch_lyrics: the orchestrator
@@ -56,7 +58,7 @@ A new provider raises `ProviderUnavailable` for unreachability — `_search_prov
 
 ## Verification (`verify=True`)
 
-The batch CLI writes lyrics **permanently** into tags, so it opts into verification: `_matches_request` requires the candidate's normalized title and artist to equal the request's, and — when both durations are known — to fall within `VERIFY_DURATION_TOLERANCE` seconds (the surest way to tell the real recording from a live/remix/cover). `_normalize` folds accents, case, parenthetical qualifiers, and "feat." credits before comparing. The web route does **not** verify (lenient recall); the CLI does (precision — a wrong tag is worse than none).
+The batch CLI writes lyrics **permanently** into tags, so it opts into verification: `_matches_request` requires the candidate's normalized title and artist to equal the request's, and — when both durations are known — to fall within `VERIFY_DURATION_TOLERANCE` seconds (the surest way to tell the real recording from a live/remix/cover). `_normalize` folds accents, case, parenthetical qualifiers, and "feat." credits before comparing. The web route does **not** verify (lenient recall); the CLI does (precision — a wrong tag is worse than none). The flag governs the chain in `_search_providers`; `_provider_musixmatch` applies the same rule to itself unconditionally (see above), so the lenient path still never shows another song's lyrics.
 
 ## Writing tags (`services/tags.py`)
 
@@ -74,4 +76,4 @@ Runs outside the web app with `requirements-cli.txt` (no Flask/Lyrion). Walks fi
 2. Preserve the cache-key shape and TTL split; don't key on track_id alone.
 3. Tag writes store plain text only (run through `lrc_to_plain`).
 4. Keep `services/tags.py` free of Flask/Lyrion imports (the CLI reuses it).
-5. Add/extend tests: `test_lyrics_cache.py`, `test_lyrics_verify.py`, `test_lyrics_route.py`, `test_get_track_lyrics.py`. See the `testing` skill.
+5. Add/extend tests: `test_lyrics_cache.py`, `test_lyrics_verify.py`, `test_lyrics_musixmatch.py`, `test_lyrics_route.py`, `test_get_track_lyrics.py`. See the `testing` skill.
