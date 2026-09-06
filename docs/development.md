@@ -1,0 +1,48 @@
+[English](development.md) | [Français](development.fr.md) — back to the [README](../README.md)
+
+# Development
+
+Three ways to run something other than the released image, from the lightest to the closest to production.
+
+## From the sources
+
+The loop to write code in: templates and static files are re-read on every request under `DEV=1`, so an HTML or CSS edit shows up on a page refresh.
+
+Two settings are enough to start. Put them in a `.env` at the repository root:
+
+```
+LYRION_HOST=https://lyrion.local:9000
+LYRION_DATA_DIR=/var/lib/squeezeboxserver
+```
+
+then, on Python 3.12+:
+
+```bash
+pip install -r requirements.txt
+set -a; source .env; set +a
+DEV=1 python app.py
+```
+
+The app is available at `http://localhost:1111`. This is also the way to run the dashboard on a host where Docker is not wanted — drop `DEV=1` there.
+
+`.env` is what feeds the app here (`config.py` reads the environment once at start-up), and `scripts/embed_lyrics.py` loads the same file through python-dotenv. Every variable is documented on the [Configuration](configuration.md) page.
+
+## The `dev` image
+
+`ghcr.io/werdeil/lyrion-dashboard:dev` is rebuilt on every merge to `master`, so it carries code that is in no release yet. Use it to try a fix before it ships or to reproduce a bug against the current code, and point `image:` back at a version tag afterwards — nothing guarantees `dev` is in a working state.
+
+## Building the image from a checkout
+
+```bash
+docker build -t lyrion-dashboard:local .
+```
+
+Point the compose file's `image:` at that tag to run it. This is how to check a change to the `Dockerfile` itself. It is a poor loop for application code: the image ships its own copy of the sources, so every edit needs a rebuild.
+
+## Checks
+
+The test suite, the linters and the security scanners are the same ones CI runs; `CLAUDE.md` lists each command and how to reproduce it.
+
+```bash
+python -m unittest discover
+```
