@@ -152,11 +152,19 @@ hr {
 }
 
 .stats-panel h2 {
+    display: flex;
+    align-items: center;
+    gap: 8px;
     margin: 0 0 14px 0;
     font-size: var(--fs-md);
     color: var(--text-muted);
     text-transform: uppercase;
     letter-spacing: 1px;
+}
+
+.stats-panel h2 svg,
+.stat-group-title-label svg {
+    flex: none;
 }
 
 .stat-group {
