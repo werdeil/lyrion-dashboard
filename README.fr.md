@@ -17,7 +17,7 @@
 - **Dernières écoutes** -- Sur grand écran, les albums récemment écoutés s'empilent comme des pochettes de disque sous la cover, le plus récent au-dessus. Construit à partir de l'historique d'écoute, une pochette par album ; avec le plugin Alternative Play Count installé, les sauts sont exclus.
 - **Paroles synchronisées** -- Les paroles avec timestamps LRC défilent ligne par ligne au rythme de la lecture, façon karaoké.
 - **Recherche web de paroles** -- Un interrupteur de recherche automatique interroge LRCLIB, Musixmatch et Genius pour chaque morceau joué : il complète les paroles absentes de la bibliothèque et convertit son texte simple en version synchronisée quand elle existe.
-- **Statistiques de la bibliothèque** -- Albums, artistes, morceaux joués/non joués, genres, notes, paroles, vélocité d'écoute sur 30 jours.
+- **Statistiques de la bibliothèque** -- Albums, artistes, morceaux joués/non joués et profondeur des réécoutes, genres, notes, paroles, vélocité d'écoute sur 30 jours.
 - **Serveur de fichiers** -- Sert les fichiers depuis un répertoire configurable.
 - **Application Android** -- Une fine surcouche WebView (même principe que [lms-material-app](https://github.com/CDrummond/lms-material-app)) avec découverte automatique du serveur LMS, publiée sur [F-Droid](https://f-droid.org/packages/com.werdeil.lyriondashboard/), voir [`android/`](android/README.md) (en anglais).
 
