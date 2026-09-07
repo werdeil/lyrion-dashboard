@@ -131,14 +131,14 @@
         </div>
 
         <div class="stats-panel">
-            <h2>&#127928; {{ t.stats_title }}</h2>
+            <h2>{{ icons.stats_icon(18) }} {{ t.stats_title }}</h2>
 
             {# Group order is by how fast the numbers move: history changes with every
                play, completion with the library, the library block only on a scan. #}
             {# The accent (stat-value) marks a group's total; a group without one accents nothing. #}
             <div class="stat-group">
                 <div class="stat-group-title">
-                    <span class="stat-group-title-label">&#127911; {{ t.history }}</span>
+                    <span class="stat-group-title-label">{{ icons.history_icon(16) }} {{ t.history }}</span>
                 </div>
                 <div class="stat-row">
                     <span class="stat-label">{{ t.played_last_30d }}</span>
@@ -162,7 +162,7 @@
 
             <div class="stat-group">
                 <div class="stat-group-title">
-                    <span class="stat-group-title-label">&#127926; {{ t.tracks }}</span>
+                    <span class="stat-group-title-label">{{ icons.tracks_icon(16) }} {{ t.tracks }}</span>
                     <span class="stat-group-total" data-stat="songs_total">{{ stats.songs_total }}</span>
                 </div>
                 <div class="stat-row">
@@ -181,7 +181,7 @@
 
             <div class="stat-group">
                 <div class="stat-group-title">
-                    <span class="stat-group-title-label">&#127925; {{ t.albums }}</span>
+                    <span class="stat-group-title-label">{{ icons.albums_icon(16) }} {{ t.albums }}</span>
                     <span class="stat-group-total" data-stat="albums_total">{{ stats.albums_total }}</span>
                 </div>
                 <div class="stat-row">
@@ -204,7 +204,7 @@
 
             <div class="stat-group">
                 <div class="stat-group-title">
-                    <span class="stat-group-title-label">&#127908; {{ t.album_artists }}</span>
+                    <span class="stat-group-title-label">{{ icons.album_artists_icon(16) }} {{ t.album_artists }}</span>
                     <span class="stat-group-total" data-stat="artists_total">{{ stats.artists_total }}</span>
                 </div>
                 <div class="stat-row">
@@ -227,7 +227,7 @@
 
             <div class="stat-group">
                 <div class="stat-group-title">
-                    <span class="stat-group-title-label">&#127917; {{ t.track_artists }}</span>
+                    <span class="stat-group-title-label">{{ icons.track_artists_icon(16) }} {{ t.track_artists }}</span>
                     <span class="stat-group-total" data-stat="track_artists_total">{{ stats.track_artists_total }}</span>
                 </div>
                 <div class="stat-row">
@@ -250,7 +250,7 @@
 
             <div class="stat-group">
                 <div class="stat-group-title">
-                    <span class="stat-group-title-label">&#128191; {{ t.library }}</span>
+                    <span class="stat-group-title-label">{{ icons.library_icon(16) }} {{ t.library }}</span>
                 </div>
                 <div class="stat-row">
                     <span class="stat-label">{{ t.genres }}</span>

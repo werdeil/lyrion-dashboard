@@ -19,6 +19,8 @@ The page is plain ES5-ish JavaScript and hand-written CSS — **no framework, no
 - `templates/nowplaying.html` — the Jinja page. `templates/_icons.html` — reusable inline-SVG icon macros (`{% import "_icons.html" as icons %}`).
 - `DEV=1 python app.py` live-reloads templates and disables static caching, so HTML/CSS/JS edits show on a plain refresh (see `config.py`).
 
+Every icon on the page is an inline SVG macro from `_icons.html`, drawn in the same language: a 24px viewBox, `fill: none`, a 2px `currentColor` stroke with round caps, shared by the private `_frame` macro, and a pixel size passed by the caller. Icons are never emoji or characters from an icon font — a Raspberry Pi kiosk running Raspberry Pi OS has no emoji font installed and renders them as tofu boxes.
+
 ## Lint gate
 
 ESLint (flat config `eslint.config.mjs`, dependency-free) runs in CI on `static/*.js` (`.github/workflows/web-ci.yml`):
