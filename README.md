@@ -17,7 +17,7 @@
 - **Recent plays** -- On wide screens the recently played albums stack up as a pile of sleeves under the cover, newest on top. Built from the play history, one cover per album; with the Alternative Play Count plugin installed, skips are excluded.
 - **Synced lyrics** -- Lyrics with LRC timestamps scroll line by line in time with playback, karaoke-style.
 - **Web lyrics fallback** -- An auto-search switch queries LRCLIB, Musixmatch and Genius for every playing track: it fills in what the library is missing and upgrades plain text to a synced version when one exists.
-- **Library statistics** -- Albums, artists, played/unplayed tracks, genres, ratings, lyrics, 30-day listening velocity.
+- **Library statistics** -- Albums, artists, played/unplayed tracks and how deep the replays go, genres, ratings, lyrics, 30-day listening velocity.
 - **File server** -- Serves files from a configurable directory.
 - **Android app** -- A thin WebView wrapper (same principle as [lms-material-app](https://github.com/CDrummond/lms-material-app)) with LMS auto-discovery, published on [F-Droid](https://f-droid.org/packages/com.werdeil.lyriondashboard/), see [`android/`](android/README.md).
 
