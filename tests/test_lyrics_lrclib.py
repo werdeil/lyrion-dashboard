@@ -107,6 +107,21 @@ class LrclibSyncedPreferenceTest(unittest.TestCase):
     def test_nothing_anywhere_returns_none(self):
         self.assertIsNone(self._fetch(_Lrclib(get=None, searches=[[], []])))
 
+    def test_the_artist_name_is_retried_without_its_leading_article(self):
+        fake = _Lrclib(get=None, searches=[[], [], [], [_record(5, synced="[00:12.00] la", album="Pamplemousse", duration=180)]])
+        with patch("services.lyrics.requests.get", side_effect=fake):
+            result = L._provider_lrclib("Les Fatals Picards", "Chez Tom", "Pamplemousse", "180")
+        self.assertEqual(result["synced"], "[00:12.00] la")
+        self.assertEqual(
+            [p["artist_name"] for p in fake.search_calls],
+            ["Les Fatals Picards", "Les Fatals Picards", "Fatals Picards", "Fatals Picards"],
+        )
+
+    def test_a_name_without_an_article_is_not_searched_twice(self):
+        fake = _Lrclib(get=None, searches=[[], []])
+        self._fetch(fake)
+        self.assertEqual(len(fake.search_calls), 2)
+
     def test_each_search_attempt_logs_its_candidate_counts(self):
         fake = _Lrclib(
             get=None,
