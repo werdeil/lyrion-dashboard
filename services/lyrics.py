@@ -124,12 +124,8 @@ def _duration_close(candidate, seconds):
 def _lrclib_attempts(artist, title, album):
     """Search parameter sets for one track, most specific first.
 
-    Each name is tried with the album filter first for precision, then without
-    it: the search fallback exists precisely to forgive album/duration
-    mismatches, so a differing album name (e.g. a "(Deluxe)" edition) must not
-    suppress an otherwise valid hit. LRCLIB matches names as it stores them, so
-    a name whose leading article the library and the catalogue disagree on is
-    then retried without it.
+    The album filter is dropped after being tried, since the search exists to
+    forgive the album/duration mismatches `get` won't.
     """
     names = [(artist, title)]
     loose = (_drop_article(artist), _drop_article(title))
@@ -476,8 +472,8 @@ def _enabled_providers():
 _PAREN_RE = re.compile(r"[\(\[\{].*?[\)\]\}]")
 _FEAT_RE = re.compile(r"\b(feat|ft|featuring)\b.*", re.IGNORECASE)
 _NONALNUM_RE = re.compile(r"[^a-z0-9]+")
-# Leading articles a library and a lyrics catalogue routinely disagree on
-# ("Les Fatals Picards" tagged as "Fatals Picards").
+# A library and a catalogue routinely disagree on a leading article and the
+# plural it carries ("Les Fatals Picards" tagged as "Fatal Picards").
 _ARTICLE_RE = re.compile(r"^(?:the|an?|le|la|les|l|un|une|des|el|los|las|il|der|die|das)\b['\s]+", re.IGNORECASE)
 
 
@@ -496,13 +492,10 @@ def _normalize(text):
 
 
 def _drop_article(text):
-    """Return `text` without its leading article, unchanged when it has none."""
     return _ARTICLE_RE.sub("", text) if text else text
 
 
 def _fold_name(text):
-    """Fold a name to the core two catalogues can be expected to agree on:
-    `_normalize`, then the leading article dropped and plural words trimmed."""
     words = _drop_article(_normalize(text)).split()
     return " ".join(w[:-1] if len(w) > 3 and w.endswith("s") else w for w in words)
 
