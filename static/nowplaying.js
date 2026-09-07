@@ -1712,7 +1712,16 @@ function renderStats(stats) {
             el.textContent = value;
         }
     });
+    retitleAboveFloorRow(stats);
     dimZeroSubRows();
+}
+
+function retitleAboveFloorRow(stats) {
+    var row = document.getElementById('stat-row-above-floor');
+    if (!row || stats.songs_play_floor === undefined) { return; }
+    row.hidden = stats.songs_play_floor < 1;
+    row.querySelector('.stat-label').textContent =
+        I18N.played_n_times.replace('{n}', stats.songs_play_floor + 1);
 }
 
 function dimZeroSubRows() {

@@ -75,6 +75,7 @@ def _stats():
         "songs_total": 11284, "songs_played_apc": 8930,
         "songs_unplayed_apc": 2354, "songs_total_plays_apc": 46215,
         "songs_total_skips_apc": 1873, "apc_available": True,
+        "songs_play_floor": 0, "songs_above_floor": 8930,
         "genres": 58, "rated_songs": 1024, "songs_with_lyrics": 6725,
         "velocity_30d": 412, "velocity_1year": 3980,
     }
@@ -94,6 +95,7 @@ def _stats():
         s[key + "_pct"] = _pct(s[key], s[total])
     s["songs_played_pct"] = _pct(s["songs_played_apc"], s["songs_total"])
     s["songs_unplayed_apc_pct"] = _pct(s["songs_unplayed_apc"], s["songs_total"])
+    s["songs_above_floor_pct"] = _pct(s["songs_above_floor"], s["songs_total"])
     return s
 
 

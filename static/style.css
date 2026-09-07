@@ -232,6 +232,11 @@ hr {
     color: var(--text);
 }
 
+/* display:flex above would defeat the hidden attribute without this. */
+.stat-row[hidden] {
+    display: none;
+}
+
 .stat-row.sub {
     padding-left: 10px;
     color: var(--text-muted);

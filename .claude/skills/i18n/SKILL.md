@@ -38,6 +38,7 @@ return render_template("nowplaying.html", lang=lang, t=TRANSLATIONS[lang], ...)
 2. Use the key in the template via `t`, e.g. `{{ t.stats_title }}` or `aria-label="{{ t.choose_player }}"`. Many existing strings are tooltips / `aria-label`s — user-facing text in attributes counts too.
 3. For client-side text, read it from the serialized `t` in `static/nowplaying.js` rather than hardcoding a literal — that's why the whole dict is exposed.
 4. Never hardcode a display string in a template or JS. If it's visible to a user, it's a translation key.
+5. A string with a value in it carries a `{n}`-style placeholder (`played_n_times`), filled where it is rendered — `t.played_n_times.format(n=...)` in Jinja, `I18N.played_n_times.replace('{n}', ...)` in JS. Never concatenate fragments: word order differs between the two languages.
 
 **Keys are stable identifiers, not English text** — snake_case describing the role (`retry_lyrics`, `empty_state`), so the English wording can change without renaming the key.
 

@@ -210,7 +210,10 @@ def _compute_stats():
                 (SELECT SUM(is_played) FROM track_play)                        AS songs_played_apc,
                 (SELECT COUNT(*) - SUM(is_played) FROM track_play)             AS songs_unplayed_apc,
                 (SELECT SUM(playcount) FROM track_play WHERE playcount > 0)    AS songs_total_plays_apc,
-                (SELECT SUM(skipcount) FROM track_play WHERE skipcount > 0)    AS songs_total_skips_apc
+                (SELECT SUM(skipcount) FROM track_play WHERE skipcount > 0)    AS songs_total_skips_apc,
+                (SELECT MIN(playcount) FROM track_play)                        AS songs_play_floor,
+                (SELECT SUM(playcount > (SELECT MIN(playcount) FROM track_play))
+                 FROM track_play)                                              AS songs_above_floor
             FROM album_agg
         """).fetchone()
 
@@ -225,6 +228,8 @@ def _compute_stats():
             "songs_unplayed_apc":    row["songs_unplayed_apc"] or 0,
             "songs_total_plays_apc": row["songs_total_plays_apc"] or 0,
             "songs_total_skips_apc": row["songs_total_skips_apc"] or 0,
+            "songs_play_floor":      row["songs_play_floor"] or 0,
+            "songs_above_floor":     row["songs_above_floor"] or 0,
             "apc_available":         apc_available,
         }
 
@@ -337,6 +342,7 @@ def _compute_stats():
         # Pourcentages songs
         stats["songs_played_pct"]       = pct(stats["songs_played_apc"],  stats["songs_total"])
         stats["songs_unplayed_apc_pct"] = pct(stats["songs_unplayed_apc"], stats["songs_total"])
+        stats["songs_above_floor_pct"]  = pct(stats["songs_above_floor"], stats["songs_total"])
 
         # Pourcentages divers
         stats["rated_songs_pct"]        = pct(stats["rated_songs"],       stats["songs_total"])
