@@ -36,6 +36,24 @@ class NormalizeTest(unittest.TestCase):
         self.assertEqual(L._normalize(""), "")
 
 
+class FoldNameTest(unittest.TestCase):
+    def test_leading_article_is_dropped(self):
+        self.assertEqual(L._fold_name("The xx"), L._fold_name("xx"))
+        self.assertEqual(L._fold_name("L'Affaire Louis Trio"), L._fold_name("Affaire Louis Trio"))
+
+    def test_plural_disagreement_still_folds_together(self):
+        self.assertEqual(L._fold_name("Les Fatals Picards"), L._fold_name("Fatal Picards"))
+
+    def test_an_article_inside_the_name_is_kept(self):
+        self.assertNotEqual(L._fold_name("Take The Power Back"), L._fold_name("Take Power Back"))
+
+    def test_short_words_keep_their_s(self):
+        self.assertNotEqual(L._fold_name("Yes"), L._fold_name("Ye"))
+
+    def test_different_names_stay_apart(self):
+        self.assertNotEqual(L._fold_name("The Beatles"), L._fold_name("The Beach Boys"))
+
+
 class MatchesRequestTest(unittest.TestCase):
     def _meta(self, **kw):
         base = {"artist": "Muse", "title": "Space Debris", "album": None, "duration": 247}
@@ -63,6 +81,14 @@ class MatchesRequestTest(unittest.TestCase):
 
     def test_missing_requested_duration_accepts_on_title_artist(self):
         self.assertTrue(L._matches_request(self._meta(duration=248), "Muse", "Space Debris", None))
+
+    def test_artist_tagged_without_its_article_still_matches(self):
+        meta = self._meta(artist="Les Fatals Picards", title="Chez Tom")
+        self.assertTrue(L._matches_request(meta, "Fatal Picards", "Chez Tom", "247"))
+
+    def test_title_tagged_without_its_article_still_matches(self):
+        meta = self._meta(title="The Space Debris")
+        self.assertTrue(L._matches_request(meta, "Muse", "Space Debris", "247"))
 
     def test_qualifier_and_feat_still_match(self):
         meta = self._meta(title="Space Debris (Live)", artist="Muse feat. X", duration=246)
