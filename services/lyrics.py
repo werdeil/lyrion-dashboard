@@ -18,6 +18,7 @@ import time
 import threading
 import unicodedata
 from collections import OrderedDict
+from urllib.parse import urlencode
 
 import requests
 
@@ -28,7 +29,8 @@ try:
 except ImportError:  # Genius scraping is skipped if bs4 isn't installed.
     BeautifulSoup = None
 
-LRCLIB_BASE = "https://lrclib.net/api"
+LRCLIB_SITE = "https://lrclib.net"
+LRCLIB_BASE = f"{LRCLIB_SITE}/api"
 MXM_BASE = "https://apic-desktop.musixmatch.com/ws/1.1"
 USER_AGENT = "lyrion-custom-data (https://github.com/werdeil)"
 # A browser-like UA avoids being blocked when scraping Genius / talking to the
@@ -140,6 +142,11 @@ def _lrclib_attempts(artist, title, album):
     return attempts
 
 
+def _lrclib_search_url(artist, title):
+    """Browsable URL replaying this track's LRCLIB search, for the diagnostic logs."""
+    return f"{LRCLIB_BASE}/search?{urlencode({'artist_name': artist or '', 'track_name': title or ''})}"
+
+
 def _lrclib_search(artist, title, album, seconds, fallback):
     """Scan LRCLIB's `search` for a synced record of this very recording.
 
@@ -213,10 +220,16 @@ def _provider_lrclib(artist, title, album, duration):
         payload = _lrclib_search(artist, title, album, seconds, payload)
 
     if not payload:
+        log.info("lrclib: no record, catalogue search: %s", _lrclib_search_url(artist, title))
         return None
     # Another recording's LRC would run against the wrong timeline, so only its
     # words are kept; the caller then shows them as plain lyrics.
     synced_text = payload.get("syncedLyrics") if _duration_close(payload, seconds) else None
+    if payload.get("syncedLyrics") and not synced_text:
+        log.info(
+            "lrclib: %s/tracks/%s is %ss, this track is %ss - its timings dropped",
+            LRCLIB_SITE, payload.get("id"), payload.get("duration"), seconds,
+        )
     log.debug(
         "lrclib: record %s (%r, %ss), synced=%s",
         payload.get("id"), payload.get("albumName"), payload.get("duration"),

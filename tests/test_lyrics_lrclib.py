@@ -134,6 +134,15 @@ class LrclibSyncedPreferenceTest(unittest.TestCase):
         self.assertIn("returned 1 candidate(s), 0 synced", counts[0])
         self.assertIn("returned 2 candidate(s), 1 synced", counts[1])
 
+    def test_a_miss_logs_a_search_url_to_replay_by_hand(self):
+        fake = _Lrclib(get=None, searches=[[], []])
+        with self.assertLogs("services.lyrics", level="INFO") as captured:
+            self._fetch(fake)
+        urls = [line for line in captured.output if "catalogue search" in line]
+        self.assertEqual(len(urls), 1)
+        self.assertIn("artist_name=Muse", urls[0])
+        self.assertIn("track_name=Will+Of+The+People", urls[0])
+
 
 class LrclibDurationMatchTest(unittest.TestCase):
     """An LRC's timestamps only fit the recording they were made for: a live or
@@ -183,6 +192,15 @@ class LrclibDurationMatchTest(unittest.TestCase):
         with self.assertLogs("services.lyrics", level="INFO") as captured:
             self._fetch(fake)
         self.assertIn("returned 2 candidate(s), 1 synced, 1 of this length", captured.output[0])
+
+    def test_dropping_the_timings_logs_both_lengths_and_the_record(self):
+        fake = _Lrclib(get=None, searches=[[_record(22439347, synced="[01:55.54] la", duration=419)]])
+        with self.assertLogs("services.lyrics", level="INFO") as captured:
+            self._fetch(fake)
+        dropped = [line for line in captured.output if "timings dropped" in line]
+        self.assertEqual(len(dropped), 1)
+        self.assertIn("lrclib.net/tracks/22439347", dropped[0])
+        self.assertIn("is 419s, this track is 302s", dropped[0])
 
 
 if __name__ == "__main__":
