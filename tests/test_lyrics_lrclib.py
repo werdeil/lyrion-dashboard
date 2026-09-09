@@ -140,8 +140,7 @@ class LrclibSyncedPreferenceTest(unittest.TestCase):
             self._fetch(fake)
         urls = [line for line in captured.output if "catalogue search" in line]
         self.assertEqual(len(urls), 1)
-        self.assertIn("artist_name=Muse", urls[0])
-        self.assertIn("track_name=Will+Of+The+People", urls[0])
+        self.assertIn("lrclib.net/search/Muse%20Will%20Of%20The%20People", urls[0])
 
 
 class LrclibDurationMatchTest(unittest.TestCase):

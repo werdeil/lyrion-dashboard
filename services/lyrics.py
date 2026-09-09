@@ -18,7 +18,7 @@ import time
 import threading
 import unicodedata
 from collections import OrderedDict
-from urllib.parse import urlencode
+from urllib.parse import quote
 
 import requests
 
@@ -143,8 +143,9 @@ def _lrclib_attempts(artist, title, album):
 
 
 def _lrclib_search_url(artist, title):
-    """Browsable URL replaying this track's LRCLIB search, for the diagnostic logs."""
-    return f"{LRCLIB_BASE}/search?{urlencode({'artist_name': artist or '', 'track_name': title or ''})}"
+    """Browsable URL for this track on LRCLIB's own search page, for the diagnostic logs."""
+    query = " ".join(part for part in (artist, title) if part)
+    return f"{LRCLIB_SITE}/search/{quote(query, safe='')}"
 
 
 def _lrclib_search(artist, title, album, seconds, fallback):
