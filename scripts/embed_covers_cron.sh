@@ -21,8 +21,19 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-PYTHON="$ROOT/.venv/bin/python"
-[ -x "$PYTHON" ] || PYTHON="python3"
+# requirements-cli.txt is all these scripts need, so a CLI venv wins over the
+# app one; falling through leaves the system python3 carrying mutagen itself.
+PYTHON=""
+for candidate in "$ROOT/.venv-cli/bin/python" "$ROOT/.venv/bin/python"; do
+    if [ -x "$candidate" ]; then
+        PYTHON="$candidate"
+        break
+    fi
+done
+if [ -z "$PYTHON" ]; then
+    PYTHON="python3"
+    echo "no .venv-cli or .venv under $ROOT: using the system python3" >&2
+fi
 
 if [ "$#" -lt 1 ]; then
     echo "usage: $(basename "$0") /path/to/music [MARKER] [-- EXTRA ARGS]" >&2
