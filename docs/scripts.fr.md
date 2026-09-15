@@ -2,7 +2,7 @@
 
 # Scripts
 
-Les scripts de `scripts/` tournent en dehors de l'application web, avec les seules dépendances de `requirements-cli.txt`. Ils écrivent directement dans les fichiers audio ; Lyrion n'est jamais sollicité et prend les changements à son prochain scan.
+Les scripts de `scripts/` tournent en dehors de l'application web, avec les seules dépendances de `requirements-cli.txt`. Ils écrivent directement dans les fichiers audio ; Lyrion n'est jamais sollicité et prend les changements à son prochain scan. Chaque wrapper cron choisit son interpréteur : `.venv-cli/bin/python` sous la racine du dépôt, sinon `.venv/bin/python`, sinon le `python3` du système — et il le signale sur stderr quand il en arrive là, car l'interpréteur système doit alors porter les dépendances lui-même.
 
 ## Intégrer les paroles dans les fichiers (`scripts/embed_lyrics.py`)
 
