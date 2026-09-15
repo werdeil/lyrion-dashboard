@@ -36,33 +36,25 @@ De gauche à droite, cliquez pour la version pleine taille : la pochette agrandi
 
 ## Prérequis
 
-- Python 3.12+
 - Un serveur Lyrion Music Server accessible
+- Docker et Docker Compose
 - Conseillé : le plugin [Alternative Play Count](https://github.com/AF-1/lms-alternativeplaycount) sur Lyrion. Sans lui, le tableau de bord lit les compteurs d'écoute de Lyrion : le nombre de sauts disparaît des statistiques et, comme Lyrion met aussi à jour la date de dernière écoute sur un saut, un album seulement zappé peut apparaître dans les dernières écoutes.
 
 ## Installation
 
 ### Avec Docker (recommandé)
 
+Récupérez [`docker-compose.yml`](docker-compose.yml), renseignez-y l'URL de votre Lyrion et le chemin de son répertoire de données, puis lancez-le :
+
 ```bash
-cp .env.example .env
-# Éditer .env avec vos valeurs
+curl -O https://raw.githubusercontent.com/werdeil/lyrion-dashboard/master/docker-compose.yml
+$EDITOR docker-compose.yml
 docker compose up -d
 ```
 
-Le déploiement part directement de `python:3.12-slim` et installe les dépendances épinglées à chaque démarrage — aucune image custom à construire ni à publier, au prix de quelques secondes et d'un accès réseau à chaque redémarrage.
+Cela tire `ghcr.io/werdeil/lyrion-dashboard:latest`, construite pour amd64 et arm64 à chaque release. L'application est ensuite accessible sur `http://localhost:1111`. Épingler une version et mettre à jour : voir la page [Docker](docs/docker.fr.md).
 
-### Sans Docker
-
-```bash
-pip install -r requirements.txt
-cp .env.example .env
-# Éditer .env avec vos valeurs
-source .env
-python app.py
-```
-
-L'application est accessible sur `http://localhost:1111`.
+Faire tourner l'application depuis les sources — pour développer, ou sur une machine où l'on ne veut pas de Docker — est sur la page [Développement](docs/development.fr.md).
 
 ### Application Android
 
@@ -74,7 +66,9 @@ Un APK signé est aussi attaché à chaque [release GitHub](https://github.com/w
 
 ## Documentation
 
-- [Configuration](docs/configuration.fr.md) — variables d'environnement et personnalisation Compose locale.
+- [Configuration](docs/configuration.fr.md) — variables d'environnement.
+- [Docker](docs/docker.fr.md) — tags d'image, mise à jour, droits sur les fichiers.
+- [Développement](docs/development.fr.md) — exécution depuis les sources, image `dev`, construction locale de l'image.
 - [Logs](docs/logs.fr.md) — ce que l'application écrit à chaque niveau, et comment lire une recherche de paroles restée vide.
 - [Endpoints](docs/endpoints.fr.md) — les routes HTTP, et le widget Homepage alimenté par `/stats.json`.
 - [Scripts](docs/scripts.fr.md) — intégration des paroles et des pochettes dans les tags, wrappers cron, régénération de ces captures.

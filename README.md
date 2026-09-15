@@ -36,33 +36,25 @@ Left to right, click any of them for the full-size image: the enlarged cover, th
 
 ## Requirements
 
-- Python 3.12+
 - An accessible Lyrion Music Server
+- Docker and Docker Compose
 - Recommended: the [Alternative Play Count](https://github.com/AF-1/lms-alternativeplaycount) plugin on Lyrion. Without it the dashboard reads Lyrion's own play counters instead: the skip count disappears from the statistics, and since Lyrion bumps a track's last-played time on a skip too, an album that was only skipped past can surface in the recent plays.
 
 ## Installation
 
 ### With Docker (recommended)
 
+Fetch [`docker-compose.yml`](docker-compose.yml), set your Lyrion URL and the path to its data directory in it, then start it:
+
 ```bash
-cp .env.example .env
-# Edit .env with your values
+curl -O https://raw.githubusercontent.com/werdeil/lyrion-dashboard/master/docker-compose.yml
+$EDITOR docker-compose.yml
 docker compose up -d
 ```
 
-This deploys straight from `python:3.12-slim` and installs pinned dependencies on each start — no custom image to build or publish, at the cost of a few seconds and network access on every restart.
+This pulls `ghcr.io/werdeil/lyrion-dashboard:latest`, built for amd64 and arm64 on every release. The app is then available at `http://localhost:1111`. Pinning a version and updating are on the [Docker](docs/docker.md) page.
 
-### Without Docker
-
-```bash
-pip install -r requirements.txt
-cp .env.example .env
-# Edit .env with your values
-source .env
-python app.py
-```
-
-The app is available at `http://localhost:1111`.
+Running from the sources instead — to develop, or on a host where Docker is not wanted — is on the [Development](docs/development.md) page.
 
 ### Android app
 
@@ -74,7 +66,9 @@ A signed APK is also attached to each [GitHub release](https://github.com/werdei
 
 ## Documentation
 
-- [Configuration](docs/configuration.md) — environment variables and local Compose customization.
+- [Configuration](docs/configuration.md) — environment variables.
+- [Docker](docs/docker.md) — image tags, updating, filesystem permissions.
+- [Development](docs/development.md) — running from the sources, the `dev` image, building the image locally.
 - [Logs](docs/logs.md) — what the app prints at each level, and how to read a lyrics search that found nothing.
 - [Endpoints](docs/endpoints.md) — the HTTP routes, and the Homepage widget fed by `/stats.json`.
 - [Scripts](docs/scripts.md) — embedding lyrics and cover art into audio file tags, their cron wrappers, and regenerating these screenshots.

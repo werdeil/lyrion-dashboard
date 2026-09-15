@@ -4,9 +4,8 @@ gunicorn==26.2.0
 requests==2.34.2
 beautifulsoup4==4.15.0
 
-# Transitive dependencies, pinned so a container recreation installs the exact
-# same tree as the last known-good one (the compose file installs at container
-# start — an assumed choice, see audit P8 in PR #15). Kept current by Dependabot.
+# Transitive dependencies, pinned so an image rebuild installs the exact same
+# tree as the last known-good one. Kept current by Dependabot.
 blinker==1.9.0
 certifi==2026.7.22
 charset-normalizer==3.5.1
