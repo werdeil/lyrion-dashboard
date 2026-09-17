@@ -113,14 +113,34 @@ def _int_duration(duration):
 # fields they can and leave the rest None.
 
 
+def _duration_delta(candidate, seconds):
+    """Seconds between a candidate's own duration and the request's, or None when either is unknown."""
+    got = _int_duration(candidate.get("duration"))
+    if seconds is None or got is None:
+        return None
+    return abs(got - seconds)
+
+
 def _duration_close(candidate, seconds):
     """True when a candidate's own duration allows it to be the same recording.
 
     A candidate that carries no duration, or a request that doesn't know its
     own, can't be told apart this way and is left to the caller's other checks.
     """
-    got = _int_duration(candidate.get("duration"))
-    return seconds is None or got is None or abs(got - seconds) <= VERIFY_DURATION_TOLERANCE
+    delta = _duration_delta(candidate, seconds)
+    return delta is None or delta <= VERIFY_DURATION_TOLERANCE
+
+
+def _closest_in_length(candidates, seconds):
+    """The candidate nearest the requested length, unknown lengths last.
+
+    `min` is stable, so candidates the length cannot separate keep LRCLIB's
+    own ordering.
+    """
+    def gap(candidate):
+        delta = _duration_delta(candidate, seconds)
+        return float("inf") if delta is None else delta
+    return min(candidates, key=gap)
 
 
 def _lrclib_attempts(artist, title, album):
@@ -151,9 +171,9 @@ def _lrclib_search_url(artist, title):
 def _lrclib_search(artist, title, album, seconds, fallback):
     """Scan LRCLIB's `search` for a synced record of this very recording.
 
-    Returns that record, or `fallback` (the `get` hit, when there was one) if
-    the search turns up nothing better. Raises ProviderUnavailable if LRCLIB
-    can't be reached.
+    Returns the synced candidate closest to this track's length, or `fallback`
+    (the `get` hit, when there was one) if the search turns up nothing better.
+    Raises ProviderUnavailable if LRCLIB can't be reached.
     """
     headers = {"User-Agent": USER_AGENT}
     for search_params in _lrclib_attempts(artist, title, album):
@@ -178,7 +198,7 @@ def _lrclib_search(artist, title, album, seconds, fallback):
             len(results), sum(1 for c in results if c.get("syncedLyrics")), len(close),
         )
         if synced:
-            return synced[0]
+            return _closest_in_length(synced, seconds)
         if fallback is None and (close or results):
             fallback = (close or results)[0]
     return fallback
@@ -194,8 +214,9 @@ def _provider_lrclib(artist, title, album, duration):
     upload of the same track carries an LRC: a plain-only hit is kept only as a
     fallback while the search looks for a synced one. Timestamps only fit the
     recording they were made for, so a synced candidate is taken on its duration
-    matching, and one that doesn't match still serves as plain text. Raises
-    ProviderUnavailable when LRCLIB can't be reached at all.
+    matching — the closest of those that fit — and one that doesn't match still
+    serves as plain text. Raises ProviderUnavailable when LRCLIB can't be
+    reached at all.
     """
     headers = {"User-Agent": USER_AGENT}
 
