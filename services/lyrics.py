@@ -93,15 +93,21 @@ def _elapsed_ms(started):
     return int((time.monotonic() - started) * 1000)
 
 
-def _int_duration(duration):
-    """Coerce a possibly-fractional string duration to whole seconds, or None."""
+def _float_duration(duration):
+    """Coerce a duration to seconds, fraction kept, or None."""
     if not duration:
         return None
     try:
         # Duration arrives as a string and may be fractional (e.g. "247.144").
-        return int(float(duration))
+        return float(duration)
     except (TypeError, ValueError):
         return None
+
+
+def _int_duration(duration):
+    """Coerce a possibly-fractional string duration to whole seconds, or None."""
+    seconds = _float_duration(duration)
+    return None if seconds is None else int(seconds)
 
 
 # --- Providers -------------------------------------------------------------
@@ -114,8 +120,8 @@ def _int_duration(duration):
 
 
 def _duration_delta(candidate, seconds):
-    """Seconds between a candidate's own duration and the request's, or None when either is unknown."""
-    got = _int_duration(candidate.get("duration"))
+    """Seconds between a candidate's own duration and the request's, fraction kept, or None when either is unknown."""
+    got = _float_duration(candidate.get("duration"))
     if seconds is None or got is None:
         return None
     return abs(got - seconds)
@@ -223,9 +229,10 @@ def _provider_lrclib(artist, title, album, duration):
     params = {"artist_name": artist, "track_name": title}
     if album:
         params["album_name"] = album
-    seconds = _int_duration(duration)
+    seconds = _float_duration(duration)
     if seconds is not None:
-        params["duration"] = seconds
+        # LRCLIB's signature is indexed on whole seconds.
+        params["duration"] = int(seconds)
 
     payload = None
     try:
@@ -250,7 +257,7 @@ def _provider_lrclib(artist, title, album, duration):
     if payload.get("syncedLyrics") and not synced_text:
         log.info(
             "lrclib: %s/tracks/%s is %ss, this track is %ss - its timings dropped",
-            LRCLIB_SITE, payload.get("id"), payload.get("duration"), seconds,
+            LRCLIB_SITE, payload.get("id"), payload.get("duration"), int(seconds),
         )
     log.debug(
         "lrclib: record %s (%r, %ss), synced=%s",
@@ -550,7 +557,7 @@ def _matches_request(meta, artist, title, duration):
         return False
     if _fold_name(meta.get("artist")) != _fold_name(artist):
         return False
-    return _duration_close(meta, _int_duration(duration))
+    return _duration_close(meta, _float_duration(duration))
 
 
 def _search_providers(artist, title, album, duration, verify):

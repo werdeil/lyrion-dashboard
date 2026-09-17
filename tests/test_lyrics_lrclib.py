@@ -183,6 +183,13 @@ class LrclibDurationMatchTest(unittest.TestCase):
         ]])
         self.assertEqual(self._fetch(fake)["synced"], "[00:12.00] exact")
 
+    def test_the_fraction_of_a_second_settles_records_of_the_same_length(self):
+        fake = _Lrclib(get=None, searches=[[
+            _record(2, synced="[00:12.00] rounded upload", duration=242),
+            _record(3, synced="[00:12.00] same rip", duration=242.259592),
+        ]])
+        self.assertEqual(self._fetch(fake, duration="242.266")["synced"], "[00:12.00] same rip")
+
     def test_synced_records_the_length_cannot_separate_keep_lrclib_order(self):
         fake = _Lrclib(get=None, searches=[[
             _record(2, synced="[00:12.00] first", duration=None),
