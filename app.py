@@ -1,10 +1,10 @@
 import logging
 import os
 
-from flask import Flask
+from flask import Flask, request
 
 from config import Config
-from logsetup import configure_logging
+from logsetup import LEVELS, configure_logging, current_level, default_level, set_level
 from routes.nowplaying import nowplaying_bp
 from routes.custom import custom_bp
 
@@ -47,6 +47,18 @@ def create_app():
     @flask_app.route("/health", methods=["GET"])
     def healthcheck():
         return {"status": "ok", "version": flask_app.config["VERSION"]}, 200
+
+    @flask_app.route("/log-level", methods=["GET", "POST"])
+    def log_level():
+        # Unauthenticated like the rest of the app (trusted LAN): the worst a
+        # caller can do is make the logs verbose until the next restart.
+        if request.method == "POST":
+            wanted = request.values.get("level") or (request.get_json(silent=True) or {}).get("level")
+            previous = current_level()
+            if not set_level(wanted):
+                return {"error": f"level must be one of {', '.join(LEVELS)}"}, 400
+            log.info("log level %s -> %s", previous, current_level())
+        return {"level": current_level(), "default": default_level()}, 200
 
     @flask_app.after_request
     def set_security_headers(response):

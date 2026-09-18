@@ -6,6 +6,7 @@
 |---|---|---|
 | GET | `/` | Main dashboard (now playing + stats) |
 | GET | `/health` | Health check |
+| GET, POST | `/log-level` | Reads the current log level; `POST ?level=debug` changes it without a restart |
 | GET | `/stats.json` | Library statistics (JSON) |
 | GET | `/now-playing.json` | Live state of the currently playing track, auto-detected (JSON) |
 | GET | `/cover/{coverid}.jpg` | Proxies an album cover from Lyrion, same-origin |

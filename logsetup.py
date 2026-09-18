@@ -14,6 +14,7 @@ import sys
 
 LOG_FORMAT = "%(asctime)s %(levelname)-7s %(name)s %(message)s"
 LOG_DATE_FORMAT = "%Y-%m-%d %H:%M:%S"
+LEVELS = ("CRITICAL", "ERROR", "WARNING", "INFO", "DEBUG")
 
 _state = {"configured": False}
 
@@ -21,9 +22,26 @@ _state = {"configured": False}
 def default_level():
     """Log level from `LOG_LEVEL`, falling back to DEBUG under `DEV=1`."""
     name = (os.getenv("LOG_LEVEL") or "").strip().upper()
-    if name in ("CRITICAL", "ERROR", "WARNING", "INFO", "DEBUG"):
+    if name in LEVELS:
         return name
     return "DEBUG" if os.getenv("DEV") == "1" else "INFO"
+
+
+def current_level():
+    """Name of the level the root logger is at."""
+    return logging.getLevelName(logging.getLogger().getEffectiveLevel())
+
+
+def set_level(name):
+    """Move the root logger to `name`, returning it, or None if it isn't a level.
+
+    Lasts for the life of the process — a restart goes back to `default_level`.
+    """
+    wanted = (name or "").strip().upper()
+    if wanted not in LEVELS:
+        return None
+    logging.getLogger().setLevel(wanted)
+    return wanted
 
 
 def configure_logging(level=None):
