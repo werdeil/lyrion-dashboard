@@ -1096,16 +1096,17 @@ body.in-app .np-pull {
     width: 2.2rem;
     height: 2.2rem;
     border-radius: 50%;
-    background: color-mix(in srgb, var(--accent-color) 18%, transparent);
-    border: 1px solid color-mix(in srgb, var(--accent-color) 30%, transparent);
+    /* Neutral, unlike the page's other controls: this bar only exists inside
+       the Android app, framed by native chrome the cover cannot reach. */
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.2);
     text-decoration: none;
-    transition: background 250ms ease, border-color 250ms ease, box-shadow 250ms ease;
+    transition: background 250ms ease, box-shadow 250ms ease;
 }
 
 .lyrion-link:hover {
-    background: color-mix(in srgb, var(--accent-color) 30%, transparent);
-    border-color: color-mix(in srgb, var(--accent-color) 55%, transparent);
-    box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent-color) 12%, transparent);
+    background: rgba(255, 255, 255, 0.16);
+    box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.08);
 }
 
 .lyrion-link:focus-visible {
