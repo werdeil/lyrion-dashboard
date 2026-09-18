@@ -49,7 +49,6 @@ def _command(payload):
 
 def lyrion_request(payload):
     host = current_app.config["LYRION_HOST"]
-    started = time.monotonic()
     # TLS verification is off for the self-signed local Lyrion; audit S1
     # (security audit in PR #15) documents this accepted risk.
     try:
@@ -62,19 +61,16 @@ def lyrion_request(payload):
     except requests.RequestException as exc:
         log.error("Lyrion unreachable at %s for [%s]: %s", host, _command(payload), exc)
         raise
-    elapsed = int((time.monotonic() - started) * 1000)
     if r.status_code != 200:
         log.warning("Lyrion returned HTTP %s for [%s]", r.status_code, _command(payload))
     # Lyrion replies with an empty (non-JSON) body when asked about an unknown
     # player id — e.g. a vanished ephemeral player still held in _last_player.
     # Return {} instead of letting r.json() raise; callers read `result` safely.
     try:
-        data = r.json()
+        return r.json()
     except ValueError:
-        log.debug("Lyrion answered [%s] with a non-JSON body in %d ms", _command(payload), elapsed)
+        log.debug("Lyrion answered [%s] with a non-JSON body", _command(payload))
         return {}
-    log.debug("Lyrion answered [%s] in %d ms", _command(payload), elapsed)
-    return data
 
 
 def fetch_cover(coverid, size=None):
@@ -189,6 +185,8 @@ _now_cache = {"players": [], "fetched_at": 0, "expires_at": 0}
 _now_lock = threading.Lock()
 # Player shown last on the automatic path, so it stays put instead of flipping.
 _last_player = {"id": None, "name": None}
+# Player states of the last enumeration written to the log.
+_logged_states = {"states": None}
 
 
 def get_active_now_playing(selected_id=None):
@@ -281,12 +279,12 @@ def _query_playing_players():
     is a disconnected one — its cached `mode` can still say "play" after an
     ungraceful (power-cut) drop, since Lyrion never saw a clean stop.
     """
-    playing = []
-    known = 0
+    started = time.monotonic()
+    playing, states = [], []
     for player in get_players():
-        known += 1
+        name = player.get("name")
         if not player.get("connected", 1):
-            log.debug("player %s (%s) is disconnected, skipped", player.get("name"), player.get("playerid"))
+            states.append(f"{name}=disconnected")
             continue
         player_id = player.get("playerid")
         if not player_id:
@@ -294,12 +292,19 @@ def _query_playing_players():
         now = get_now_playing(player_id)
         if now.get("playing") and now.get("track_id"):
             now["player_id"] = player_id
-            now["player_name"] = player.get("name")
+            now["player_name"] = name
             playing.append(now)
+            states.append(f"{name}=play:{now['track_id']}")
         else:
-            log.debug(
-                "player %s: mode=%s track_id=%s, not shown",
-                player.get("name"), now.get("mode"), now.get("track_id"),
-            )
-    log.debug("now playing: %d of %d player(s) - %s", len(playing), known, [p["player_name"] for p in playing])
+            states.append(f"{name}={now.get('mode') or '?'}")
+    _log_players(states, int((time.monotonic() - started) * 1000))
     return playing
+
+
+def _log_players(states, elapsed):
+    # Logged on change only: the enumeration repeats every NOW_PLAYING_TTL.
+    # States are recorded only while DEBUG is on, so enabling it mid-run prints.
+    if not log.isEnabledFor(logging.DEBUG) or states == _logged_states["states"]:
+        return
+    _logged_states["states"] = list(states)
+    log.debug("players (%d ms): %s", elapsed, ", ".join(states) or "none")

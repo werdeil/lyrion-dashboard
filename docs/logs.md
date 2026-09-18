@@ -24,4 +24,15 @@ A healthy search is a single line, `lyrics: 'Space Debris' by 'Deep Purple' -> l
 
 Two LRCLIB lines carry a URL, for the tracks worth a closer look. `lrclib: no record, catalogue search: https://lrclib.net/search/Focus%20Hocus%20Pocus` runs your own tags through LRCLIB's search page: it says whether the catalogue really holds nothing, or whether it spells the artist or the title differently from your library. `lrclib: https://lrclib.net/tracks/22439347 is 419s, this track is 302s - its timings dropped` is the other frequent case — the right song, but a live or extended upload whose LRC would scroll against the wrong timeline, so its words are kept as plain lyrics and the karaoke is not. That browsable search does not filter on length the way the app does, so it will list records the app then refuses: the gap between the two is the diagnosis, not a bug.
 
-Set `LOG_LEVEL=DEBUG` and restart the container to also get each provider's HTTP detail, the lookups that succeeded, the player enumeration and every Lyrion JSON-RPC call with its duration. It is verbose — the now-playing poll runs every 2s — so use it while reproducing a problem, then set it back.
+`LOG_LEVEL=DEBUG` adds each provider's HTTP detail, the lookups that succeeded and the player enumeration. The enumeration repeats every 2s with the now-playing poll, so it only prints when what it finds changes: `players (63 ms): Salon=play:12345, Cuisine=stop` names every player Lyrion knows, with the track id of the ones shown, `disconnected` for a player that dropped off. Use it while reproducing a problem, then set it back.
+
+`LOG_LEVEL` is read at start-up, but the level can also be switched while the container runs — no restart, no lost state, handy when the problem is already happening:
+
+```bash
+curl -X POST 'http://lyrion-dashboard:1111/log-level?level=debug'
+# {"default":"INFO","level":"DEBUG"}
+curl http://lyrion-dashboard:1111/log-level   # what it is now, and what a restart would restore
+curl -X POST 'http://lyrion-dashboard:1111/log-level?level=info'
+```
+
+The change lives in the running process — a restart goes back to `LOG_LEVEL`, which is what `default` reports. Like the rest of the app it asks for no credentials, so keep it on the LAN.

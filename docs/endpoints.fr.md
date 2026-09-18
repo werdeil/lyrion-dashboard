@@ -6,6 +6,7 @@
 |---|---|---|
 | GET | `/` | Dashboard principal (now playing + stats) |
 | GET | `/health` | Vérification de l'état du service |
+| GET, POST | `/log-level` | Lit le niveau de log courant ; `POST ?level=debug` le change sans redémarrage |
 | GET | `/stats.json` | Statistiques de la bibliothèque (JSON) |
 | GET | `/now-playing.json` | État live de la piste du lecteur en cours de lecture, détecté automatiquement (JSON) |
 | GET | `/cover/{coverid}.jpg` | Relaie une pochette depuis Lyrion, en same-origin |

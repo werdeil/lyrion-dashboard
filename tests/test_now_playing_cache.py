@@ -54,6 +54,7 @@ class NowPlayingCacheTest(unittest.TestCase):
     def _reset_state():
         L._now_cache.update(players=[], fetched_at=0, expires_at=0)
         L._last_player.update(id=None, name=None)
+        L._logged_states.update(states=None)
 
     def test_result_is_cached_within_ttl(self):
         first = L.get_active_now_playing()
@@ -122,6 +123,19 @@ class NowPlayingCacheTest(unittest.TestCase):
     def test_callers_get_a_copy(self):
         L.get_active_now_playing()["title"] = "corrupted"
         self.assertEqual(L.get_active_now_playing()["title"], "Song")
+
+    def test_the_poll_logs_once_until_what_it_finds_changes(self):
+        with self.assertLogs("services.lyrion", level="DEBUG") as captured:
+            L.get_active_now_playing()
+            L._now_cache["expires_at"] = 0
+            L.get_active_now_playing()  # same players, same track: nothing new to say
+            L._now_cache["expires_at"] = 0
+            self.playing["p1"] = True  # Salon starts playing
+            L.get_active_now_playing()
+        lines = [line for line in captured.output if "players (" in line]
+        self.assertEqual(len(lines), 2)
+        self.assertIn("Salon=stop", lines[0])
+        self.assertIn("Salon=play:42", lines[1])
 
     def test_disconnected_player_is_skipped_despite_stale_playing_mode(self):
         # p2 vanished (power cut) but Lyrion still lists it, mode stuck on "play".

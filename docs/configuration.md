@@ -15,7 +15,7 @@ All configuration comes from environment variables, read once at start-up. Under
 | `LRCLIB_TIMEOUT` | LRCLIB request timeout, in seconds | `15` |
 | `LYRICS_VERIFY_DURATION_TOLERANCE` | Max drift (seconds) tolerated by `--verify` in `embed_lyrics.py` | `3` |
 | `TZ` | Timezone used to align the listening-velocity windows on local midnight (e.g. `Europe/Paris`) | `UTC` |
-| `LOG_LEVEL` | Verbosity of the application logs (`DEBUG`, `INFO`, `WARNING`, `ERROR`, `CRITICAL`) | `INFO` (`DEBUG` when `DEV=1`) |
+| `LOG_LEVEL` | Verbosity of the application logs (`DEBUG`, `INFO`, `WARNING`, `ERROR`, `CRITICAL`), also switchable at runtime — see [Logs](logs.md) | `INFO` (`DEBUG` when `DEV=1`) |
 | `DEV` | Set to `1` to live-reload templates and disable static caching (development) | -- |
 
 What each `LOG_LEVEL` actually prints is on the [Logs](logs.md) page.

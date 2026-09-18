@@ -24,4 +24,15 @@ Une recherche qui aboutit tient en une ligne, `lyrics: 'Space Debris' by 'Deep P
 
 Deux lignes LRCLIB portent une URL, pour les morceaux qui méritent un examen. `lrclib: no record, catalogue search: https://lrclib.net/search/Focus%20Hocus%20Pocus` passe vos propres tags dans la page de recherche de LRCLIB : elle dit si le catalogue n'a vraiment rien, ou s'il orthographie l'artiste ou le titre autrement que votre bibliothèque. `lrclib: https://lrclib.net/tracks/22439347 is 419s, this track is 302s - its timings dropped` est l'autre cas fréquent — le bon morceau, mais une version live ou allongée dont le LRC défilerait sur la mauvaise timeline : ses mots sont gardés comme paroles simples, pas son karaoké. Cette recherche consultable ne filtre pas sur la durée comme le fait l'application, elle listera donc des enregistrements que l'application refuse ensuite : c'est l'écart entre les deux qui est le diagnostic, pas un bug.
 
-Avec `LOG_LEVEL=DEBUG` (puis un redémarrage du conteneur), s'ajoutent le détail HTTP de chaque fournisseur, les consultations qui ont abouti, l'énumération des lecteurs et chaque appel JSON-RPC à Lyrion avec sa durée. C'est verbeux — le sondage now-playing tourne toutes les 2 s — donc à activer le temps de reproduire un problème, puis à remettre comme avant.
+`LOG_LEVEL=DEBUG` ajoute le détail HTTP de chaque fournisseur, les consultations qui ont abouti et l'énumération des lecteurs. Cette énumération se répète toutes les 2 s avec le sondage now-playing, elle n'est donc affichée que lorsque ce qu'elle trouve change : `players (63 ms): Salon=play:12345, Cuisine=stop` liste tous les lecteurs connus de Lyrion, avec l'identifiant de piste de ceux qui sont affichés, et `disconnected` pour un lecteur qui a décroché. À activer le temps de reproduire un problème, puis à remettre comme avant.
+
+`LOG_LEVEL` est lu au démarrage, mais le niveau peut aussi être changé pendant que le conteneur tourne — sans redémarrage ni perte d'état, pratique quand le problème est en train de se produire :
+
+```bash
+curl -X POST 'http://lyrion-dashboard:1111/log-level?level=debug'
+# {"default":"INFO","level":"DEBUG"}
+curl http://lyrion-dashboard:1111/log-level   # le niveau actuel, et celui qu'un redémarrage rétablirait
+curl -X POST 'http://lyrion-dashboard:1111/log-level?level=info'
+```
+
+Le changement vit dans le process en cours — un redémarrage revient à `LOG_LEVEL`, c'est ce que rapporte `default`. Comme le reste de l'application, cet endpoint ne demande aucune authentification : à garder sur le LAN.
