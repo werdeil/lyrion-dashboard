@@ -748,7 +748,6 @@ body.in-app .np-pull {
     color: var(--text-faint);
     flex-shrink: 0;
     cursor: pointer;
-    transition: color 250ms ease;
 }
 
 /* Disabled is the single-version state, so it has to read as a plain label
@@ -761,9 +760,23 @@ body.in-app .np-pull {
     display: none;
 }
 
-.np-lyrics-source:enabled:hover,
-.np-lyrics-source:enabled:focus-visible {
-    color: var(--accent-color);
+/* The chevron alone carries the hover/focus feedback: on this line the accent
+   colour already means "these lyrics are synced" and cannot mean two things. */
+.np-lyrics-source svg {
+    opacity: 0.5;
+    transition: opacity 250ms ease, transform 250ms ease;
+}
+
+.np-lyrics-source:enabled:hover svg,
+.np-lyrics-source:enabled:focus-visible svg {
+    opacity: 1;
+    transform: translateX(2px);
+}
+
+.np-lyrics-source:focus-visible {
+    outline: 2px solid var(--accent-color);
+    outline-offset: 2px;
+    border-radius: 3px;
 }
 
 /* Accent tint when the lyrics on screen are time-synced (karaoke); plain
