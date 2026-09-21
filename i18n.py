@@ -31,6 +31,7 @@ TRANSLATIONS = {
         "cover_zoom": "Agrandir la pochette",
         "source_prefix": "Source :",
         "source_library": "Bibliothèque",
+        "switch_version": "Voir une autre version des paroles",
         # Stats
         "stats_title": "Statistiques",
         "history": "Historique",
@@ -76,6 +77,7 @@ TRANSLATIONS = {
         "cover_zoom": "Enlarge the cover",
         "source_prefix": "Source:",
         "source_library": "Library",
+        "switch_version": "Show another version of the lyrics",
         # Stats
         "stats_title": "Statistics",
         "history": "History",
