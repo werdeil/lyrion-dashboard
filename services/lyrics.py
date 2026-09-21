@@ -54,6 +54,10 @@ LRCLIB_TIMEOUT = int(os.getenv("LRCLIB_TIMEOUT", "15"))
 # for libraries whose durations are noisy.
 VERIFY_DURATION_TOLERANCE = int(os.getenv("LYRICS_VERIFY_DURATION_TOLERANCE", "3"))
 
+# Versions kept for one track, winner included. Each carries a full lyrics body
+# into the cache, so this caps an entry's weight as much as the page's cycle.
+MAX_VERSIONS = 4
+
 # The cache key includes client-supplied fields, so the cache must stay bounded.
 CACHE_MAX_ENTRIES = 1000
 # Metadata fields longer than this are refused.
@@ -137,16 +141,30 @@ def _duration_close(candidate, seconds):
     return delta is None or delta <= VERIFY_DURATION_TOLERANCE
 
 
-def _closest_in_length(candidates, seconds):
-    """The candidate nearest the requested length, unknown lengths last.
+def _by_length(candidates, seconds):
+    """Candidates ordered by nearness to the requested length, unknown lengths last.
 
-    `min` is stable, so candidates the length cannot separate keep LRCLIB's
+    `sorted` is stable, so candidates the length cannot separate keep LRCLIB's
     own ordering.
     """
     def gap(candidate):
         delta = _duration_delta(candidate, seconds)
         return float("inf") if delta is None else delta
-    return min(candidates, key=gap)
+    return sorted(candidates, key=gap)
+
+
+def _lrclib_version(payload, seconds):
+    """One LRCLIB record in the shape the page cycles through.
+
+    Timestamps only fit the recording they were made for, so the LRC is kept
+    only while the record's own length matches the request's.
+    """
+    return {
+        "lyrics": payload.get("plainLyrics"),
+        "synced": payload.get("syncedLyrics") if _duration_close(payload, seconds) else None,
+        "album": payload.get("albumName"),
+        "duration": payload.get("duration"),
+    }
 
 
 def _lrclib_attempts(artist, title, album):
@@ -177,10 +195,13 @@ def _lrclib_search_url(artist, title):
 def _lrclib_search(artist, title, album, seconds, fallback):
     """Scan LRCLIB's `search` for a synced record of this very recording.
 
-    Returns the synced candidate closest to this track's length, or `fallback`
-    (the `get` hit, when there was one) if the search turns up nothing better.
-    Raises ProviderUnavailable if LRCLIB can't be reached.
+    Returns (record, others): the synced candidate closest to this track's
+    length, or `fallback` (the `get` hit, when there was one) if the search
+    turns up nothing better, and the rest of the set it was chosen from —
+    other uploads of the same song, which the page offers to compare it
+    against. Raises ProviderUnavailable if LRCLIB can't be reached.
     """
+    others = []
     headers = {"User-Agent": USER_AGENT}
     for search_params in _lrclib_attempts(artist, title, album):
         try:
@@ -198,16 +219,25 @@ def _lrclib_search(artist, title, album, seconds, fallback):
         results = r.json() or []
         close = [c for c in results if _duration_close(c, seconds)]
         synced = [c for c in close if c.get("syncedLyrics")]
+        # The three counts narrow down the same set, so they read as a funnel:
+        # anything the page could offer is what the last one counts.
         log.info(
-            "lrclib: search (artist=%r, album=%r) returned %d candidate(s), %d synced, %d of this length",
+            "lrclib: search (artist=%r, album=%r) returned %d candidate(s), %d of this length, %d of those synced",
             search_params.get("artist_name"), search_params.get("album_name"),
-            len(results), sum(1 for c in results if c.get("syncedLyrics")), len(close),
+            len(results), len(close), len(synced),
         )
         if synced:
-            return _closest_in_length(synced, seconds)
-        if fallback is None and (close or results):
-            fallback = (close or results)[0]
-    return fallback
+            ranked = _by_length(synced, seconds)
+            return ranked[0], ranked[1:]
+        pool = close or results
+        if pool and not others:
+            if fallback is None:
+                fallback, others = pool[0], pool[1:]
+            else:
+                # The `get` hit is normally in these results too, under the very
+                # signature that found it; the same record must not show twice.
+                others = [c for c in pool if c.get("id") != fallback.get("id")]
+    return fallback, others
 
 
 def _provider_lrclib(artist, title, album, duration):
@@ -245,15 +275,16 @@ def _provider_lrclib(artist, title, album, duration):
         log.debug("lrclib: get failed (%s), falling back to search", exc)
         payload = None
 
+    others = []
     if payload is None or not payload.get("syncedLyrics"):
-        payload = _lrclib_search(artist, title, album, seconds, payload)
+        payload, others = _lrclib_search(artist, title, album, seconds, payload)
 
     if not payload:
         log.info("lrclib: no record, catalogue search: %s", _lrclib_search_url(artist, title))
         return None
     # Another recording's LRC would run against the wrong timeline, so only its
     # words are kept; the caller then shows them as plain lyrics.
-    synced_text = payload.get("syncedLyrics") if _duration_close(payload, seconds) else None
+    synced_text = _lrclib_version(payload, seconds)["synced"]
     if payload.get("syncedLyrics") and not synced_text:
         log.info(
             "lrclib: %s/tracks/%s is %ss, this track is %ss - its timings dropped",
@@ -273,6 +304,7 @@ def _provider_lrclib(artist, title, album, duration):
             "album": payload.get("albumName"),
             "duration": payload.get("duration"),
         },
+        "versions": [_lrclib_version(c, seconds) for c in [payload] + others[:MAX_VERSIONS - 1]],
     }
 
 
@@ -602,7 +634,10 @@ def _search_providers(artist, title, album, duration, verify):
             "lyrics: %s matched in %d ms (synced=%s, plain=%s)",
             name, _elapsed_ms(started), bool(found.get("synced")), bool(found.get("lyrics")),
         )
-        return {"lyrics": found.get("lyrics"), "synced": found.get("synced"), "source": name}
+        result = {"lyrics": found.get("lyrics"), "synced": found.get("synced"), "source": name}
+        if found.get("versions"):
+            result["versions"] = found["versions"]
+        return result
 
     if unreachable and unreachable == len(providers):
         return {"lyrics": None, "synced": None, "source": "unavailable"}
@@ -619,6 +654,10 @@ def fetch_lyrics(track_id, artist, title, album=None, duration=None, force=False
     when a candidate came back but failed verification, or "unavailable" when no
     provider could be reached — the one outcome that is not cached, so a search
     is retried as soon as they answer again.
+
+    A provider that found several uploads of the song also returns "versions",
+    the winner first and at most MAX_VERSIONS long, for the page to cycle
+    through; callers that only want lyrics can ignore it.
 
     With `verify=True` (used by the batch CLI, which writes lyrics permanently
     into tags), a provider's result is only accepted when its own metadata

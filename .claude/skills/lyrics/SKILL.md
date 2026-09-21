@@ -26,18 +26,25 @@ Each provider is a function `(artist, title, album, duration) -> result | None`.
 ```python
 {"lyrics": str | None,   # plain text
  "synced": str | None,   # LRC with timestamps, when the provider offers it
- "meta":   {"artist", "title", "album", "duration"} | None}  # for verification
+ "meta":   {"artist", "title", "album", "duration"} | None,  # for verification
+ "versions": [{"lyrics", "synced", "album", "duration"}]}    # optional, winner first
 ```
+
+`versions` is how a provider that found the song several times offers the others: the page cycles through them so a listener can weigh a take against the one it picked. Only LRCLIB fills it — Musixmatch answers with one subtitle and Genius with one page — and the winner is always its first entry, so `lyrics`/`synced` stay the answer for any caller that ignores the list (the batch CLI does). It is capped at `MAX_VERSIONS`, because every entry carries a full lyrics body into a cache entry that lives for `TTL_HIT`.
 
 Providers live in `services/lyrics.py`: `_provider_lrclib`, `_provider_musixmatch`, `_provider_genius`, registered in the `PROVIDERS` map. Order comes from the `LYRICS_PROVIDERS` env var (`_enabled_providers`); **synced-capable providers first** (LRCLIB, Musixmatch) because display always prefers synced (karaoke) over plain — Genius is plain-only, so it comes last. Unknown names in the env list are silently ignored, so an operator can disable a flaky provider by dropping it.
 
 **A provider that can return either form must prefer the synced one, inside itself.** LRCLIB stores lyrics per upload: the record `/get` matches on the exact artist/title/album/duration signature may be plain-only while another upload of the same track carries an LRC, so `_provider_lrclib` keeps a plain-only hit as a fallback and still runs `/search`, scanning the candidates for one with `syncedLyrics` instead of taking `results[0]`. The chain above it can't fix this: `_search_providers` returns the first provider with *anything*, so a plain-only answer ends the search (`tests/test_lyrics_lrclib.py`).
+
+`_lrclib_search` returns that winner **and the set it came from**, ranked by `_by_length`: the length-matching synced uploads, or the length-matching plain ones when none is synced. The `get` hit normally comes back from `/search` too, under the very signature that found it, so it is dropped from the others by `id` — the one duplicate with an exact criterion. Nothing is de-duplicated on the text: two uploads of a song differ by a mistranscribed line or a missing verse, which is precisely what someone comparing them is looking for, so any similarity threshold would remove the signal along with the noise.
 
 **A name the two sides spell differently finds nothing.** LRCLIB matches names as it stores them, so `_lrclib_attempts` builds the `/search` queries in two passes: each name album-filtered first for precision then without it, then the whole set again with the leading articles dropped — the one word a library and a catalogue routinely disagree on (`Les Fatals Picards` tagged as `Fatals Picards`).
 
 **But a synced record only counts if it is the same recording.** An LRC's timestamps belong to the upload they were made for, so a live or extended version scrolls against the wrong timeline — the karaoke sits idle, then jumps. `_duration_close` (the same tolerance `_matches_request` verifies with) filters the `/search` candidates before the synced preference applies, and a record of another length still serves its `plainLyrics`: right words with no karaoke beat a karaoke that's wrong. Several uploads routinely fit that tolerance, so `_closest_in_length` takes the one nearest this track's length rather than the first LRCLIB listed. Both lengths keep their fraction (`_float_duration`, where `/get`'s signature parameter and the logs still want whole seconds): a dozen uploads sit on the same second, and the one matching to the millisecond is the same rip, hence the same timeline. `min` is stable, so candidates the length still cannot separate keep the catalogue's own order.
 
 **A fuzzy matcher's own answer has to be checked inside the provider.** Musixmatch's `matcher.track.get` always returns its nearest hit, so a track absent from its catalogue comes back as a different song — often in another language, since that is what "nearest" reaches for once the title stops matching. `_provider_musixmatch` runs the matched track through `_matches_request` and returns `None` when it doesn't line up, whatever the caller's `verify` setting: unlike LRCLIB's signature `/get`, there is no upstream "no match" to fall back on. It also picks the subtitle by language (`_mxm_subtitle`) rather than taking `subtitle_list[0]`, since a translation among the subtitles would swap out the words; when only translations are on offer the plain lyrics stand alone.
+
+The search's `INFO` line counts one set narrowing three times — candidates returned, those of this length, those of them synced — so the last number is what the page can actually offer. Counting synced records over the whole result set instead, as it once did, reports versions that the length filter has already discarded.
 
 **Adding a provider:** write `_provider_<name>(artist, title, album, duration)` returning the dict above (set the `meta` fields you can, leave the rest `None`), add it to `PROVIDERS`, and — since a provider must never break the chain — catch its own network/parse exceptions and return `None` on failure. `fetch_lyrics` already wraps each call in a `try/except`, but keep provider-internal failures from raising too. Use a browser-like UA where a service blocks default agents (see `BROWSER_UA`).
 
@@ -46,7 +53,7 @@ Providers live in `services/lyrics.py`: `_provider_lrclib`, `_provider_musixmatc
 `fetch_lyrics(track_id, artist, title, album, duration, force, verify)`:
 
 - Tries each enabled provider in order, keeps the **first** non-empty result.
-- Returns `{"lyrics", "synced", "source"}`. `source` is the winning provider name (preserved across cache hits so the UI can show the origin), `"none"` when nothing was found, or `"rejected"` when a candidate came back but failed verification.
+- Returns `{"lyrics", "synced", "source"}`, plus `versions` when the provider offered several. `source` is the winning provider name (preserved across cache hits so the UI can show the origin), `"none"` when nothing was found, or `"rejected"` when a candidate came back but failed verification.
 - **Caching:** an `OrderedDict` LRU behind a lock, bounded to `CACHE_MAX_ENTRIES`, with hits kept `TTL_HIT` (24h) and misses `TTL_MISS` (1h) — a track with no lyrics online isn't re-queried on every click, but a transient failure recovers sooner. The cache key is `track_id|artist|title|verify`, **not** track_id alone: streamed "flow"/mix sources reuse one playlist track_id while the song changes underneath, which would otherwise serve the first song's lyrics for all of them.
 
 ## Diagnosing a track without lyrics

@@ -131,8 +131,8 @@ class LrclibSyncedPreferenceTest(unittest.TestCase):
             self._fetch(fake)
         counts = [line for line in captured.output if "candidate(s)" in line]
         self.assertEqual(len(counts), 2)
-        self.assertIn("returned 1 candidate(s), 0 synced", counts[0])
-        self.assertIn("returned 2 candidate(s), 1 synced", counts[1])
+        self.assertIn("returned 1 candidate(s), 1 of this length, 0 of those synced", counts[0])
+        self.assertIn("returned 2 candidate(s), 2 of this length, 1 of those synced", counts[1])
 
     def test_a_miss_logs_a_search_url_to_replay_by_hand(self):
         fake = _Lrclib(get=None, searches=[[], []])
@@ -206,13 +206,17 @@ class LrclibDurationMatchTest(unittest.TestCase):
         self.assertEqual(self._fetch(fake, duration=None)["synced"], "[00:12.00] la")
 
     def test_each_search_attempt_logs_how_many_candidates_fit(self):
+        # The one synced record is of another length, so nothing synced is on
+        # offer: the counts narrow down the same set rather than sitting side
+        # by side, or this line would read "1 synced" and promise a version
+        # the page never gets.
         fake = _Lrclib(get=None, searches=[[
             _record(2, synced="[01:55.54] la", duration=419),
             _record(3, synced=None),
         ]])
         with self.assertLogs("services.lyrics", level="INFO") as captured:
             self._fetch(fake)
-        self.assertIn("returned 2 candidate(s), 1 synced, 1 of this length", captured.output[0])
+        self.assertIn("returned 2 candidate(s), 1 of this length, 0 of those synced", captured.output[0])
 
     def test_dropping_the_timings_logs_both_lengths_and_the_record(self):
         fake = _Lrclib(get=None, searches=[[_record(22439347, synced="[01:55.54] la", duration=419)]])
@@ -226,3 +230,58 @@ class LrclibDurationMatchTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class LrclibVersionsTest(unittest.TestCase):
+    """The other uploads of the same song, which the page cycles through."""
+
+    def _fetch(self, fake, duration="302"):
+        with patch("services.lyrics.requests.get", side_effect=fake):
+            return L._provider_lrclib("Muse", "Will Of The People", "Will Of The People", duration)
+
+    def test_every_synced_upload_of_this_length_is_offered(self):
+        fake = _Lrclib(get=None, searches=[[
+            _record(2, synced="[00:12.00] b", album="Deluxe", duration=303),
+            _record(3, synced="[00:12.00] a", album="Studio", duration=302),
+            _record(4, synced="[00:12.00] c", album="Live", duration=301),
+        ]])
+        result = self._fetch(fake)
+        # Ranked by nearness to 302s, so the winner leads and the rest follow.
+        self.assertEqual([v["album"] for v in result["versions"]], ["Studio", "Deluxe", "Live"])
+        self.assertEqual(result["synced"], "[00:12.00] a")
+
+    def test_a_candidate_of_another_length_is_left_out(self):
+        fake = _Lrclib(get=None, searches=[[
+            _record(3, synced="[00:12.00] a", duration=302),
+            _record(9, synced="[00:12.00] z", album="Live", duration=480),
+        ]])
+        self.assertEqual([v["album"] for v in self._fetch(fake)["versions"]], ["Will Of The People"])
+
+    def test_the_plain_get_hit_is_not_offered_twice(self):
+        # The record /get matched comes back from /search under the same id.
+        fake = _Lrclib(
+            get=_record(1, synced=None, plain="from get"),
+            searches=[[_record(1, synced=None, plain="from get"),
+                       _record(2, synced=None, plain="other upload", album="Deluxe")]],
+        )
+        result = self._fetch(fake)
+        self.assertEqual([v["lyrics"] for v in result["versions"]], ["from get", "other upload"])
+
+    def test_plain_uploads_are_offered_when_nothing_is_synced(self):
+        fake = _Lrclib(get=None, searches=[[
+            _record(2, synced=None, plain="first"),
+            _record(3, synced=None, plain="second", album="Deluxe"),
+        ]])
+        result = self._fetch(fake)
+        self.assertEqual([v["lyrics"] for v in result["versions"]], ["first", "second"])
+        self.assertIsNone(result["versions"][0]["synced"])
+
+    def test_the_list_is_capped_so_a_cache_entry_stays_small(self):
+        fake = _Lrclib(get=None, searches=[[
+            _record(i, synced="[00:12.00] a", album=f"A{i}") for i in range(12)
+        ]])
+        self.assertEqual(len(self._fetch(fake)["versions"]), L.MAX_VERSIONS)
+
+    def test_a_single_upload_still_yields_one_version(self):
+        fake = _Lrclib(get=_record(1, synced="[00:12.00] a"))
+        self.assertEqual(len(self._fetch(fake)["versions"]), 1)

@@ -73,11 +73,11 @@ On the stacked layouts the cover is the lever on a short screen: it sets the car
 
 ## Lyrics version cycler
 
-`versions` holds the lyrics available for the current track in cycling order — the library's own text first when it has any, then what the web returned — and `versionIdx` is the one on screen (`-1` when none is). Both reset on every track. The source line under the lyrics box (`#np-lyrics-source`) is the control: `updateSource()` renders it, `showVersion()` moves between entries, and a tap advances the index. `webVersionIdx()` is how the rest of the code asks whether a search already returned something, which is what lets `setAuto` re-show a result rather than search twice.
+`versions` holds the lyrics available for the current track in cycling order — the library's own text first when it has any, then every upload the web search returned (`webVersions` reads the response's `versions` list, falling back to its single `lyrics`/`synced` pair) — and `versionIdx` is the one on screen (`-1` when none is). Both reset on every track. The source line under the lyrics box (`#np-lyrics-source`) is the control: `updateSource()` renders it, `showVersion()` moves between entries, and a tap advances the index. `webVersionIdx()` is how the rest of the code asks whether a search already returned something, which is what lets `setAuto` re-show a result rather than search twice.
 
 Two rules decide what lands on screen by itself. Synced lyrics take it, since the library's own text is always plain; a plain web version only joins the cycle, as a second opinion on a library text that may be the wrong one. The control is a `<button>` that `disabled`s itself back into the passive label it used to be whenever there is nothing to cycle — a single version, or `off` mode, where the library's text is all that may show.
 
-That label carries three things at once — provenance, rank (`1/2`) and the synced/plain indicator (`.is-synced`, the accent tint) — so the chevron, not a colour, is what marks it tappable. Its vertical padding is capped by the row: the switch beside it sets the row's height, and anything taller takes that height off the lyrics box above.
+That label carries four things at once — provenance, length, rank (`1/2`) and the synced/plain indicator (`.is-synced`, the accent tint) — so the chevron, not a colour, is what marks it tappable: on this line the accent already means "synced" and cannot also mean "hover". The length is what tells two uploads of one song apart, album names being too long for the row. Its vertical padding is capped by the row: the switch beside it sets the row's height, and anything taller takes that height off the lyrics box above.
 
 ## Enlarged cover
 

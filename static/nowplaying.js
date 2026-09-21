@@ -614,6 +614,12 @@ function syncLyrics(forceScroll) {
 // setLyrics() on the same content, so lrcLines already tells whether the
 // lyrics on screen are time-synced: if so, tint the line in the accent
 // colour; plain lyrics keep the muted default.
+function versionLength(version) {
+    var secs = version && version.duration;
+    if (!secs) { return ''; }
+    return ' \u00b7 ' + Math.floor(secs / 60) + ':' + ('0' + (Math.round(secs) % 60)).slice(-2);
+}
+
 function updateSource() {
     if (!el.source) { return; }
     var version = versions[versionIdx];
@@ -625,7 +631,7 @@ function updateSource() {
     el.source.disabled = !canCycle;
     el.sourceLabel.textContent = label
         ? I18N.source_prefix + ' ' + label +
-          (canCycle ? ' (' + (versionIdx + 1) + '/' + versions.length + ')' : '')
+          (canCycle ? versionLength(version) + ' (' + (versionIdx + 1) + '/' + versions.length + ')' : '')
         : '';
     el.source.classList.toggle('is-synced', synced);
     el.source.title = canCycle ? I18N.switch_version : (synced ? I18N.lyrics_synced_hint : '');
@@ -639,7 +645,40 @@ function showVersion(idx, keepScroll) {
     updateSource();
 }
 
-// Only ever one for now: a search keeps a single provider's answer.
+// Every upload the provider returned, winner first; older responses carry only
+// the winning one. Synced text wins within a version, as it does on screen.
+function webVersions(res) {
+    var list = (res && res.versions) || [{
+        lyrics: res && res.lyrics, synced: res && res.synced,
+        album: null, duration: null,
+    }];
+    var out = [];
+    for (var i = 0; i < list.length; i++) {
+        var text = list[i].synced || list[i].lyrics;
+        if (text) {
+            out.push({
+                text: text, source: res.source,
+                duration: list[i].duration, synced: !!list[i].synced,
+            });
+        }
+    }
+    return out;
+}
+
+function pushWebVersions(res) {
+    var web = webVersions(res);
+    for (var i = 0; i < web.length; i++) { versions.push(web[i]); }
+    return web.length;
+}
+
+// The first time-synced version from `from` on, or -1.
+function firstSyncedIdx(from) {
+    for (var i = from; i < versions.length; i++) {
+        if (versions[i].synced) { return i; }
+    }
+    return -1;
+}
+
 function webVersionIdx() {
     for (var i = 0; i < versions.length; i++) {
         if (versions[i].source !== 'library') { return i; }
@@ -1245,10 +1284,8 @@ function fetchLyrics() {
             setSearching(false);
             holdRetry(res.retry_after || 0);
             // Prefer the synced (LRC) version; fall back to plain text.
-            var lyrics = res.synced || res.lyrics;
-            if (lyrics) {
-                versions.push({ text: lyrics, source: res.source });
-                showVersion(versions.length - 1);
+            if (pushWebVersions(res)) {
+                showVersion(0);
             } else {
                 setLyrics(emptyLyricsMessage(res), true);
             }
@@ -1279,12 +1316,12 @@ function trySyncedFromWeb() {
             if (track !== currentTrack) { return; }
             setSearching(false);
             holdRetry(res.retry_after || 0);
-            var web = res.synced || res.lyrics;
-            if (!web) { return; }
-            versions.push({ text: web, source: res.source });
+            var first = versions.length;
+            if (!pushWebVersions(res)) { return; }
             // Synced lyrics take the screen, since the library's are always
             // plain; a plain one only joins the cycle.
-            if (res.synced) { showVersion(versions.length - 1); }
+            var synced = firstSyncedIdx(first);
+            if (synced >= 0) { showVersion(synced); }
             else { updateSource(); }
         })
         .catch(function() {
