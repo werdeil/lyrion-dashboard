@@ -633,8 +633,7 @@ function updateSource() {
     el.source.hidden = !label;
     el.source.disabled = !canCycle;
     el.sourceLabel.textContent = label
-        ? I18N.source_prefix + ' ' + label +
-          (canCycle ? versionLength(version) + ' (' + (versionIdx + 1) + '/' + versions.length + ')' : '')
+        ? label + (canCycle ? versionLength(version) + ' (' + (versionIdx + 1) + '/' + versions.length + ')' : '')
         : '';
     el.source.classList.toggle('is-synced', synced);
     el.source.title = canCycle ? I18N.switch_version : (synced ? I18N.lyrics_synced_hint : '');

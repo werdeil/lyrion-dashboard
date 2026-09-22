@@ -29,7 +29,6 @@ TRANSLATIONS = {
         "app_menu": "Menu de l'application",
         "cover_alt": "Pochette",
         "cover_zoom": "Agrandir la pochette",
-        "source_prefix": "Source :",
         "source_library": "Bibliothèque",
         "switch_version": "Voir une autre version des paroles",
         # Stats
@@ -75,7 +74,6 @@ TRANSLATIONS = {
         "app_menu": "App menu",
         "cover_alt": "Cover",
         "cover_zoom": "Enlarge the cover",
-        "source_prefix": "Source:",
         "source_library": "Library",
         "switch_version": "Show another version of the lyrics",
         # Stats
