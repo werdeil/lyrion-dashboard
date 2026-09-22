@@ -285,3 +285,51 @@ class LrclibVersionsTest(unittest.TestCase):
     def test_a_single_upload_still_yields_one_version(self):
         fake = _Lrclib(get=_record(1, synced="[00:12.00] a"))
         self.assertEqual(len(self._fetch(fake)["versions"]), 1)
+
+
+class LrclibVersionOrderTest(unittest.TestCase):
+    """Synced uploads lead, plain ones fill in behind them."""
+
+    def _fetch(self, fake, duration="302"):
+        with patch("services.lyrics.requests.get", side_effect=fake):
+            return L._provider_lrclib("Muse", "Will Of The People", "Will Of The People", duration)
+
+    def test_plain_uploads_follow_the_synced_ones(self):
+        fake = _Lrclib(get=None, searches=[[
+            _record(2, synced=None, plain="plain far", album="P1", duration=304),
+            _record(3, synced="[00:12.00] a", album="S1", duration=302),
+            _record(4, synced=None, plain="plain near", album="P2", duration=302),
+            _record(5, synced="[00:12.00] b", album="S2", duration=303),
+        ]])
+        result = self._fetch(fake)
+        self.assertEqual([v["album"] for v in result["versions"]], ["S1", "S2", "P2", "P1"])
+        self.assertEqual(result["synced"], "[00:12.00] a")
+
+    def test_a_cap_sheds_the_plain_ones_first(self):
+        records = [_record(i, synced="[00:12.00] a", album=f"S{i}") for i in range(5)]
+        records += [_record(90, synced=None, plain="plain", album="P")]
+        result = self._fetch(_Lrclib(get=None, searches=[records]))
+        self.assertEqual(len(result["versions"]), L.MAX_VERSIONS)
+        self.assertNotIn("P", [v["album"] for v in result["versions"]])
+
+    def test_the_signature_hit_is_offered_when_the_search_missed_it(self):
+        # /get matched on the exact signature but is plain, so it is a version
+        # in its own right even when the search that found the LRC ignores it.
+        fake = _Lrclib(
+            get=_record(1, synced=None, plain="from get", album="Signature"),
+            searches=[[_record(2, synced="[00:12.00] a", album="Other")]],
+        )
+        result = self._fetch(fake)
+        self.assertEqual([v["album"] for v in result["versions"]], ["Other", "Signature"])
+
+    def test_the_signature_hit_is_not_repeated_when_the_search_returns_it(self):
+        fake = _Lrclib(
+            get=_record(1, synced=None, plain="from get"),
+            searches=[[_record(2, synced="[00:12.00] a", album="Other"),
+                       _record(1, synced=None, plain="from get")]],
+        )
+        result = self._fetch(fake)
+        # Two versions, not three: the record is in both answers under one id.
+        self.assertEqual([v["album"] for v in result["versions"]],
+                         ["Other", "Will Of The People"])
+        self.assertEqual(result["versions"][1]["lyrics"], "from get")

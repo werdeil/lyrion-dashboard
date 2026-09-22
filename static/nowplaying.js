@@ -277,6 +277,9 @@ var currentTrack = null;
 var lyricsTried = false;
 // Lyrics available for the current track, in cycling order: the library's own
 // text first when it has any, then the web's. versionIdx is -1 when none shows.
+// The cap mirrors services.lyrics.MAX_VERSIONS, which bounds a response; only
+// the page knows whether a library text takes one of those places.
+var MAX_VERSIONS = 5;
 var versions = [];
 var versionIdx = -1;
 
@@ -667,8 +670,12 @@ function webVersions(res) {
 
 function pushWebVersions(res) {
     var web = webVersions(res);
+    var before = versions.length;
     for (var i = 0; i < web.length; i++) { versions.push(web[i]); }
-    return web.length;
+    // The library's text leads and the plain uploads trail, so trimming the
+    // tail keeps the local copy and sheds the least useful web version.
+    if (versions.length > MAX_VERSIONS) { versions.length = MAX_VERSIONS; }
+    return versions.length - before;
 }
 
 // The first time-synced version from `from` on, or -1.

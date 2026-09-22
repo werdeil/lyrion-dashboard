@@ -54,9 +54,10 @@ LRCLIB_TIMEOUT = int(os.getenv("LRCLIB_TIMEOUT", "15"))
 # for libraries whose durations are noisy.
 VERIFY_DURATION_TOLERANCE = int(os.getenv("LYRICS_VERIFY_DURATION_TOLERANCE", "3"))
 
-# Versions kept for one track, winner included. Each carries a full lyrics body
-# into the cache, so this caps an entry's weight as much as the page's cycle.
-MAX_VERSIONS = 4
+# Versions offered for one track, the library's own text included — the page
+# holds that one, so a response may fill the whole budget. Each carries a full
+# lyrics body into the cache, so this caps an entry's weight too.
+MAX_VERSIONS = 5
 
 # The cache key includes client-supplied fields, so the cache must stay bounded.
 CACHE_MAX_ENTRIES = 1000
@@ -227,7 +228,12 @@ def _lrclib_search(artist, title, album, seconds, fallback):
             len(results), len(close), len(synced),
         )
         if synced:
-            ranked = _by_length(synced, seconds)
+            # Synced first, then the plain uploads of this same recording: a
+            # cap that has to drop something sheds the ones with no timings.
+            plain = [c for c in close if not c.get("syncedLyrics")]
+            ranked = _by_length(synced, seconds) + _by_length(plain, seconds)
+            if fallback is not None and not any(c.get("id") == fallback.get("id") for c in ranked):
+                ranked.append(fallback)
             return ranked[0], ranked[1:]
         pool = close or results
         if pool and not others:
@@ -655,9 +661,10 @@ def fetch_lyrics(track_id, artist, title, album=None, duration=None, force=False
     provider could be reached — the one outcome that is not cached, so a search
     is retried as soon as they answer again.
 
-    A provider that found several uploads of the song also returns "versions",
-    the winner first and at most MAX_VERSIONS long, for the page to cycle
-    through; callers that only want lyrics can ignore it.
+    A provider that found several uploads of the song also returns "versions"
+    for the page to cycle through: the winner first, then the rest synced
+    before plain, at most MAX_VERSIONS long. Callers that only want lyrics can
+    ignore it.
 
     With `verify=True` (used by the batch CLI, which writes lyrics permanently
     into tags), a provider's result is only accepted when its own metadata
