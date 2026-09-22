@@ -10,7 +10,7 @@ All configuration comes from environment variables, read once at start-up. Under
 | `LYRION_DATA_DIR` | Lyrion's data directory, the one holding its `prefs/` and `cache/` | `/lyrion` in the image |
 | `PLAY_COUNTS_SOURCE` | Where play counts come from: `auto` (Alternative Play Count when installed, Lyrion's own counters otherwise) or `lyrion` (always Lyrion's counters) | `auto` |
 | `CUSTOM_DATA_DIR` | Generated files directory | `/opt/scripts/custom_data` |
-| `LYRICS_PROVIDERS` | Web lyrics providers, tried in order (`lrclib`, `musixmatch`, `genius`) | `lrclib,musixmatch,genius` |
+| `LYRICS_PROVIDERS` | Web lyrics providers, tried in order (`lrclib`, `musixmatch`, `genius`); empty disables the web search entirely | `lrclib,musixmatch,genius` |
 | `MUSIXMATCH_TOKEN` | Fixed Musixmatch token (otherwise fetched automatically) | -- |
 | `LRCLIB_TIMEOUT` | LRCLIB request timeout, in seconds | `15` |
 | `LYRICS_VERIFY_DURATION_TOLERANCE` | Max drift (seconds) tolerated by `--verify` in `embed_lyrics.py` | `3` |

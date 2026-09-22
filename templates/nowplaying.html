@@ -83,28 +83,21 @@
                             <path d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46C19.54 15.03 20 13.57 20 12c0-4.42-3.58-8-8-8zm0 14c-3.31 0-6-2.69-6-6 0-1.01.25-1.97.7-2.8L5.24 7.74C4.46 8.97 4 10.43 4 12c0 4.42 3.58 8 8 8v3l4-4-4-4v3z"/>
                         </svg>
                     </button>
-                    <div class="np-lyrics-mode-block" id="np-lyrics-mode-block">
-                        <button type="button" class="np-switch" id="np-auto-switch" role="switch" aria-checked="false" title="{{ t.lyrics_search }}" aria-label="{{ t.lyrics_sync_toggle }}">
-                            {{ icons.lyrics_sync_icon() }}
-                            <span class="np-switch-track"><span class="np-switch-thumb"></span></span>
-                        </button>
-                        {# Hidden by default; JS shows it in auto mode when no search runs. #}
-                        <button type="button" class="np-retry" id="np-retry" title="{{ t.retry_lyrics }}" aria-label="{{ t.retry_lyrics }}" hidden>
-                            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                                <path d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-8 8s3.57 8 8 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/>
-                            </svg>
-                        </button>
-                        <span class="np-search-status" id="np-search-status" role="status" aria-label="{{ t.searching }}" title="{{ t.searching }}" hidden>
-                            <span class="np-spinner" aria-hidden="true"></span>
-                        </span>
-                        <button type="button" class="np-lyrics-source" id="np-lyrics-source" hidden>
-                            <span id="np-lyrics-source-label"></span>
-                            {# Shown in the chevron's place when the chip is a passive label:
-                               the web answered with the text already on screen. #}
-                            <span class="np-source-mark" id="np-source-mark" hidden>{{ icons.confirmed_icon(12) }}</span>
-                            {{ icons.next_version_icon(13) }}
-                        </button>
-                    </div>
+                    {# Sits over the lyrics' lower-right corner; the box keeps a bottom
+                       padding wide enough that no line ever scrolls under it. #}
+                    <button type="button" class="np-lyrics-source" id="np-lyrics-source" hidden>
+                        <span id="np-lyrics-source-label"></span>
+                        {# Shown in the chevron's place when the chip is a passive label:
+                           the web answered with the text already on screen. #}
+                        <span class="np-source-mark" id="np-source-mark" hidden>{{ icons.confirmed_icon(12) }}</span>
+                        {{ icons.next_version_icon(13) }}
+                    </button>
+                    {# Moved into the lyrics box by the page, under the message that
+                       says why it is empty — the only moment a retry means anything. #}
+                    <button type="button" class="np-retry" id="np-retry" title="{{ t.retry_lyrics }}" hidden>
+                        {{ icons.retry_icon(15) }}
+                        <span>{{ t.retry_lyrics_label }}</span>
+                    </button>
                 </div>
                 <div class="np-empty" id="np-empty">
                     {# Decorative cover mosaic, filled by nowplaying.js from /mosaic-covers.json. #}

@@ -10,7 +10,7 @@ Toute la configuration vient de variables d'environnement, lues une fois au dém
 | `LYRION_DATA_DIR` | Répertoire de données de Lyrion, celui qui contient ses sous-répertoires `prefs/` et `cache/` | `/lyrion` dans l'image |
 | `PLAY_COUNTS_SOURCE` | Origine des compteurs d'écoute : `auto` (Alternative Play Count s'il est installé, sinon les compteurs de Lyrion) ou `lyrion` (toujours ceux de Lyrion) | `auto` |
 | `CUSTOM_DATA_DIR` | Répertoire des fichiers générés | `/opt/scripts/custom_data` |
-| `LYRICS_PROVIDERS` | Fournisseurs de paroles web, essayés dans l'ordre (`lrclib`, `musixmatch`, `genius`) | `lrclib,musixmatch,genius` |
+| `LYRICS_PROVIDERS` | Fournisseurs de paroles web, essayés dans l'ordre (`lrclib`, `musixmatch`, `genius`) ; vide désactive complètement la recherche web | `lrclib,musixmatch,genius` |
 | `MUSIXMATCH_TOKEN` | Jeton Musixmatch fixe (sinon récupéré automatiquement) | -- |
 | `LRCLIB_TIMEOUT` | Délai d'expiration des requêtes LRCLIB, en secondes | `15` |
 | `LYRICS_VERIFY_DURATION_TOLERANCE` | Écart max (secondes) toléré par `--verify` dans `embed_lyrics.py` | `3` |

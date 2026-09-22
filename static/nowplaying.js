@@ -48,10 +48,7 @@ var el = {
     sourceLabel: document.getElementById('np-lyrics-source-label'),
     sourceMark: document.getElementById('np-source-mark'),
     cover:  document.getElementById('np-cover-img'),
-    modeBlock: document.getElementById('np-lyrics-mode-block'),
-    autoSwitch: document.getElementById('np-auto-switch'),
     retry:  document.getElementById('np-retry'),
-    searchStatus: document.getElementById('np-search-status'),
     progressBar: document.getElementById('np-progress-bar'),
     lyrionLink: document.getElementById('lyrion-link'),
     scrollReset: document.getElementById('np-scroll-reset'),
@@ -62,41 +59,18 @@ var el = {
     recentPile: document.getElementById('np-recent-pile'),
 };
 
-// Web lyrics auto-search is a single on/off switch:
-//   'off'  – never query the web, just show the library's lyrics (if any)
-//   'auto' – search every track the library lacks (synced) lyrics for
-// Display is automatic, never a user choice: we always prefer synced (LRC)
-// lyrics and render them as karaoke, falling back to plain text when only plain
-// lyrics exist. The chosen state persists in localStorage.
-var LYRICS_MODE_KEY = 'np-lyrics-mode';
-var lyricsMode = 'off';
-try {
-    var savedMode = localStorage.getItem(LYRICS_MODE_KEY);
-    if (savedMode === 'off' || savedMode === 'auto') {
-        lyricsMode = savedMode;
-    } else if (localStorage.getItem('np-auto-lyrics') === '1') {
-        lyricsMode = 'auto';  // migrate the previous boolean toggle preference
-    }
-} catch (e) {}
-
-function updateSwitch() {
-    if (!el.autoSwitch) { return; }
-    var on = lyricsMode === 'auto';
-    el.autoSwitch.setAttribute('aria-checked', on ? 'true' : 'false');
-    el.autoSwitch.classList.toggle('is-on', on);
-    updateRetry();
-}
-
-// The manual retry button sits in the spinner's slot: it only shows in auto
-// mode and while no search is running (the spinner replaces it meanwhile). It
-// greys out while the server would refuse a new search for this track, so a
-// click never lands on a fuse instead of a search.
+// The retry button belongs to the empty panel: a search is worth re-running
+// only when the last one left nothing on screen. It lives in the lyrics box,
+// under the message saying why, and greys out while the server would refuse a
+// new search for this track, so a click never lands on a fuse.
 var searching = false;
 var retryHeld = false;
 function updateRetry() {
     if (!el.retry) { return; }
-    el.retry.hidden = searching || lyricsMode !== 'auto';
+    var show = !searching && !!currentTrack && el.lyrics.classList.contains('empty');
+    el.retry.hidden = !show;
     el.retry.disabled = retryHeld;
+    if (show && el.retry.parentNode !== el.lyrics) { el.lyrics.appendChild(el.retry); }
 }
 
 // Held for exactly as long as the server says its per-track cooldown will run.
@@ -111,10 +85,6 @@ function holdRetry(seconds) {
         }, seconds * 1000);
     }
     updateRetry();
-}
-
-function persistMode() {
-    try { localStorage.setItem(LYRICS_MODE_KEY, lyricsMode); } catch (e) {}
 }
 
 var MATERIAL_BASE = LYRION_HOST ? LYRION_HOST + '/material/' : '#';
@@ -530,6 +500,7 @@ function setLyrics(text, isEmpty, keepScroll) {
         el.lyrics.classList.toggle('empty', !!isEmpty || !text);
         el.lyrics.scrollTop = prevScroll;
         updateScrollReset();
+        updateRetry();
         return;
     }
 
@@ -555,6 +526,7 @@ function setLyrics(text, isEmpty, keepScroll) {
         el.lyrics.scrollTop = prevScroll;
     }
     updateScrollReset();
+    updateRetry();
 }
 
 function currentTime() {
@@ -628,12 +600,14 @@ function updateSource() {
     var version = versions[versionIdx];
     var label = version && SOURCE_LABELS[version.source];
     var synced = !!(label && lrcLines);
-    var canCycle = lyricsMode === 'auto' && versions.length > 1;
+    var canCycle = versions.length > 1 && !searching;
     el.source.hidden = !label;
     el.source.disabled = !canCycle;
-    el.sourceLabel.textContent = label
+    // While a search runs the chip says so, which is why no spinner shares the
+    // lyrics box with it.
+    el.sourceLabel.textContent = searching ? I18N.searching : (label
         ? label + (canCycle ? versionLength(version) + ' (' + (versionIdx + 1) + '/' + versions.length + ')' : '')
-        : '';
+        : '');
     el.source.classList.toggle('is-synced', synced);
     // The mark takes the chevron's place, so it only ever shows on a passive chip.
     var confirmed = echoed && !canCycle && !searching && !!label;
@@ -723,12 +697,9 @@ if (el.source) {
     });
 }
 
-// Toggle the "searching the web" spinner. Shown even when local lyrics are
-// already on screen, so the user knows a synced version is still being fetched.
-// The retry button swaps out for it, which also keeps searches from stacking.
 function setSearching(on) {
     searching = on;
-    if (el.searchStatus) { el.searchStatus.hidden = !on; }
+    updateSource();
     updateRetry();
 }
 
@@ -1262,20 +1233,13 @@ function render(data) {
         // The cooldown is per track, so a new one starts with a live button.
         holdRetry(0);
 
-        if (el.modeBlock) {
-            el.modeBlock.style.display = '';
-            updateSwitch();
-        }
-
-        // In auto mode, look the lyrics up on the web straight away: from scratch
-        // when the library has nothing, or to upgrade its (always plain) text to
-        // a synced version when it does.
-        if (lyricsMode === 'auto') {
-            if (data.lyrics) {
-                trySyncedFromWeb();
-            } else {
-                fetchLyrics();
-            }
+        // Look the lyrics up on the web straight away: from scratch when the
+        // library has nothing, or to upgrade its (always plain) text to a
+        // synced version when it does.
+        if (data.lyrics) {
+            trySyncedFromWeb();
+        } else {
+            fetchLyrics();
         }
     }
 }
@@ -1359,53 +1323,8 @@ function trySyncedFromWeb() {
         });
 }
 
-// Re-render the library's own lyrics for this track, dropping any web result
-// (used when switching back to 'off'). Only the mode changes here, so keep the
-// current scroll position instead of jumping back to the top.
-function showLocal() {
-    var data = currentTrack || {};
-    versionIdx = data.lyrics ? 0 : -1;
-    setLyrics(data.lyrics || I18N.no_lyrics_library, !data.lyrics, true);
-    updateSource();
-}
-
-function setAuto(on) {
-    lyricsMode = on ? 'auto' : 'off';
-    persistMode();
-    updateSwitch();
-    if (!currentTrack) { return; }
-
-    if (!on) {
-        // Off: no web search, fall back to whatever the library has.
-        setSearching(false);
-        showLocal();
-        return;
-    }
-    // On: resolve synced lyrics for the current track — but only once. Toggling
-    // back on reuses the result already fetched instead of searching again.
-    var web = webVersionIdx();
-    if (web >= 0) {
-        // Re-show the result we already fetched for this track, no new request
-        // and without losing the scroll position (mode change, not a new track).
-        showVersion(web, true);
-    } else if (lyricsTried) {
-        showLocal();          // already searched and found nothing — keep local
-    } else if (currentTrack.lyrics) {
-        trySyncedFromWeb();   // plain local text → try once to upgrade to synced
-    } else {
-        fetchLyrics();        // nothing local → search from scratch
-    }
-}
-
-if (el.autoSwitch) {
-    el.autoSwitch.addEventListener('click', function() {
-        setAuto(lyricsMode !== 'auto');
-    });
-}
-updateSwitch();
-
-// Manual retry (rare need, hence icon-only): re-run the web search for the
-// current track, bypassing the server cache. Only reachable in auto mode.
+// Re-run the web search for the current track, bypassing the server cache.
+// Only reachable from the empty panel — see updateRetry().
 function retryLyrics() {
     if (!currentTrack) { return; }
     // Drop the previous search's answer, so the new one doesn't stack a second
@@ -1417,11 +1336,8 @@ function retryLyrics() {
     }
     echoed = false;
     lyricsTried = true;  // force refresh=1 → bypass the server-side cache
-    if (el.lyrics.classList.contains('empty')) {
-        fetchLyrics();
-    } else {
-        trySyncedFromWeb();
-    }
+    // Only the empty panel offers this, so there is nothing on screen to keep.
+    fetchLyrics();
 }
 
 if (el.retry) {
