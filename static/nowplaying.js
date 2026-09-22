@@ -648,24 +648,48 @@ function showVersion(idx, keepScroll) {
     updateSource();
 }
 
+// The words of a lyrics text, timings and LRC metadata stripped, so the two
+// forms of one upload can be told apart by content alone.
+function lyricsWords(text) {
+    var lines = (text || '').split(/\r?\n/);
+    var out = [];
+    for (var i = 0; i < lines.length; i++) {
+        if (LRC_META_RE.test(lines[i])) { continue; }
+        var m = lines[i].match(LRC_LINE_RE);
+        var words = (m ? m[3] : lines[i]).replace(/\s+/g, ' ').trim();
+        if (words) { out.push(words); }
+    }
+    return out.join('\n');
+}
+
 // Every upload the provider returned, winner first; older responses carry only
-// the winning one. Synced text wins within a version, as it does on screen.
+// the winning one. An upload holding both forms yields two versions, since the
+// timings can be wrong where the words are right — but only when the words
+// really differ, a plain copy of the same text being no second opinion.
+// Synced entries lead, as they do server-side: a cap trims from the back.
 function webVersions(res) {
     var list = (res && res.versions) || [{
         lyrics: res && res.lyrics, synced: res && res.synced,
         album: null, duration: null,
     }];
-    var out = [];
+    var synced = [];
+    var plain = [];
     for (var i = 0; i < list.length; i++) {
-        var text = list[i].synced || list[i].lyrics;
-        if (text) {
-            out.push({
-                text: text, source: res.source,
-                duration: list[i].duration, synced: !!list[i].synced,
+        var version = list[i];
+        var entry = {
+            source: res.source, duration: version.duration,
+            text: version.synced, synced: true,
+        };
+        if (version.synced) { synced.push(entry); }
+        if (version.lyrics &&
+            (!version.synced || lyricsWords(version.lyrics) !== lyricsWords(version.synced))) {
+            plain.push({
+                source: res.source, duration: version.duration,
+                text: version.lyrics, synced: false,
             });
         }
     }
-    return out;
+    return synced.concat(plain);
 }
 
 function pushWebVersions(res) {
