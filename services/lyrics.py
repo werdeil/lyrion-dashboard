@@ -193,6 +193,27 @@ def _lrclib_search_url(artist, title):
     return f"{LRCLIB_SITE}/search/{quote(query, safe='')}"
 
 
+def _lrclib_candidates(results, seconds, search_params):
+    """One search response's candidates, and those worth offering in order.
+
+    The offer is the uploads of this track's length, synced first and plain
+    behind — empty when none is synced, which leaves the caller to keep
+    looking. Logs a funnel: the three counts narrow the same set down, so the
+    last one is what the page could actually be given.
+    """
+    close = [c for c in results if _duration_close(c, seconds)]
+    synced = [c for c in close if c.get("syncedLyrics")]
+    log.info(
+        "lrclib: search (artist=%r, album=%r) returned %d candidate(s), %d of this length, %d of those synced",
+        search_params.get("artist_name"), search_params.get("album_name"),
+        len(results), len(close), len(synced),
+    )
+    if not synced:
+        return close, []
+    plain = [c for c in close if not c.get("syncedLyrics")]
+    return close, _by_length(synced, seconds) + _by_length(plain, seconds)
+
+
 def _lrclib_search(artist, title, album, seconds, fallback):
     """Scan LRCLIB's `search` for a synced record of this very recording.
 
@@ -218,20 +239,8 @@ def _lrclib_search(artist, title, album, seconds, fallback):
             log.info("lrclib: search returned HTTP %s", r.status_code)
             continue
         results = r.json() or []
-        close = [c for c in results if _duration_close(c, seconds)]
-        synced = [c for c in close if c.get("syncedLyrics")]
-        # The three counts narrow down the same set, so they read as a funnel:
-        # anything the page could offer is what the last one counts.
-        log.info(
-            "lrclib: search (artist=%r, album=%r) returned %d candidate(s), %d of this length, %d of those synced",
-            search_params.get("artist_name"), search_params.get("album_name"),
-            len(results), len(close), len(synced),
-        )
-        if synced:
-            # Synced first, then the plain uploads of this same recording: a
-            # cap that has to drop something sheds the ones with no timings.
-            plain = [c for c in close if not c.get("syncedLyrics")]
-            ranked = _by_length(synced, seconds) + _by_length(plain, seconds)
+        close, ranked = _lrclib_candidates(results, seconds, search_params)
+        if ranked:
             if fallback is not None and not any(c.get("id") == fallback.get("id") for c in ranked):
                 ranked.append(fallback)
             return ranked[0], ranked[1:]
