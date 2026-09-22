@@ -648,24 +648,9 @@ function showVersion(idx, keepScroll) {
     updateSource();
 }
 
-// The words of a lyrics text, timings and LRC metadata stripped, so the two
-// forms of one upload can be told apart by content alone.
-function lyricsWords(text) {
-    var lines = (text || '').split(/\r?\n/);
-    var out = [];
-    for (var i = 0; i < lines.length; i++) {
-        if (LRC_META_RE.test(lines[i])) { continue; }
-        var m = lines[i].match(LRC_LINE_RE);
-        var words = (m ? m[3] : lines[i]).replace(/\s+/g, ' ').trim();
-        if (words) { out.push(words); }
-    }
-    return out.join('\n');
-}
-
 // Every upload the provider returned, winner first; older responses carry only
-// the winning one. An upload holding both forms yields two versions, since the
-// timings can be wrong where the words are right — but only when the words
-// really differ, a plain copy of the same text being no second opinion.
+// the winning one. An upload holding both forms yields both: timings that fit
+// the recording badly leave the plain text the one that reads.
 // Synced entries lead, as they do server-side: a cap trims from the back.
 function webVersions(res) {
     var list = (res && res.versions) || [{
@@ -681,8 +666,7 @@ function webVersions(res) {
             text: version.synced, synced: true,
         };
         if (version.synced) { synced.push(entry); }
-        if (version.lyrics &&
-            (!version.synced || lyricsWords(version.lyrics) !== lyricsWords(version.synced))) {
+        if (version.lyrics) {
             plain.push({
                 source: res.source, duration: version.duration,
                 text: version.lyrics, synced: false,
