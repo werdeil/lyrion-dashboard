@@ -59,18 +59,16 @@ var el = {
     recentPile: document.getElementById('np-recent-pile'),
 };
 
-// The retry button belongs to the empty panel: a search is worth re-running
-// only when the last one left nothing on screen. It lives in the lyrics box,
-// under the message saying why, and greys out while the server would refuse a
+// Retry sits beside the version chip: what is on screen being unconvincing is
+// exactly when a fresh search is worth running, whether the panel is empty or
+// holds a text that does not fit. It greys out while the server would refuse a
 // new search for this track, so a click never lands on a fuse.
 var searching = false;
 var retryHeld = false;
 function updateRetry() {
     if (!el.retry) { return; }
-    var show = !searching && !!currentTrack && el.lyrics.classList.contains('empty');
-    el.retry.hidden = !show;
+    el.retry.hidden = searching || !currentTrack;
     el.retry.disabled = retryHeld;
-    if (show && el.retry.parentNode !== el.lyrics) { el.lyrics.appendChild(el.retry); }
 }
 
 // Held for exactly as long as the server says its per-track cooldown will run.
@@ -1324,7 +1322,6 @@ function trySyncedFromWeb() {
 }
 
 // Re-run the web search for the current track, bypassing the server cache.
-// Only reachable from the empty panel — see updateRetry().
 function retryLyrics() {
     if (!currentTrack) { return; }
     // Drop the previous search's answer, so the new one doesn't stack a second
@@ -1336,8 +1333,11 @@ function retryLyrics() {
     }
     echoed = false;
     lyricsTried = true;  // force refresh=1 → bypass the server-side cache
-    // Only the empty panel offers this, so there is nothing on screen to keep.
-    fetchLyrics();
+    if (currentTrack.lyrics) {
+        trySyncedFromWeb();  // the library's text stays unless the web beats it
+    } else {
+        fetchLyrics();
+    }
 }
 
 if (el.retry) {

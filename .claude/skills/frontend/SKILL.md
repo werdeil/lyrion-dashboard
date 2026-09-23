@@ -89,7 +89,7 @@ That label carries four things at once — provenance, length, rank (`1/2`) and 
 
 ## Enlarged cover
 
-The retry button belongs to the empty panel rather than to any permanent chrome: `updateRetry` shows it, and moves it inside `.np-lyrics`, only when the box is empty and no search is running — the one moment re-running a search means anything. `setLyrics` rebuilds the box, so it calls `updateRetry` on both its paths to put the button back.
+Both lyrics controls share `.np-lyrics-tools`, a row floating over the box's lower-left corner: the version chip, and retry beside it. Retry shows whenever a track is playing and no search is running — an unconvincing text on screen is as good a reason to search again as an empty panel, and with the bar gone this row is the only place left to ask from. It greys out while the server's per-track cooldown would refuse the search.
 
 ## Enlarged cover
 
