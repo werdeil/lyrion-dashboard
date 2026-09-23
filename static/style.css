@@ -734,9 +734,10 @@ body.in-app .np-pull {
 .np-lyrics-source {
     position: absolute;
     /* Left, because the right edge is where a classic scrollbar puts its
-       gutter. The box overhangs this block by 2% on each side (its negative
-       margin), so that 2% is taken back to reach the box's own corner. */
-    left: calc(4px - 2%);
+       gutter. Flush with the progress bar above it: the box's own edge sits
+       2% further out, room its negative margin keeps for the scaled active
+       line rather than a margin anything should align to. */
+    left: 0;
     /* --source-clearance must stay wider than this inset plus the chip's own
        height, or the last lyrics line comes to rest under it. */
     bottom: 2px;
