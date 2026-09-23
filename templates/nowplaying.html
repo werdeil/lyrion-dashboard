@@ -84,15 +84,15 @@
                     {# Both lyrics controls share the box's lower-left corner: which
                        version is on screen, and looking for another one. #}
                     <div class="np-lyrics-tools">
+                        <button type="button" class="np-retry" id="np-retry" title="{{ t.retry_lyrics }}" aria-label="{{ t.retry_lyrics }}" hidden>
+                            {{ icons.retry_icon(14) }}
+                        </button>
                         <button type="button" class="np-lyrics-source" id="np-lyrics-source" hidden>
                             <span id="np-lyrics-source-label"></span>
                             {# Shown in the chevron's place when the chip is a passive label:
                                the web answered with the text already on screen. #}
                             <span class="np-source-mark" id="np-source-mark" hidden>{{ icons.confirmed_icon(12) }}</span>
                             {{ icons.next_version_icon(13) }}
-                        </button>
-                        <button type="button" class="np-retry" id="np-retry" title="{{ t.retry_lyrics }}" aria-label="{{ t.retry_lyrics }}" hidden>
-                            {{ icons.retry_icon(14) }}
                         </button>
                     </div>
                 </div>

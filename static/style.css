@@ -824,7 +824,8 @@ body.in-app .np-pull {
     justify-content: center;
     margin: 0;
     /* Square around a 14px glyph: equal padding is what centres it, with no
-       label beside it to pull it off. */
+       label beside it to pull it off. Leading the row, its fixed width is
+       also what keeps the button still while the chip's label changes. */
     padding: 0 8px;
     border: 0;
     background: none;
@@ -832,8 +833,8 @@ body.in-app .np-pull {
     cursor: pointer;
 }
 
-/* Only a divider when both segments show; alone, retry is the whole pill. */
-.np-lyrics-source:not([hidden]) + .np-retry {
+/* Only a divider when both segments show; alone, either is the whole pill. */
+.np-retry:not([hidden]) + .np-lyrics-source {
     border-left: 1px solid color-mix(in srgb, var(--tint-color) 24%, rgba(255, 255, 255, 0.10));
 }
 
