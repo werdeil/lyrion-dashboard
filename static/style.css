@@ -733,13 +733,13 @@ body.in-app .np-pull {
 
 .np-lyrics-source {
     position: absolute;
-    /* The lyrics box overhangs this block by 2% on each side (its negative
-       margin), so that 2% is taken back here to sit against the box's visible
-       edge instead of an inset that grows with the viewport. */
-    right: calc(6px - 2%);
+    /* Left, because the right edge is where a classic scrollbar puts its
+       gutter. The box overhangs this block by 2% on each side (its negative
+       margin), so that 2% is taken back to reach the box's own corner. */
+    left: calc(4px - 2%);
     /* --source-clearance must stay wider than this inset plus the chip's own
        height, or the last lyrics line comes to rest under it. */
-    bottom: 6px;
+    bottom: 2px;
     z-index: 2;
     display: flex;
     align-items: center;
@@ -1488,3 +1488,4 @@ body.in-app .page-header {
         flex: 1 1 0;
     }
 }
+
