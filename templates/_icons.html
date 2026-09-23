@@ -84,3 +84,9 @@
     <polyline points="9 6 15 12 9 18"/>
 {% endcall %}
 {%- endmacro %}
+
+{% macro confirmed_icon(size=20) -%}
+{% call _frame(size) %}
+    <polyline points="4 12.5 9 17.5 20 6.5"/>
+{% endcall %}
+{%- endmacro %}

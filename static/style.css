@@ -756,7 +756,18 @@ body.in-app .np-pull {
     cursor: default;
 }
 
-.np-lyrics-source:disabled svg {
+/* Only the chevron goes when the chip is passive; the confirmation mark lives
+   in a span so it can take that place. */
+.np-lyrics-source:disabled > svg {
+    display: none;
+}
+
+.np-source-mark {
+    display: flex;
+    align-items: center;
+}
+
+.np-source-mark[hidden] {
     display: none;
 }
 

@@ -46,6 +46,7 @@ var el = {
     lyrics: document.getElementById('np-lyrics'),
     source: document.getElementById('np-lyrics-source'),
     sourceLabel: document.getElementById('np-lyrics-source-label'),
+    sourceMark: document.getElementById('np-source-mark'),
     cover:  document.getElementById('np-cover-img'),
     modeBlock: document.getElementById('np-lyrics-mode-block'),
     autoSwitch: document.getElementById('np-auto-switch'),
@@ -282,6 +283,10 @@ var lyricsTried = false;
 var MAX_VERSIONS = 5;
 var versions = [];
 var versionIdx = -1;
+// A web version was dropped for repeating one already offered: worth saying,
+// since a cycle of one otherwise reads the same whether the web confirmed the
+// text on screen or never found the track at all.
+var echoed = false;
 
 var lrcLines = null;
 // The .lrc-line elements paralleling lrcLines, cached at build time so the
@@ -636,7 +641,11 @@ function updateSource() {
         ? label + (canCycle ? versionLength(version) + ' (' + (versionIdx + 1) + '/' + versions.length + ')' : '')
         : '';
     el.source.classList.toggle('is-synced', synced);
-    el.source.title = canCycle ? I18N.switch_version : (synced ? I18N.lyrics_synced_hint : '');
+    // The mark takes the chevron's place, so it only ever shows on a passive chip.
+    var confirmed = echoed && !canCycle && !searching && !!label;
+    if (el.sourceMark) { el.sourceMark.hidden = !confirmed; }
+    el.source.title = canCycle ? I18N.switch_version
+        : (confirmed ? I18N.lyrics_confirmed : (synced ? I18N.lyrics_synced_hint : ''));
 }
 
 function showVersion(idx, keepScroll) {
@@ -694,7 +703,8 @@ function pushWebVersions(res) {
     var web = webVersions(res);
     var before = versions.length;
     for (var i = 0; i < web.length; i++) {
-        if (!alreadyOffered(web[i].text)) { versions.push(web[i]); }
+        if (alreadyOffered(web[i].text)) { echoed = true; }
+        else { versions.push(web[i]); }
     }
     // The library's text leads and the plain uploads trail, so trimming the
     // tail keeps the local copy and sheds the least useful web version.
@@ -1256,6 +1266,7 @@ function render(data) {
         syncCoverZoom();
         versions = data.lyrics ? [{ text: data.lyrics, source: 'library' }] : [];
         versionIdx = data.lyrics ? 0 : -1;
+        echoed = false;
         setLyrics(data.lyrics || I18N.no_lyrics_library, !data.lyrics);
         updateSource();
         lyricsTried = false;
@@ -1348,7 +1359,9 @@ function trySyncedFromWeb() {
             setSearching(false);
             holdRetry(res.retry_after || 0);
             var first = versions.length;
-            if (!pushWebVersions(res)) { return; }
+            // Even when nothing new lands, the chip is refreshed: an answer
+            // that only repeated what was on screen is worth showing as one.
+            if (!pushWebVersions(res)) { updateSource(); return; }
             // Synced lyrics take the screen, since the library's are always
             // plain; a plain one only joins the cycle.
             var synced = firstSyncedIdx(first);
@@ -1418,6 +1431,7 @@ function retryLyrics() {
         versions.length = web;
         versionIdx = versions.length ? 0 : -1;
     }
+    echoed = false;
     lyricsTried = true;  // force refresh=1 → bypass the server-side cache
     if (el.lyrics.classList.contains('empty')) {
         fetchLyrics();
