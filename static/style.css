@@ -733,24 +733,28 @@ body.in-app .np-pull {
 
 .np-lyrics-source {
     position: absolute;
-    right: 10px;
+    /* The lyrics box overhangs this block by 2% on each side (its negative
+       margin), so that 2% is taken back here to sit against the box's visible
+       edge instead of an inset that grows with the viewport. */
+    right: calc(6px - 2%);
     /* --source-clearance must stay wider than this inset plus the chip's own
        height, or the last lyrics line comes to rest under it. */
-    bottom: 8px;
+    bottom: 6px;
     z-index: 2;
     display: flex;
     align-items: center;
     gap: 3px;
     margin: 0;
     padding: 4px 9px;
-    border: 0;
+    /* The border is what makes this read as a chip: against the card its fill
+       alone is a 1.06:1 surface, an edge no eye finds. No backdrop-filter —
+       it would hand the chip its own composited layer. */
+    border: 1px solid color-mix(in srgb, var(--tint-color) 24%, rgba(255, 255, 255, 0.12));
     border-radius: 999px;
-    /* The card's own tint recipe, opaque enough to hide a line behind it. No
-       backdrop-filter: it would hand the chip its own composited layer. */
-    background: color-mix(in srgb, var(--tint-color) 10%, rgba(44, 44, 44, 0.94));
+    background: color-mix(in srgb, var(--tint-color) 8%, rgba(20, 20, 20, 0.96));
     font: inherit;
     font-size: var(--fs-xs);
-    color: var(--text-faint);
+    color: var(--text-muted);
     cursor: pointer;
 }
 
