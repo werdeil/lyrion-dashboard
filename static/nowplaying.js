@@ -49,6 +49,7 @@ var el = {
     sourceMark: document.getElementById('np-source-mark'),
     cover:  document.getElementById('np-cover-img'),
     retry:  document.getElementById('np-retry'),
+    lyricsTools: document.querySelector('.np-lyrics-tools'),
     progressBar: document.getElementById('np-progress-bar'),
     lyrionLink: document.getElementById('lyrion-link'),
     scrollReset: document.getElementById('np-scroll-reset'),
@@ -69,6 +70,14 @@ function updateRetry() {
     if (!el.retry) { return; }
     el.retry.hidden = searching || !currentTrack;
     el.retry.disabled = retryHeld;
+    syncTools();
+}
+
+// The row draws the pill both controls sit in, so it has to go when neither
+// of them is showing, or an empty outline is left over the lyrics.
+function syncTools() {
+    if (!el.lyricsTools) { return; }
+    el.lyricsTools.hidden = (!el.source || el.source.hidden) && (!el.retry || el.retry.hidden);
 }
 
 // Held for exactly as long as the server says its per-track cooldown will run.
@@ -612,6 +621,7 @@ function updateSource() {
     if (el.sourceMark) { el.sourceMark.hidden = !confirmed; }
     el.source.title = canCycle ? I18N.switch_version
         : (confirmed ? I18N.lyrics_confirmed : (synced ? I18N.lyrics_synced_hint : ''));
+    syncTools();
 }
 
 function showVersion(idx, keepScroll) {

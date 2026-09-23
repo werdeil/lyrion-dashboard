@@ -79,9 +79,7 @@
                     </div>
                     <div class="np-lyrics" id="np-lyrics"></div>
                     <button type="button" class="np-scroll-reset" id="np-scroll-reset" title="{{ t.resume_scroll }}" aria-label="{{ t.resume_scroll }}" hidden>
-                        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                            <path d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46C19.54 15.03 20 13.57 20 12c0-4.42-3.58-8-8-8zm0 14c-3.31 0-6-2.69-6-6 0-1.01.25-1.97.7-2.8L5.24 7.74C4.46 8.97 4 10.43 4 12c0 4.42 3.58 8 8 8v3l4-4-4-4v3z"/>
-                        </svg>
+                        {{ icons.lyrics_sync_icon(15) }}
                     </button>
                     {# Both lyrics controls share the box's lower-left corner: which
                        version is on screen, and looking for another one. #}
@@ -93,9 +91,8 @@
                             <span class="np-source-mark" id="np-source-mark" hidden>{{ icons.confirmed_icon(12) }}</span>
                             {{ icons.next_version_icon(13) }}
                         </button>
-                        <button type="button" class="np-retry" id="np-retry" title="{{ t.retry_lyrics }}" hidden>
-                            {{ icons.retry_icon(15) }}
-                            <span>{{ t.retry_lyrics_label }}</span>
+                        <button type="button" class="np-retry" id="np-retry" title="{{ t.retry_lyrics }}" aria-label="{{ t.retry_lyrics }}" hidden>
+                            {{ icons.retry_icon(14) }}
                         </button>
                     </div>
                 </div>

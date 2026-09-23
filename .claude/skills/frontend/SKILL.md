@@ -19,6 +19,8 @@ The page is plain ES5-ish JavaScript and hand-written CSS — **no framework, no
 - `templates/nowplaying.html` — the Jinja page. `templates/_icons.html` — reusable inline-SVG icon macros (`{% import "_icons.html" as icons %}`).
 - `DEV=1 python app.py` live-reloads templates and disables static caching, so HTML/CSS/JS edits show on a plain refresh (see `config.py`).
 
+The control that resumes the karaoke follow wears `lyrics_sync_icon`, freed when the auto-search switch went: a circular-arrow glyph there read as a second refresh button next to the real one.
+
 Every icon on the page is an inline SVG macro from `_icons.html`, drawn in the same language: a 24px viewBox, `fill: none`, a 2px `currentColor` stroke with round caps, shared by the private `_frame` macro, and a pixel size passed by the caller. Icons are never emoji or characters from an icon font — a Raspberry Pi kiosk running Raspberry Pi OS has no emoji font installed and renders them as tofu boxes.
 
 ## Lint gate
@@ -89,7 +91,7 @@ That label carries four things at once — provenance, length, rank (`1/2`) and 
 
 ## Enlarged cover
 
-Both lyrics controls share `.np-lyrics-tools`, a row floating over the box's lower-left corner: the version chip, and retry beside it. Retry shows whenever a track is playing and no search is running — an unconvincing text on screen is as good a reason to search again as an empty panel, and with the bar gone this row is the only place left to ask from. It greys out while the server's per-track cooldown would refuse the search.
+Both lyrics controls share `.np-lyrics-tools`, one pill floating over the box's lower-left corner: the row draws the surface and border, the version chip and retry are segments inside it, parted by a divider that only appears when both show. The row hides itself when neither does, or an empty outline is left over the lyrics. Retry is icon-only — a word beside the chip made the pair read as two objects — and its square padding is what centres the glyph. Retry shows whenever a track is playing and no search is running — an unconvincing text on screen is as good a reason to search again as an empty panel, and with the bar gone this row is the only place left to ask from. It greys out while the server's per-track cooldown would refuse the search.
 
 ## Enlarged cover
 
