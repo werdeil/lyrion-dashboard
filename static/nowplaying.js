@@ -675,10 +675,27 @@ function webVersions(res) {
     return synced.concat(plain);
 }
 
+// Two versions are the same one when their text matches to the whitespace.
+// Timestamps count, so an upload's synced and plain forms never collapse into
+// each other: identical words timed differently are still two readings.
+function textKey(text) {
+    return (text || '').replace(/\s+/g, ' ').trim();
+}
+
+function alreadyOffered(text) {
+    var key = textKey(text);
+    for (var i = 0; i < versions.length; i++) {
+        if (textKey(versions[i].text) === key) { return true; }
+    }
+    return false;
+}
+
 function pushWebVersions(res) {
     var web = webVersions(res);
     var before = versions.length;
-    for (var i = 0; i < web.length; i++) { versions.push(web[i]); }
+    for (var i = 0; i < web.length; i++) {
+        if (!alreadyOffered(web[i].text)) { versions.push(web[i]); }
+    }
     // The library's text leads and the plain uploads trail, so trimming the
     // tail keeps the local copy and sheds the least useful web version.
     if (versions.length > MAX_VERSIONS) { versions.length = MAX_VERSIONS; }

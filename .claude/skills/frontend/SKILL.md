@@ -77,6 +77,8 @@ On the stacked layouts the cover is the lever on a short screen: it sets the car
 
 `MAX_VERSIONS` (5) is the whole cycle's budget and mirrors the server constant of that name, since only the page knows whether a library text takes one of the places. `pushWebVersions` trims the tail to fit, which is why the server orders synced uploads before plain ones: the local text keeps its lead and the least useful web version is the one shed.
 
+A version whose text matches one already in the cycle, to the whitespace, never joins it (`textKey`, `alreadyOffered`): a provider repeating what the tags already hold, or two uploads of one transcription, would spend a place on a second copy of the same reading. Timestamps count in that comparison, which is what keeps an upload's two forms apart.
+
 One upload often carries both forms, and `webVersions` emits both: an LRC whose timings fit the recording badly is unreadable as karaoke, and its plain text is then the one that reads, so it stays one tap away rather than being weighed against the synced words first. Synced entries are emitted before plain ones, matching the server's order, so the cap keeps trimming the least useful end.
 
 Two rules decide what lands on screen by itself. Synced lyrics take it, since the library's own text is always plain; a plain web version only joins the cycle, as a second opinion on a library text that may be the wrong one. The control is a `<button>` that `disabled`s itself back into the passive label it used to be whenever there is nothing to cycle — a single version, or `off` mode, where the library's text is all that may show.
