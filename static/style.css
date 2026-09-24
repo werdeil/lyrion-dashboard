@@ -743,6 +743,10 @@ body.in-app .np-pull {
     z-index: 2;
     display: flex;
     align-items: stretch;
+    /* The chip's line box is what gives the pill its height; alone, retry's
+       icon is shorter and the capsule would flatten. Border-box, so this is
+       the height the chip produces, borders included. */
+    min-height: 25px;
     border: 1px solid color-mix(in srgb, var(--tint-color) 24%, rgba(255, 255, 255, 0.12));
     border-radius: 999px;
     /* The card's own tint recipe, opaque enough to hide a lyrics line behind
