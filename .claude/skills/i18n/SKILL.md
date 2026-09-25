@@ -41,6 +41,10 @@ return render_template("nowplaying.html", lang=lang, t=TRANSLATIONS[lang], ...)
 
 **Keys are stable identifiers, not English text** — snake_case describing the role (`retry_lyrics`, `empty_state`), so the English wording can change without renaming the key.
 
+## The parity test
+
+`tests/test_i18n.py` turns the cardinal rule into a gate: `fr` and `en` must hold the same keys, no string may be blank, every `I18N.key` in `static/*.js` and every `t.key` in `templates/*.html` must be translated in both languages, and no key may survive with nothing reading it. Without it a missing key is silent — Jinja renders it as an empty string, and the JS hands `undefined` to a DOM property, so the tooltip reads the literal "undefined". The unused-key half is only exhaustive while access stays static: a computed `I18N[name]` would have to be taught to `referenced_keys()`.
+
 ## Documentation parity
 
 Every documentation page exists twice, linked to its counterpart at the top:
@@ -57,4 +61,5 @@ Any change to one — a new feature bullet, a changed requirement, a restructure
 - [ ] New UI string → key added to **both** `fr` and `en` in `i18n.py`.
 - [ ] Keys are snake_case role names, present in both sub-dicts in the same order.
 - [ ] Template/JS reads the string through `t`, nothing hardcoded.
+- [ ] `python -m unittest tests.test_i18n` green — parity, every key the page reads translated, no orphan key.
 - [ ] README or `docs/` page edited? Its counterpart in the other language got the same edit.
