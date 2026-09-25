@@ -386,16 +386,30 @@ function rgb2Css(rgb) {
 var SWATCH_ORDER = ['Vibrant', 'LightVibrant', 'Muted', 'LightMuted', 'DarkVibrant', 'DarkMuted'];
 
 var fac;
+// Vibrant samples its input at its layout size, so it reads a copy at the size
+// library covers are fetched, which also bounds the cost of remote artwork.
+var COVER_SIZE = 512;
+var swatchCanvas;
+
+function swatchSource(img) {
+    if (!swatchCanvas) {
+        swatchCanvas = document.createElement('canvas');
+        swatchCanvas.width = swatchCanvas.height = COVER_SIZE;
+    }
+    var ctx = swatchCanvas.getContext('2d');
+    ctx.clearRect(0, 0, COVER_SIZE, COVER_SIZE);
+    ctx.drawImage(img, 0, 0, COVER_SIZE, COVER_SIZE);
+    return swatchCanvas;
+}
 
 function sampleCoverTint() {
     try {
         var img = el.cover;
         if (!img.naturalWidth) { return; }
 
-        // Dominant vibrant swatch -> accent.
         var vRgb;
         try {
-            var swatches = new Vibrant(img).swatches();
+            var swatches = new Vibrant(swatchSource(img)).swatches();
             for (var i = 0; i < SWATCH_ORDER.length && !vRgb; i++) {
                 var sw = swatches[SWATCH_ORDER[i]];
                 if (sw && sw.getPopulation() > 0) { vRgb = sw.getRgb(); }
@@ -1128,13 +1142,10 @@ function render(data) {
     if (trackKey !== lastTrackKey) {
         lastTrackKey = trackKey;
         currentTrack = data;
-        // Ask for a bounded thumbnail instead of the original artwork (which
-        // can be a multi-MB scan): the cover displays at ≤300 CSS px, so 512
-        // (the /cover route's cap) keeps retina screens sharp too. Lyrion
-        // resizes covers itself; remote artwork has no resize form.
+        // COVER_SIZE is the /cover route's cap; remote artwork has no resize form.
         el.cover.src = data.artwork_url
             ? '/cover/remote.jpg?t=' + encodeURIComponent(trackKey)
-            : '/cover/' + (data.coverid || 0) + '.jpg?size=512';
+            : '/cover/' + (data.coverid || 0) + '.jpg?size=' + COVER_SIZE;
         // Refresh the pile of past listens: the album that just finished
         // belongs on top of it now — and the new track's own album, if it was
         // in the pile, must come out (renderRecent drops it).
