@@ -686,10 +686,8 @@ body.in-app .np-pull {
     scroll-behavior: smooth;
     /* Own layer: the glide moves it instead of re-rasterising every line per frame. */
     will-change: transform;
-    /* No top padding, so the first line starts at the top and the highlight
-       descends to its ~1/3 anchor instead of opening on a gap. The bottom
-       keeps the source chip's clearance: scrollTop clamps one chip short, so
-       the last line of the song comes to rest above it rather than under it. */
+    /* No top padding, so the highlight descends to its ~1/3 anchor; the bottom
+       keeps the chip's clearance, so the last line never rests under it. */
     padding-top: 0;
 }
 
@@ -732,10 +730,7 @@ body.in-app .np-pull {
 }
 
 /* Left, because the right edge is where a classic scrollbar puts its gutter.
-   Flush with the progress bar above: the lyrics box's own edge sits 2% further
-   out, room its negative margin keeps for the scaled active line rather than a
-   margin anything should align to. --source-clearance must stay wider than
-   this inset plus the row's height, or the last lyrics line rests under it. */
+   --source-clearance must stay wider than this inset plus the row's height. */
 .np-lyrics-tools {
     position: absolute;
     left: 0;
@@ -743,9 +738,8 @@ body.in-app .np-pull {
     z-index: 2;
     display: flex;
     align-items: stretch;
-    /* The chip's line box is what gives the pill its height; alone, retry's
-       icon is shorter and the capsule would flatten. Border-box, so this is
-       the height the chip produces, borders included. */
+    /* The chip's line box gives the pill its height; alone, retry's icon is
+       shorter and the capsule would flatten. Border-box, borders included. */
     min-height: 25px;
     border: 1px solid color-mix(in srgb, var(--tint-color) 24%, rgba(255, 255, 255, 0.12));
     border-radius: 999px;
@@ -827,9 +821,8 @@ body.in-app .np-pull {
     align-items: center;
     justify-content: center;
     margin: 0;
-    /* Square around a 14px glyph: equal padding is what centres it, with no
-       label beside it to pull it off. Leading the row, its fixed width is
-       also what keeps the button still while the chip's label changes. */
+    /* Square around a 14px glyph: equal padding centres it, and its fixed width
+       keeps the button still while the chip's label changes. */
     padding: 0 8px;
     border: 0;
     background: none;

@@ -60,10 +60,8 @@ var el = {
     recentPile: document.getElementById('np-recent-pile'),
 };
 
-// Retry sits beside the version chip: what is on screen being unconvincing is
-// exactly when a fresh search is worth running, whether the panel is empty or
-// holds a text that does not fit. It greys out while the server would refuse a
-// new search for this track, so a click never lands on a fuse.
+// Greys out while the server would refuse a new search for this track, so a
+// click never lands on a fuse.
 var searching = false;
 var retryHeld = false;
 function updateRetry() {
@@ -1241,9 +1239,6 @@ function render(data) {
         // The cooldown is per track, so a new one starts with a live button.
         holdRetry(0);
 
-        // Look the lyrics up on the web straight away: from scratch when the
-        // library has nothing, or to upgrade its (always plain) text to a
-        // synced version when it does.
         if (data.lyrics) {
             trySyncedFromWeb();
         } else {
