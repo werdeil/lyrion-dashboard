@@ -14,8 +14,6 @@ TRANSLATIONS = {
         # Now playing
         "empty_state": "Aucune lecture en cours",
         "no_lyrics_library": "Aucune parole dans la bibliothèque",
-        "lyrics_search": "Recherche automatique de paroles sur le web (synchro si disponible)",
-        "lyrics_sync_toggle": "Activer/Désactiver la synchronisation des paroles",
         "searching": "Recherche…",
         "lyrics_synced_hint": "Paroles synchronisées (karaoké)",
         "retry_lyrics": "Relancer la recherche de paroles sur le web",
@@ -60,8 +58,6 @@ TRANSLATIONS = {
         # Now playing
         "empty_state": "Nothing playing",
         "no_lyrics_library": "No lyrics in the library",
-        "lyrics_search": "Automatically search the web for lyrics (synced when available)",
-        "lyrics_sync_toggle": "Toggle lyrics synchronization",
         "searching": "Searching…",
         "lyrics_synced_hint": "Time-synced lyrics (karaoke)",
         "retry_lyrics": "Retry the web lyrics search",

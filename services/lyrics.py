@@ -615,7 +615,10 @@ def _search_providers(artist, title, album, duration, verify):
     unreachable = 0
     providers = _enabled_providers()
     if not providers:
-        log.warning("lyrics: no usable provider in LYRICS_PROVIDERS=%r", os.getenv("LYRICS_PROVIDERS"))
+        # An empty list is how an operator turns the web search off, so this is
+        # an outcome to state once per search, not a fault to warn about.
+        log.info("lyrics: web search disabled, LYRICS_PROVIDERS=%r resolves to no provider",
+                 os.getenv("LYRICS_PROVIDERS"))
     for name, provider in providers:
         started = time.monotonic()
         try:

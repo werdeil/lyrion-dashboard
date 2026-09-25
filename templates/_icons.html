@@ -85,6 +85,13 @@
 {% endcall %}
 {%- endmacro %}
 
+{% macro retry_icon(size=20) -%}
+{% call _frame(size) %}
+    <path d="M20 12a8 8 0 1 1-2.34-5.66"/>
+    <polyline points="20 4 20 9 15 9"/>
+{% endcall %}
+{%- endmacro %}
+
 {% macro confirmed_icon(size=20) -%}
 {% call _frame(size) %}
     <polyline points="4 12.5 9 17.5 20 6.5"/>

@@ -327,15 +327,16 @@ np_routes.fetch_lyrics = _fake_web_lyrics
 # ---------------------------------------------------------------------------
 
 # Everything visible and settled: cover decoded, accent sampled from it,
-# karaoke line highlighted, web-upgrade search finished (retry button back).
+# karaoke line highlighted, web search finished (the source chip names where
+# the lyrics on screen came from, and no longer says a search is running).
 READY_JS = """
 () => {
     const cover = document.getElementById('np-cover-img');
-    const retry = document.getElementById('np-retry');
+    const chip = document.getElementById('np-lyrics-source');
     return document.documentElement.style.getPropertyValue('--accent-color') !== ''
         && cover && cover.naturalWidth > 0
         && !!document.querySelector('.lrc-line.active')
-        && retry && !retry.hidden;
+        && chip && !chip.hidden && !searching;
 }
 """
 
@@ -353,7 +354,6 @@ MOSAIC_READY_JS = """
 PLAYING_JS = "() => !document.getElementById('now-playing').classList.contains('is-empty')"
 OPEN_ZOOM_JS = "() => document.getElementById('np-cover-button').click()"
 
-AUTO_MODE_JS = "try { localStorage.setItem('np-lyrics-mode', 'auto'); } catch (e) {}"
 ANDROID_BRIDGE_JS = (
     "window.LyrionApp = { openMenu: function () {}, openSettings: function () {} };"
 )
@@ -392,7 +392,6 @@ def capture(browser, base_url, shot):
     ctx = browser.new_context(
         locale=shot.locale, viewport=shot.viewport, device_scale_factor=shot.dpr,
     )
-    ctx.add_init_script(AUTO_MODE_JS)
     if shot.android:
         ctx.add_init_script(ANDROID_BRIDGE_JS)
     page = ctx.new_page()
