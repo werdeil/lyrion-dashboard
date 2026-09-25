@@ -386,16 +386,30 @@ function rgb2Css(rgb) {
 var SWATCH_ORDER = ['Vibrant', 'LightVibrant', 'Muted', 'LightMuted', 'DarkVibrant', 'DarkMuted'];
 
 var fac;
+// Vibrant samples its input at its layout size, one pixel in five: a fixed-size
+// copy keeps the accent independent of how large the cover is displayed.
+var SWATCH_SAMPLE_SIZE = 128;
+var swatchCanvas;
+
+function swatchSource(img) {
+    if (!swatchCanvas) {
+        swatchCanvas = document.createElement('canvas');
+        swatchCanvas.width = swatchCanvas.height = SWATCH_SAMPLE_SIZE;
+    }
+    var ctx = swatchCanvas.getContext('2d');
+    ctx.clearRect(0, 0, SWATCH_SAMPLE_SIZE, SWATCH_SAMPLE_SIZE);
+    ctx.drawImage(img, 0, 0, SWATCH_SAMPLE_SIZE, SWATCH_SAMPLE_SIZE);
+    return swatchCanvas;
+}
 
 function sampleCoverTint() {
     try {
         var img = el.cover;
         if (!img.naturalWidth) { return; }
 
-        // Dominant vibrant swatch -> accent.
         var vRgb;
         try {
-            var swatches = new Vibrant(img).swatches();
+            var swatches = new Vibrant(swatchSource(img)).swatches();
             for (var i = 0; i < SWATCH_ORDER.length && !vRgb; i++) {
                 var sw = swatches[SWATCH_ORDER[i]];
                 if (sw && sw.getPopulation() > 0) { vRgb = sw.getRgb(); }
