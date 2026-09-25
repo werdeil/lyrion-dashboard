@@ -45,6 +45,8 @@ var el = {
     album:  document.getElementById('np-album'),
     lyrics: document.getElementById('np-lyrics'),
     source: document.getElementById('np-lyrics-source'),
+    sourceLabel: document.getElementById('np-lyrics-source-label'),
+    sourceMark: document.getElementById('np-source-mark'),
     cover:  document.getElementById('np-cover-img'),
     modeBlock: document.getElementById('np-lyrics-mode-block'),
     autoSwitch: document.getElementById('np-auto-switch'),
@@ -274,9 +276,12 @@ function renderPlayerSwitch(data) {
 var lastTrackKey = null;
 var currentTrack = null;
 var lyricsTried = false;
-// Web lyrics resolved for the current track ({text, source}), so re-selecting a
-// mode reuses the result instead of searching again. Reset on every track.
-var webResult = null;
+// Mirrors services.lyrics.MAX_VERSIONS, which bounds a response; only the page
+// knows whether a library text takes one of those places.
+var MAX_VERSIONS = 5;
+var versions = [];
+var versionIdx = -1;
+var echoed = false;
 
 var lrcLines = null;
 // The .lrc-line elements paralleling lrcLines, cached at build time so the
@@ -612,14 +617,110 @@ function syncLyrics(forceScroll) {
 // setLyrics() on the same content, so lrcLines already tells whether the
 // lyrics on screen are time-synced: if so, tint the line in the accent
 // colour; plain lyrics keep the muted default.
-function setLyricsSource(source) {
-    var label = source && SOURCE_LABELS[source];
+function versionLength(version) {
+    var secs = version && version.duration;
+    if (!secs) { return ''; }
+    return ' \u00b7 ' + Math.floor(secs / 60) + ':' + ('0' + (Math.round(secs) % 60)).slice(-2);
+}
+
+function updateSource() {
+    if (!el.source) { return; }
+    var version = versions[versionIdx];
+    var label = version && SOURCE_LABELS[version.source];
     var synced = !!(label && lrcLines);
-    el.source.textContent = label
-        ? I18N.source_prefix + ' ' + label
+    var canCycle = lyricsMode === 'auto' && versions.length > 1;
+    el.source.hidden = !label;
+    el.source.disabled = !canCycle;
+    el.sourceLabel.textContent = label
+        ? label + (canCycle ? versionLength(version) + ' (' + (versionIdx + 1) + '/' + versions.length + ')' : '')
         : '';
     el.source.classList.toggle('is-synced', synced);
-    el.source.title = synced ? I18N.lyrics_synced_hint : '';
+    // The mark takes the chevron's place, so it only ever shows on a passive chip.
+    var confirmed = echoed && !canCycle && !searching && !!label;
+    if (el.sourceMark) { el.sourceMark.hidden = !confirmed; }
+    el.source.title = canCycle ? I18N.switch_version
+        : (confirmed ? I18N.lyrics_confirmed : (synced ? I18N.lyrics_synced_hint : ''));
+}
+
+function showVersion(idx, keepScroll) {
+    var version = versions[idx];
+    if (!version) { return; }
+    versionIdx = idx;
+    setLyrics(version.text, false, keepScroll);
+    updateSource();
+}
+
+// Older responses carry only the winning upload, hence the fallback shape.
+// Synced entries lead, as they do server-side, so a cap trims from the back.
+function webVersions(res) {
+    var list = (res && res.versions) || [{
+        lyrics: res && res.lyrics, synced: res && res.synced,
+        album: null, duration: null,
+    }];
+    var synced = [];
+    var plain = [];
+    for (var i = 0; i < list.length; i++) {
+        var version = list[i];
+        var entry = {
+            source: res.source, duration: version.duration,
+            text: version.synced, synced: true,
+        };
+        if (version.synced) { synced.push(entry); }
+        if (version.lyrics) {
+            plain.push({
+                source: res.source, duration: version.duration,
+                text: version.lyrics, synced: false,
+            });
+        }
+    }
+    return synced.concat(plain);
+}
+
+// Timestamps count, so an upload's synced and plain forms never collapse.
+function textKey(text) {
+    return (text || '').replace(/\s+/g, ' ').trim();
+}
+
+function alreadyOffered(text) {
+    var key = textKey(text);
+    for (var i = 0; i < versions.length; i++) {
+        if (textKey(versions[i].text) === key) { return true; }
+    }
+    return false;
+}
+
+function pushWebVersions(res) {
+    var web = webVersions(res);
+    var before = versions.length;
+    for (var i = 0; i < web.length; i++) {
+        if (alreadyOffered(web[i].text)) { echoed = true; }
+        else { versions.push(web[i]); }
+    }
+    if (versions.length > MAX_VERSIONS) { versions.length = MAX_VERSIONS; }
+    return versions.length - before;
+}
+
+// The first time-synced version from `from` on, or -1.
+function firstSyncedIdx(from) {
+    for (var i = from; i < versions.length; i++) {
+        if (versions[i].synced) { return i; }
+    }
+    return -1;
+}
+
+function webVersionIdx() {
+    for (var i = 0; i < versions.length; i++) {
+        if (versions[i].source !== 'library') { return i; }
+    }
+    return -1;
+}
+
+if (el.source) {
+    el.source.addEventListener('click', function() {
+        if (versions.length > 1) {
+            showVersion((versionIdx + 1) % versions.length, true);
+        }
+    });
 }
 
 // Toggle the "searching the web" spinner. Shown even when local lyrics are
@@ -1151,10 +1252,12 @@ function render(data) {
         // in the pile, must come out (renderRecent drops it).
         loadRecent();
         syncCoverZoom();
+        versions = data.lyrics ? [{ text: data.lyrics, source: 'library' }] : [];
+        versionIdx = data.lyrics ? 0 : -1;
+        echoed = false;
         setLyrics(data.lyrics || I18N.no_lyrics_library, !data.lyrics);
-        setLyricsSource(data.lyrics ? 'library' : null);
+        updateSource();
         lyricsTried = false;
-        webResult = null;
         setSearching(false);
         // The cooldown is per track, so a new one starts with a live button.
         holdRetry(0);
@@ -1211,11 +1314,8 @@ function fetchLyrics() {
             setSearching(false);
             holdRetry(res.retry_after || 0);
             // Prefer the synced (LRC) version; fall back to plain text.
-            var lyrics = res.synced || res.lyrics;
-            if (lyrics) {
-                webResult = { text: lyrics, source: res.source };
-                setLyrics(lyrics, false);
-                setLyricsSource(res.source);
+            if (pushWebVersions(res)) {
+                showVersion(0);
             } else {
                 setLyrics(emptyLyricsMessage(res), true);
             }
@@ -1246,13 +1346,12 @@ function trySyncedFromWeb() {
             if (track !== currentTrack) { return; }
             setSearching(false);
             holdRetry(res.retry_after || 0);
-            // Only replace the local plain lyrics if the web returned synced
-            // (LRC) lyrics — otherwise keep what the library already has.
-            if (res.synced) {
-                webResult = { text: res.synced, source: res.source };
-                setLyrics(res.synced, false);
-                setLyricsSource(res.source);
-            }
+            var first = versions.length;
+            // An answer that only repeated the text on screen still refreshes the chip.
+            if (!pushWebVersions(res)) { updateSource(); return; }
+            var synced = firstSyncedIdx(first);
+            if (synced >= 0) { showVersion(synced); }
+            else { updateSource(); }
         })
         .catch(function() {
             if (track !== currentTrack) { return; }
@@ -1265,8 +1364,9 @@ function trySyncedFromWeb() {
 // current scroll position instead of jumping back to the top.
 function showLocal() {
     var data = currentTrack || {};
+    versionIdx = data.lyrics ? 0 : -1;
     setLyrics(data.lyrics || I18N.no_lyrics_library, !data.lyrics, true);
-    setLyricsSource(data.lyrics ? 'library' : null);
+    updateSource();
 }
 
 function setAuto(on) {
@@ -1283,11 +1383,11 @@ function setAuto(on) {
     }
     // On: resolve synced lyrics for the current track — but only once. Toggling
     // back on reuses the result already fetched instead of searching again.
-    if (webResult) {
+    var web = webVersionIdx();
+    if (web >= 0) {
         // Re-show the result we already fetched for this track, no new request
         // and without losing the scroll position (mode change, not a new track).
-        setLyrics(webResult.text, false, true);
-        setLyricsSource(webResult.source);
+        showVersion(web, true);
     } else if (lyricsTried) {
         showLocal();          // already searched and found nothing — keep local
     } else if (currentTrack.lyrics) {
@@ -1305,14 +1405,17 @@ if (el.autoSwitch) {
 updateSwitch();
 
 // Manual retry (rare need, hence icon-only): re-run the web search for the
-// current track, bypassing the server cache. Only reachable in auto mode —
-// see updateRetry(). With lyrics already on screen the result only replaces
-// them when the web returns a synced version (same rule as the auto
-// upgrade); from an empty state it searches from scratch and shows whatever
-// comes back.
+// current track, bypassing the server cache. Only reachable in auto mode.
 function retryLyrics() {
     if (!currentTrack) { return; }
-    webResult = null;
+    // Drop the previous search's answer, so the new one doesn't stack a second
+    // copy of the same version onto the cycle.
+    var web = webVersionIdx();
+    if (web >= 0) {
+        versions.length = web;
+        versionIdx = versions.length ? 0 : -1;
+    }
+    echoed = false;
     lyricsTried = true;  // force refresh=1 → bypass the server-side cache
     if (el.lyrics.classList.contains('empty')) {
         fetchLyrics();

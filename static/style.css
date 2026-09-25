@@ -734,16 +734,60 @@ body.in-app .np-pull {
 }
 
 .np-lyrics-source {
-    /* Sits on the control's row, pushed to the right, instead of taking its own
-       line above it. margin-left:auto right-aligns it within the flex row. */
     margin: 0 0 0 auto;
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    /* The row is sized by the switch beside it, so any deeper padding here
+       grows it and takes that height off the lyrics box above. */
+    padding: 2px 0;
+    border: 0;
+    background: none;
+    font: inherit;
     font-size: var(--fs-xs);
     color: var(--text-faint);
     flex-shrink: 0;
+    cursor: pointer;
 }
 
-.np-lyrics-source:empty {
+/* Disabled is the single-version state, so it has to read as a plain label
+   rather than as a dimmed control. */
+.np-lyrics-source:disabled {
+    cursor: default;
+}
+
+/* Only the chevron goes when the chip is passive; the confirmation mark lives
+   in a span so it can take that place. */
+.np-lyrics-source:disabled > svg {
     display: none;
+}
+
+.np-source-mark {
+    display: flex;
+    align-items: center;
+}
+
+.np-source-mark[hidden] {
+    display: none;
+}
+
+/* The chevron alone carries the hover/focus feedback: on this line the accent
+   colour already means "these lyrics are synced" and cannot mean two things. */
+.np-lyrics-source svg {
+    opacity: 0.5;
+    transition: opacity 250ms ease, transform 250ms ease;
+}
+
+.np-lyrics-source:enabled:hover svg,
+.np-lyrics-source:enabled:focus-visible svg {
+    opacity: 1;
+    transform: translateX(2px);
+}
+
+.np-lyrics-source:focus-visible {
+    outline: 2px solid var(--accent-color);
+    outline-offset: 2px;
+    border-radius: 3px;
 }
 
 /* Accent tint when the lyrics on screen are time-synced (karaoke); plain
@@ -752,8 +796,7 @@ body.in-app .np-pull {
     color: var(--accent-color);
 }
 
-/* Row holding the auto-lyrics switch, the search spinner and the source line.
-   Display (synced karaoke vs plain text) is automatic, so it isn't a control. */
+/* Row holding the auto-lyrics switch, the search spinner and the source line. */
 .np-lyrics-mode-block {
     display: flex;
     align-items: center;
