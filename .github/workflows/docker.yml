@@ -57,7 +57,7 @@ jobs:
       # amd64 alone, loaded into the runner's daemon: this build never leaves
       # the job, and the layers it warms are what `publish` reuses.
       - name: Build for the runner
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: .
           platforms: linux/amd64
@@ -121,7 +121,7 @@ jobs:
             type=raw,value=dev,enable=${{ github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && !startsWith(github.ref, 'refs/tags/')) }}
 
       - name: Build and push
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: .
           platforms: linux/amd64,linux/arm64
