@@ -276,16 +276,11 @@ function renderPlayerSwitch(data) {
 var lastTrackKey = null;
 var currentTrack = null;
 var lyricsTried = false;
-// Lyrics available for the current track, in cycling order: the library's own
-// text first when it has any, then the web's. versionIdx is -1 when none shows.
-// The cap mirrors services.lyrics.MAX_VERSIONS, which bounds a response; only
-// the page knows whether a library text takes one of those places.
+// Mirrors services.lyrics.MAX_VERSIONS, which bounds a response; only the page
+// knows whether a library text takes one of those places.
 var MAX_VERSIONS = 5;
 var versions = [];
 var versionIdx = -1;
-// A web version was dropped for repeating one already offered: worth saying,
-// since a cycle of one otherwise reads the same whether the web confirmed the
-// text on screen or never found the track at all.
 var echoed = false;
 
 var lrcLines = null;
@@ -633,7 +628,6 @@ function updateSource() {
     var version = versions[versionIdx];
     var label = version && SOURCE_LABELS[version.source];
     var synced = !!(label && lrcLines);
-    // Off means the library's lyrics only, so the rest stay out of reach.
     var canCycle = lyricsMode === 'auto' && versions.length > 1;
     el.source.hidden = !label;
     el.source.disabled = !canCycle;
@@ -656,10 +650,8 @@ function showVersion(idx, keepScroll) {
     updateSource();
 }
 
-// Every upload the provider returned, winner first; older responses carry only
-// the winning one. An upload holding both forms yields both: timings that fit
-// the recording badly leave the plain text the one that reads.
-// Synced entries lead, as they do server-side: a cap trims from the back.
+// Older responses carry only the winning upload, hence the fallback shape.
+// Synced entries lead, as they do server-side, so a cap trims from the back.
 function webVersions(res) {
     var list = (res && res.versions) || [{
         lyrics: res && res.lyrics, synced: res && res.synced,
@@ -684,9 +676,7 @@ function webVersions(res) {
     return synced.concat(plain);
 }
 
-// Two versions are the same one when their text matches to the whitespace.
-// Timestamps count, so an upload's synced and plain forms never collapse into
-// each other: identical words timed differently are still two readings.
+// Timestamps count, so an upload's synced and plain forms never collapse.
 function textKey(text) {
     return (text || '').replace(/\s+/g, ' ').trim();
 }
@@ -706,8 +696,6 @@ function pushWebVersions(res) {
         if (alreadyOffered(web[i].text)) { echoed = true; }
         else { versions.push(web[i]); }
     }
-    // The library's text leads and the plain uploads trail, so trimming the
-    // tail keeps the local copy and sheds the least useful web version.
     if (versions.length > MAX_VERSIONS) { versions.length = MAX_VERSIONS; }
     return versions.length - before;
 }
@@ -1359,11 +1347,8 @@ function trySyncedFromWeb() {
             setSearching(false);
             holdRetry(res.retry_after || 0);
             var first = versions.length;
-            // Even when nothing new lands, the chip is refreshed: an answer
-            // that only repeated what was on screen is worth showing as one.
+            // An answer that only repeated the text on screen still refreshes the chip.
             if (!pushWebVersions(res)) { updateSource(); return; }
-            // Synced lyrics take the screen, since the library's are always
-            // plain; a plain one only joins the cycle.
             var synced = firstSyncedIdx(first);
             if (synced >= 0) { showVersion(synced); }
             else { updateSource(); }
@@ -1420,8 +1405,7 @@ if (el.autoSwitch) {
 updateSwitch();
 
 // Manual retry (rare need, hence icon-only): re-run the web search for the
-// current track, bypassing the server cache. Only reachable in auto mode —
-// see updateRetry().
+// current track, bypassing the server cache. Only reachable in auto mode.
 function retryLyrics() {
     if (!currentTrack) { return; }
     // Drop the previous search's answer, so the new one doesn't stack a second

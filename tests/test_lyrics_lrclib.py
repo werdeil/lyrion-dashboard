@@ -206,10 +206,6 @@ class LrclibDurationMatchTest(unittest.TestCase):
         self.assertEqual(self._fetch(fake, duration=None)["synced"], "[00:12.00] la")
 
     def test_each_search_attempt_logs_how_many_candidates_fit(self):
-        # The one synced record is of another length, so nothing synced is on
-        # offer: the counts narrow down the same set rather than sitting side
-        # by side, or this line would read "1 synced" and promise a version
-        # the page never gets.
         fake = _Lrclib(get=None, searches=[[
             _record(2, synced="[01:55.54] la", duration=419),
             _record(3, synced=None),

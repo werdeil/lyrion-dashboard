@@ -54,9 +54,8 @@ LRCLIB_TIMEOUT = int(os.getenv("LRCLIB_TIMEOUT", "15"))
 # for libraries whose durations are noisy.
 VERIFY_DURATION_TOLERANCE = int(os.getenv("LYRICS_VERIFY_DURATION_TOLERANCE", "3"))
 
-# Versions offered for one track, the library's own text included — the page
-# holds that one, so a response may fill the whole budget. Each carries a full
-# lyrics body into the cache, so this caps an entry's weight too.
+# Versions offered for one track, the library's own text included. Each carries
+# a full lyrics body into the cache, so this caps an entry's weight too.
 MAX_VERSIONS = 5
 
 # The cache key includes client-supplied fields, so the cache must stay bounded.
@@ -249,8 +248,6 @@ def _lrclib_search(artist, title, album, seconds, fallback):
             if fallback is None:
                 fallback, others = pool[0], pool[1:]
             else:
-                # The `get` hit is normally in these results too, under the very
-                # signature that found it; the same record must not show twice.
                 others = [c for c in pool if c.get("id") != fallback.get("id")]
     return fallback, others
 
