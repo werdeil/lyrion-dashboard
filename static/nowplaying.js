@@ -370,6 +370,14 @@ var fac;
 // library covers are fetched, which also bounds the cost of remote artwork.
 var COVER_SIZE = 512;
 var swatchCanvas;
+// Past these bounds a cover crops rather than shrinking to a sliver.
+var COVER_R_MIN = 0.5;
+var COVER_R_MAX = 2;
+
+function coverRatio(img) {
+    var r = img.naturalWidth && img.naturalHeight ? img.naturalWidth / img.naturalHeight : 1;
+    return Math.min(Math.max(r, COVER_R_MIN), COVER_R_MAX);
+}
 
 function swatchSource(img) {
     if (!swatchCanvas) {
@@ -891,7 +899,11 @@ function layoutMosaic(ids) {
         img.className = 'np-mosaic-tile';
         // A finished download (or error) may need to un-stall the reveal cursor
         // if it was waiting on this very tile.
-        img.onload = img.onerror = function() {
+        img.onload = function() {
+            this.style.setProperty('--mosaic-r', coverRatio(this));
+            if (mosaicRevealTimer === null) { advanceMosaicReveal(); }
+        };
+        img.onerror = function() {
             if (mosaicRevealTimer === null) { advanceMosaicReveal(); }
         };
         img.src = '/cover/' + encodeURIComponent(ids[i % ids.length]) + '.jpg?size=' + size;
@@ -1026,6 +1038,7 @@ function recentPlan(n, w) {
 var recentCovers = null;   // last /recent-covers.json payload (cover ids)
 var recentKey = null;      // track key the payload was fetched for
 var recentLoading = false;
+var recentSleeves = [];    // the pile's sleeves, with their slot size and artwork ratio
 
 // Lay the cached cover ids out as a pile sized to the space under the cover.
 // Never repeats a cover (unlike the empty-state mosaic, which loops its list
@@ -1084,6 +1097,7 @@ function renderRecent() {
         return;
     }
     var count = plan.length;
+    recentSleeves = [];
     var maxTravel = plan[0].size - plan[count - 1].size;
 
     for (i = 0; i < count; i++) {
@@ -1100,14 +1114,12 @@ function renderRecent() {
         var left = Math.round((w - size) / 2 + shift);
         sleeve.style.setProperty('--np-recent-w', size + 'px');
         sleeve.style.setProperty('--np-recent-x', left + 'px');
-        sleeve.style.setProperty('--np-recent-y', plan[i].top + 'px');
         // The lifted box, on the sleeve's bottom edge and centre. Laid out
         // rather than scaled: a scaled raster settles softer, and by depth.
         var lifted = Math.max(plan[0].size, Math.round(size * RECENT_HOVER_GROW_MIN));
         sleeve.style.setProperty('--np-recent-w2', lifted + 'px');
         sleeve.style.setProperty('--np-recent-x2',
             Math.round(left + (size - lifted) / 2) + 'px');
-        sleeve.style.setProperty('--np-recent-y2', (plan[i].top + size - lifted) + 'px');
         sleeve.style.setProperty('--np-recent-rot', RECENT_TILTS[i % RECENT_TILTS.length] + 'deg');
         // Freshest listen frontmost; z decreases with depth so each older
         // sleeve sits behind the one above it.
@@ -1122,6 +1134,7 @@ function renderRecent() {
             (RECENT_HOVER_MS_MAX - RECENT_HOVER_MS_MIN) * travel) + 'ms');
 
         var img = document.createElement('img');
+        img.onload = fitSleeve;
         img.src = '/cover/' + encodeURIComponent(covers[i]) +
             '.jpg?size=' + RECENT_COVER_SIZE;
         img.alt = '';
@@ -1129,6 +1142,33 @@ function renderRecent() {
         sleeve.appendChild(img);
 
         el.recentPile.appendChild(sleeve);
+        recentSleeves.push({ el: sleeve, img: img, size: size, lifted: lifted, r: 1 });
+    }
+    stackRecent();
+}
+
+// Each sleeve hangs RECENT_OVERLAP into the one above it, measured on the
+// artwork's own height; renderRecent's fit loop assumed squares, the tallest case.
+function stackRecent() {
+    var y = 0;
+    for (var i = 0; i < recentSleeves.length; i++) {
+        var s = recentSleeves[i];
+        var fh = Math.min(1, 1 / s.r);
+        var h = s.size * fh;
+        s.el.style.setProperty('--np-recent-r', s.r);
+        s.el.style.setProperty('--np-recent-y', Math.round(y) + 'px');
+        s.el.style.setProperty('--np-recent-y2', Math.round(y + h - s.lifted * fh) + 'px');
+        y += h * (1 - RECENT_OVERLAP);
+    }
+}
+
+function fitSleeve() {
+    for (var i = 0; i < recentSleeves.length; i++) {
+        if (recentSleeves[i].img === this) {
+            recentSleeves[i].r = coverRatio(this);
+            stackRecent();
+            return;
+        }
     }
 }
 
@@ -1651,15 +1691,8 @@ if (coverZoom.button && coverZoom.root) {
     });
 }
 
-// Past these bounds the card cover crops rather than squeezing its row.
-var COVER_R_MIN = 0.5;
-var COVER_R_MAX = 2;
-
 function fitCardCover() {
-    var img = el.cover;
-    var r = img.naturalWidth && img.naturalHeight ? img.naturalWidth / img.naturalHeight : 1;
-    r = Math.min(Math.max(r, COVER_R_MIN), COVER_R_MAX);
-    img.closest('.np-cover').style.setProperty('--np-cover-r', r);
+    el.cover.closest('.np-cover').style.setProperty('--np-cover-r', coverRatio(el.cover));
 }
 
 el.cover.addEventListener('load', function() {
