@@ -1402,6 +1402,8 @@ body.in-app .page-header {
     .np-side {
         grid-row: 1;
         max-width: 200px;
+        /* A landscape cover shorter than the meta sits level with its middle. */
+        align-self: center;
     }
     .np-lyrics-block {
         grid-column: 1 / -1;
