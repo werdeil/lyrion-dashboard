@@ -279,9 +279,10 @@ hr {
 
 .np-cover {
     /* The box takes the artwork's ratio (--np-cover-r, set from JS, clamped
-       there) inside the square slot: as wide as it can, never taller than wide. */
+       there) centred in the square slot: as wide as it can, never taller than wide. */
     width: calc(100% * min(1, var(--np-cover-r, 1)));
     aspect-ratio: var(--np-cover-r, 1);
+    margin-inline: auto;
     /* Above every resting sleeve (z-index 1..count, capped by RECENT_MAX),
        below a lifted one (50): a hovered sleeve rises in front of the cover. */
     position: relative;
