@@ -1651,7 +1651,21 @@ if (coverZoom.button && coverZoom.root) {
     });
 }
 
-el.cover.addEventListener('load', sampleCoverTint);
+// Past these bounds the card cover crops rather than squeezing its row.
+var COVER_R_MIN = 0.5;
+var COVER_R_MAX = 2;
+
+function fitCardCover() {
+    var img = el.cover;
+    var r = img.naturalWidth && img.naturalHeight ? img.naturalWidth / img.naturalHeight : 1;
+    r = Math.min(Math.max(r, COVER_R_MIN), COVER_R_MAX);
+    img.closest('.np-cover').style.setProperty('--np-cover-r', r);
+}
+
+el.cover.addEventListener('load', function() {
+    fitCardCover();
+    sampleCoverTint();
+});
 
 // Broken-cover fallback (an inline onerror would violate the CSP); the guard
 // keeps a broken placeholder from looping the error event forever.
