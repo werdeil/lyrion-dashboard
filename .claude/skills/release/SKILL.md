@@ -31,7 +31,7 @@ Triggered by `workflow_dispatch` with inputs `version` (X.Y.Z, no leading `v`) a
 1. Validates the version is semver and the tag doesn't already exist.
 2. Bumps `versionCode`/`versionName` in `build.gradle.kts` (via `sed`, failing loudly if nothing changed) and writes `VERSION`.
 3. Commits `chore(release): vX.Y.Z`, tags `vX.Y.Z`, pushes both.
-4. Opens a **draft** GitHub release with auto-generated notes (`--generate-notes`).
+4. Opens a **draft** GitHub release with auto-generated notes (`--generate-notes`), grouped by PR label into Features (`feat`), Fixes (`fix`), Dependencies and Other changes per `.github/release.yml`.
 
 It stops there. Nothing is published automatically.
 

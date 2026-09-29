@@ -1,0 +1,39 @@
+lyrics:
+  - changed-files:
+      - any-glob-to-any-file: ["services/lyrics.py", "scripts/embed_lyrics*"]
+
+covers:
+  - changed-files:
+      - any-glob-to-any-file: ["services/artwork.py", "scripts/embed_covers*"]
+
+lyrion:
+  - changed-files:
+      - any-glob-to-any-file: ["services/lyrion.py"]
+
+stats:
+  - changed-files:
+      - any-glob-to-any-file: ["services/database.py"]
+
+nowplaying:
+  - changed-files:
+      - any-glob-to-any-file: ["routes/nowplaying.py", "static/**", "templates/**"]
+
+logs:
+  - changed-files:
+      - any-glob-to-any-file: ["logsetup.py"]
+
+android:
+  - changed-files:
+      - any-glob-to-any-file: ["android/**", "fastlane/**"]
+
+i18n:
+  - changed-files:
+      - any-glob-to-any-file: ["i18n.py"]
+
+docs:
+  - changed-files:
+      - any-glob-to-any-file: ["README*.md", "docs/**"]
+
+ci:
+  - changed-files:
+      - any-glob-to-any-file: [".github/**"]
