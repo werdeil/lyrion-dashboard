@@ -10,7 +10,6 @@ urllib3.disable_warnings()
 
 log = logging.getLogger(__name__)
 
-# Shared Session so upstream requests reuse their TCP connections.
 _session = requests.Session()
 
 # Covers are buffered whole in memory before being re-served; cap what we accept.
@@ -63,9 +62,8 @@ def lyrion_request(payload):
         raise
     if r.status_code != 200:
         log.warning("Lyrion returned HTTP %s for [%s]", r.status_code, _command(payload))
-    # Lyrion replies with an empty (non-JSON) body when asked about an unknown
-    # player id — e.g. a vanished ephemeral player still held in _last_player.
-    # Return {} instead of letting r.json() raise; callers read `result` safely.
+    # Lyrion replies with an empty non-JSON body for an unknown player id, such
+    # as a vanished ephemeral one still held in _last_player.
     try:
         return r.json()
     except ValueError:
@@ -76,16 +74,9 @@ def lyrion_request(payload):
 def fetch_cover(coverid, size=None):
     """Fetch an album cover from Lyrion so the page can serve it same-origin.
 
-    Loading the cover through our own host (instead of pointing the <img> at
-    LYRION_HOST directly) lets the page read the image pixels on a canvas to
-    derive a tint colour — cross-origin images would taint the canvas.
-
-    With `size` set, ask Lyrion for a square thumbnail (`cover_NxN_o.jpg`, `o`
-    = keep aspect ratio) instead of the full-resolution artwork — used by the
-    blurred empty-state mosaic, where dozens of covers load at once and full
-    art would be needlessly heavy. Lyrion generates and caches these itself;
-    if a given server doesn't serve the resized form we fall back to the full
-    cover so the tile still shows.
+    Same-origin keeps the canvas the page samples its accent from untainted.
+    With `size` set, asks for Lyrion's `cover_NxN_o.jpg` thumbnail (`o` keeps the
+    aspect ratio), falling back to the full artwork on servers without it.
     """
     host = current_app.config["LYRION_HOST"]
     name = f"cover_{size}x{size}_o.jpg" if size else "cover.jpg"
@@ -99,10 +90,9 @@ def fetch_cover(coverid, size=None):
 
 
 def fetch_remote_cover(url):
-    """Fetch artwork from a remote stream's artwork_url (Deezer, Spotify, radio
-    icons, etc.) so the page can serve it same-origin, same reasoning as
-    fetch_cover. These are public CDN URLs, not the local Lyrion host, so
-    certificate verification stays on."""
+    """Fetch a stream's remote artwork_url same-origin, as fetch_cover does.
+
+    These are public CDN URLs, so certificate verification stays on."""
     r = _session.get(url, timeout=5, stream=True)
     return _read_image(r)
 
@@ -128,21 +118,12 @@ def _year(value):
 
 
 def get_now_playing(player_id):
-    """Return the current track + transport state of a player.
+    """Return the current track and transport state of a player.
 
-    Uses the JSON-RPC `status` query for the current playlist position (`-`),
-    asking for one item with the tags we display: a=artist, A=role-keyed
-    artist lists, l=album, y=year, d=duration, c=coverid, K=artwork_url. With tag A
-    the multiple artists come back joined by ", " under a role key
-    (`trackartist` for the track's contributors, `artist` for the ARTIST
-    role) — we prefer `trackartist` so a "feat." line shows everyone,
-    matching Lyrion's display. Title and the Lyrion track id come back by
-    default; that id is the key used to look up lyrics in the SQLite
-    `tracks` table.
-
-    Streamed tracks (Deezer, Spotify, radio, ...) have no local coverid, but
-    plugins for those services attach an `artwork_url` to the track instead —
-    that's what tag K surfaces. It's sometimes relative to the Lyrion host.
+    Tag A returns the artists joined by ", " under role keys; `trackartist` is
+    preferred so a "feat." line shows everyone, as Lyrion does. Streamed tracks
+    have no local coverid but may carry an `artwork_url` (tag K), sometimes
+    relative to the Lyrion host.
     """
     payload = {
         "id": 1,
@@ -199,9 +180,7 @@ def get_active_now_playing(selected_id=None):
     always carries `players` — [{id, name}] for every player currently playing —
     so the page can offer (and populate) its switcher.
 
-    The cached playback position is aged by the wall time elapsed since the
-    snapshot was taken, so the progress bar and karaoke highlight stay accurate
-    even when several clients share one cached snapshot.
+    The cached playback position is aged by the wall time since the snapshot.
     """
     with _now_lock:
         now_ts = time.time()
@@ -271,13 +250,10 @@ def _auto_select(playing):
 def _query_playing_players():
     """Enumerate players and return those currently playing, in Lyrion's order.
 
-    Lyrion has no single call returning the transport state of every player, so
-    we enumerate players and query `status` on each. Every returned entry is the
-    get_now_playing payload enriched with player_id/player_name (the id also
-    lets the page deep-link "open Lyrion" to this very player, ?player=<id>). A
-    paused/stopped player with a track still loaded is deliberately left out, as
-    is a disconnected one — its cached `mode` can still say "play" after an
-    ungraceful (power-cut) drop, since Lyrion never saw a clean stop.
+    Lyrion has no call returning every player's transport state, so each gets a
+    `status` query; entries are get_now_playing payloads plus player_id/player_name.
+    A disconnected player is left out: after an ungraceful drop its cached `mode`
+    can still say "play".
     """
     started = time.monotonic()
     playing, states = [], []

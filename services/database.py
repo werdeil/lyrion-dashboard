@@ -145,12 +145,8 @@ def get_recent_album_covers(limit=24):
     return [row["artwork"] for row in rows]
 
 
-# The stats are four full-library aggregations — expensive on a big library —
-# and the page runs them on every render plus every client's 60s poll, while
-# the numbers only move at the pace of listening. Serve a cached copy for
-# STATS_TTL seconds so the queries run at most once a minute no matter how
-# many clients are open; the front already refreshes only every 60s, so the
-# staleness window is invisible.
+# Four full-library aggregations, run at most once per STATS_TTL however many
+# clients poll.
 STATS_TTL = 60
 
 _stats_cache = {"value": None, "expires_at": 0}
@@ -160,9 +156,8 @@ _stats_lock = threading.Lock()
 def get_stats():
     """Library statistics, cached for STATS_TTL seconds.
 
-    The lock makes the recompute single-flight: simultaneous clients hitting
-    an expired cache wait for one computation instead of each running their
-    own. Returns a copy so callers can't mutate the cached dict.
+    Single-flight: concurrent callers on an expired cache wait for one
+    recompute. Returns a copy, so callers can't mutate the cached dict.
     """
     with _stats_lock:
         if _stats_cache["value"] is None or _stats_cache["expires_at"] <= time.time():
@@ -183,7 +178,6 @@ def _compute_stats():
                 return 0
             return round(part * 100 / total, 1)
 
-        # Query 1: albums + songs — single scan of tracks JOIN play_counts
         row = cur.execute("""
             WITH track_play AS (
                 SELECT
@@ -234,7 +228,6 @@ def _compute_stats():
             "apc_available":         apc_available,
         }
 
-        # Query 2: artists (album artists) — single scan via contributor_track
         row = cur.execute("""
             WITH track_play AS (
                 SELECT t.id, COALESCE(apc.playcount, 0) > 0 AS is_played
@@ -265,7 +258,6 @@ def _compute_stats():
             "artists_non_played": (row["artists_unplayed"] or 0) + (row["artists_partial"] or 0),
         })
 
-        # Query 3: track artists — single scan via contributor_track
         row = cur.execute("""
             WITH track_play AS (
                 SELECT t.id, COALESCE(apc.playcount, 0) > 0 AS is_played
@@ -322,32 +314,27 @@ def _compute_stats():
             "velocity_1year":    row["velocity_1year"] or 0,
         })
 
-        # Pourcentages albums
         stats["albums_played_pct"]    = pct(stats["albums_played"],    stats["albums_total"])
         stats["albums_not_fully_pct"] = pct(stats["albums_not_fully"], stats["albums_total"])
         stats["albums_never_pct"]     = pct(stats["albums_never"],     stats["albums_total"])
         stats["albums_non_played_pct"] = pct(stats["albums_non_played"], stats["albums_total"])
 
-        # Pourcentages artistes (album artists)
         stats["artists_played_pct"]   = pct(stats["artists_played"],   stats["artists_total"])
         stats["artists_partial_pct"]  = pct(stats["artists_partial"],  stats["artists_total"])
         stats["artists_unplayed_pct"] = pct(stats["artists_unplayed"], stats["artists_total"])
         stats["artists_non_played_pct"] = pct(stats["artists_non_played"], stats["artists_total"])
 
-        # Pourcentages track artists
         stats["track_artists_fully_played_pct"] = pct(stats["track_artists_fully_played"], stats["track_artists_total"])
         stats["track_artists_partially_played_pct"] = pct(stats["track_artists_partially_played"], stats["track_artists_total"])
         stats["track_artists_unplayed_pct"] = pct(stats["track_artists_unplayed"], stats["track_artists_total"])
         stats["track_artists_non_played_pct"] = pct(stats["track_artists_non_played"], stats["track_artists_total"])
 
-        # Pourcentages songs
         stats["songs_played_pct"]       = pct(stats["songs_played_apc"],  stats["songs_total"])
         stats["songs_unplayed_apc_pct"] = pct(stats["songs_unplayed_apc"], stats["songs_total"])
         stats["songs_played_once_pct"]  = pct(stats["songs_played_once"],  stats["songs_total"])
         stats["songs_played_2_4_pct"]   = pct(stats["songs_played_2_4"],   stats["songs_total"])
         stats["songs_played_5_plus_pct"] = pct(stats["songs_played_5_plus"], stats["songs_total"])
 
-        # Pourcentages divers
         stats["rated_songs_pct"]        = pct(stats["rated_songs"],       stats["songs_total"])
         stats["songs_with_lyrics_pct"]  = pct(stats["songs_with_lyrics"], stats["songs_total"])
 

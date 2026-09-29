@@ -1,11 +1,7 @@
 """Logging setup shared by the web app and the CLI scripts.
 
-Everything goes to stdout as one line per event, so `docker logs
-lyrion-dashboard` is the single place to look when something misbehaves.
-`LOG_LEVEL` picks the verbosity (DEBUG when `DEV=1`, else INFO): INFO keeps
-one line per lyrics search or slow query, DEBUG adds the per-provider and
-per-query detail needed to tell "the library has no lyrics" apart from "the
-providers were unreachable".
+Everything goes to stdout as one line per event, so `docker logs` is the single
+place to look. `LOG_LEVEL` picks the verbosity (DEBUG when `DEV=1`, else INFO).
 """
 
 import logging

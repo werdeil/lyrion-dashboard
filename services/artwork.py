@@ -1,8 +1,7 @@
 """Read an image's dimensions from its header bytes.
 
-Framework-free and dependency-free, so it can be reused from a CLI or the web
-app. Only the first bytes of a file are ever needed, which keeps a whole-library
-sweep cheap: a cover's size is known long before its pixels are.
+Framework-free and dependency-free, shared by the CLI and the web app. Only the
+first bytes of a file are ever needed.
 """
 
 _JPEG_SOF = {0xC0, 0xC1, 0xC2, 0xC3, 0xC5, 0xC6, 0xC7, 0xC9, 0xCA, 0xCB, 0xCD, 0xCE, 0xCF}
@@ -98,8 +97,7 @@ def image_size(data):
 def smallest_side(data):
     """Return the shorter side of an image in pixels, or 0 when unknown.
 
-    The shorter side is what decides how sharp a square cover looks once
-    displayed, so it is the figure covers are compared on.
+    Covers are compared on it.
     """
     dims = image_size(data)
     return min(dims[1], dims[2]) if dims else 0
