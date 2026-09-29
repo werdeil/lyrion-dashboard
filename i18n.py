@@ -1,9 +1,7 @@
 """UI translations (FR/EN).
 
-Language is picked per-request from the browser's Accept-Language header,
-falling back to English. The whole dict for the chosen language is handed to
-the template (and serialised to JS) so every visible string has a single
-source of truth here.
+Language is picked per request from Accept-Language, falling back to English;
+the chosen dict is handed to the template and serialised to JS.
 """
 
 SUPPORTED = ("fr", "en")
@@ -11,7 +9,6 @@ DEFAULT_LANG = "en"
 
 TRANSLATIONS = {
     "fr": {
-        # Now playing
         "empty_state": "Aucune lecture en cours",
         "no_lyrics_library": "Aucune parole dans la bibliothèque",
         "searching": "Recherche…",
@@ -30,7 +27,6 @@ TRANSLATIONS = {
         "source_library": "Bibliothèque",
         "switch_version": "Voir une autre version des paroles",
         "lyrics_confirmed": "Le web a renvoyé ce même texte",
-        # Stats
         "stats_title": "Statistiques",
         "history": "Historique",
         "tracks": "Morceaux",
@@ -55,7 +51,6 @@ TRANSLATIONS = {
         "with_lyrics": "Avec paroles",
     },
     "en": {
-        # Now playing
         "empty_state": "Nothing playing",
         "no_lyrics_library": "No lyrics in the library",
         "searching": "Searching…",
@@ -74,7 +69,6 @@ TRANSLATIONS = {
         "source_library": "Library",
         "switch_version": "Show another version of the lyrics",
         "lyrics_confirmed": "The web returned this same text",
-        # Stats
         "stats_title": "Statistics",
         "history": "History",
         "tracks": "Tracks",

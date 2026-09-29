@@ -60,7 +60,7 @@ Pylint config (`.pylintrc`) intentionally disables the docstring-required checks
 
 In Claude Code on the web, `.claude/hooks/session-start.sh` installs these into a project `.venv` at session start (put first on `PATH`), so tests, pylint, pip-audit and bandit run without manual setup. Locally it's a no-op — manage your own venv.
 
-When opening a PR, follow `.github/pull_request_template.md`: fill in the problem, the solution and how it was tested, and work through its checklist (it mirrors the CI gates above plus the FR/EN string parity, README and skill lockstep, and no-auth-by-design rules). PR titles and descriptions are written in **English**, like commit messages — only the user-facing UI and the READMEs are bilingual.
+When opening a PR, follow `.github/pull_request_template.md`: fill in the problem, the solution and how it was tested, and work through its checklist (it mirrors the CI gates above plus the comment rules, FR/EN string parity, README and skill lockstep, and no-auth-by-design rules). PR titles and descriptions are written in **English**, like commit messages — only the user-facing UI and the READMEs are bilingual.
 
 **A PR title is a commit subject, so it follows Conventional Commits: `type(scope): summary`.** The squash merge turns it into the commit title on `master`, where it has to sit alongside `fix(lyrics): prefer a synced LRCLIB record over a plain one` without standing out. Types in use: `feat`, `fix`, `refactor`, `docs`, `chore`. The scope is the area touched (`lyrics`, `lyrion`, `nowplaying`, `stats`, `logs`, `android`, `release`, `deps`), dropped when the change is repo-wide. Lowercase after the colon, imperative, no trailing period, short enough to read in `git log --oneline`. Commit subjects on the branch follow the same form.
 
@@ -71,6 +71,8 @@ When opening a PR, follow `.github/pull_request_template.md`: fill in the proble
 **Never post progress commentary on a PR.** A comment is for something the maintainer has to act on or could not get from the branch — not "pushed a follow-up", "fixed the regression", "sorry, I misread". Pushing more commits is how progress is reported; the commit messages carry the reasoning, and the description carries the current state. A review round that reshapes the branch leaves the PR with a rewritten description, not a trail of replies.
 
 **A PR describes the branch as it now stands, not how it got there.** Before calling a PR ready — every time, not just when opening it — re-read the title and body against the actual diff (`git diff origin/master...HEAD`, with the `origin/`: a fresh clone's local `master` can lag and fold other people's commits into the comparison). Iteration routinely leaves them describing a first attempt whose constants, mechanism, even approach no longer exist; a stale body is worse than none, because a reviewer trusts it. The title is the squash-merge commit subject, so it has to name what finally landed.
+
+**Assign every PR to its author as soon as it is opened** — the GitHub account that opened it, read from the PR itself rather than assumed. When the tool that opens the PR takes no assignee, set it straight after through the issue API (a PR is an issue).
 
 **Never subscribe to / watch a PR for activity** (CI results, review comments) on this repo — don't auto-monitor or auto-fix. Report status when asked and let the maintainer drive the PR.
 

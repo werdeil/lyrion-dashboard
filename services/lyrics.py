@@ -1,14 +1,8 @@
-"""Web fallback for lyrics, fetched on explicit user request.
+"""Web fallback for lyrics.
 
-Lyrion's `library.db` is read-only, so lyrics fetched from the web cannot be
-stored there. We keep them in a process-local in-memory cache instead: gunicorn
-runs a single worker with threads, so all requests share this dict. A positive
-result is cached longer than a miss, so a track that simply has no lyrics online
-is not retried on every click while a transient failure can recover sooner.
-
-Several providers are tried in order (configurable via `LYRICS_PROVIDERS`); the
-first one that returns anything wins. LRCLIB and Musixmatch can return synced
-lyrics (LRC), so they come before Genius, which only offers plain text.
+Results live in a process-local in-memory cache, since `library.db` is read-only;
+gunicorn's single threaded worker shares it across requests. Providers are tried
+in `LYRICS_PROVIDERS` order and the first that returns anything wins.
 """
 
 import logging
@@ -40,18 +34,14 @@ BROWSER_UA = (
     "(KHTML, like Gecko) Chrome/120.0 Safari/537.36"
 )
 
-# How long a cached entry stays valid, in seconds.
 TTL_HIT = 24 * 3600
 TTL_MISS = 3600
 
-# LRCLIB can get slow under load (8-10s on busy evenings); this is a
-# user-initiated fallback, not a hot path, so give it a generous budget.
+# LRCLIB takes 8-10s on busy evenings.
 LRCLIB_TIMEOUT = int(os.getenv("LRCLIB_TIMEOUT", "15"))
 
-# When verifying a result against the requested track (opt-in, used by the batch
-# CLI), how far the provider's reported track length may drift from the file's
-# own duration before we treat it as a different recording. Seconds; overridable
-# for libraries whose durations are noisy.
+# Opt-in verification (batch CLI): how far a provider's track length may drift
+# from the file's before it counts as another recording.
 VERIFY_DURATION_TOLERANCE = int(os.getenv("LYRICS_VERIFY_DURATION_TOLERANCE", "3"))
 
 # Versions offered for one track, the library's own text included. Each carries
@@ -60,7 +50,6 @@ MAX_VERSIONS = 5
 
 # The cache key includes client-supplied fields, so the cache must stay bounded.
 CACHE_MAX_ENTRIES = 1000
-# Metadata fields longer than this are refused.
 MAX_FIELD_LEN = 512
 
 _cache = OrderedDict()
@@ -114,13 +103,8 @@ def _int_duration(duration):
     return None if seconds is None else int(seconds)
 
 
-# --- Providers -------------------------------------------------------------
-# Each provider takes (artist, title, album, duration) and returns either a
-# dict {"lyrics": str|None, "synced": str|None, "meta": dict|None} when it found
-# something, or None. "meta" carries the matched candidate's own
-# {artist, title, album, duration} so the caller can verify the result really
-# corresponds to the requested track (see _matches_request); providers set the
-# fields they can and leave the rest None.
+# A provider takes (artist, title, album, duration) and returns None or {"lyrics", "synced", "meta"},
+# meta being the matched candidate's own artist/title/album/duration, for _matches_request.
 
 
 def _duration_delta(candidate, seconds):
@@ -196,9 +180,7 @@ def _lrclib_candidates(results, seconds, search_params):
     """One search response's candidates, and those worth offering in order.
 
     The offer is the uploads of this track's length, synced first and plain
-    behind — empty when none is synced, which leaves the caller to keep
-    looking. Logs a funnel: the three counts narrow the same set down, so the
-    last one is what the page could actually be given.
+    behind, or empty when none is synced.
     """
     close = [c for c in results if _duration_close(c, seconds)]
     synced = [c for c in close if c.get("syncedLyrics")]
@@ -253,18 +235,13 @@ def _lrclib_search(artist, title, album, seconds, fallback):
 
 
 def _provider_lrclib(artist, title, album, duration):
-    """Ask LRCLIB for a track, preferring a synced (LRC) record of that recording.
+    """Ask LRCLIB for a track, preferring a synced record of that very recording.
 
-    Tries the exact `get` endpoint first (best match when artist/title/album/
-    duration line up with their database), then falls back to `search` which is
-    more forgiving about album and duration mismatches. LRCLIB stores lyrics per
-    upload, so the signature `get` matches can hold plain text while another
-    upload of the same track carries an LRC: a plain-only hit is kept only as a
-    fallback while the search looks for a synced one. Timestamps only fit the
-    recording they were made for, so a synced candidate is taken on its duration
-    matching — the closest of those that fit — and one that doesn't match still
-    serves as plain text. Raises ProviderUnavailable when LRCLIB can't be
-    reached at all.
+    Tries the exact `get`, then `search`, which forgives album and duration
+    mismatches. LRCLIB stores lyrics per upload, so a plain-only `get` hit is only
+    a fallback while the search looks for a synced one. A synced candidate must
+    match the track's duration; one that doesn't still serves as plain text.
+    Raises ProviderUnavailable when LRCLIB can't be reached at all.
     """
     headers = {"User-Agent": USER_AGENT}
 
@@ -330,12 +307,11 @@ _MXM_HEADERS = {
 
 
 def _musixmatch_token():
-    """Return a usable Musixmatch user token, cached in-process.
+    """Return a usable Musixmatch user token, cached in-process for 9 hours.
 
-    A token can be supplied via `MUSIXMATCH_TOKEN`; otherwise we fetch the one
-    the web desktop app uses. Tokens are valid for hours, so we cache it and
-    refresh lazily. Returns None when Musixmatch refuses to issue a usable
-    token, and raises ProviderUnavailable when it can't be reached.
+    `MUSIXMATCH_TOKEN` overrides the one the desktop web app is issued. Returns
+    None when Musixmatch refuses a usable token, and raises ProviderUnavailable
+    when it can't be reached.
     """
     with _mxm_lock:
         if _mxm_token["value"] and _mxm_token["expires_at"] > time.time():
@@ -477,9 +453,8 @@ def _provider_genius(artist, title, album, _duration):
         log.warning("genius: beautifulsoup4 is not installed, provider skipped")
         return None
 
-    # Genius search is free-text only (no album field), so we fold the album
-    # into the query. Its matcher tolerates the extra terms and it helps
-    # disambiguate re-recordings/live versions that share an artist and title.
+    # Genius search is free-text only, so the album joins the query to tell
+    # re-recordings apart.
     query = f"{artist} {title} {album}" if album else f"{artist} {title}"
     try:
         r = requests.get(
@@ -545,8 +520,7 @@ DEFAULT_PROVIDER_ORDER = "lrclib,musixmatch,genius"
 def _enabled_providers():
     """Resolve the ordered provider list from `LYRICS_PROVIDERS`.
 
-    Unknown names are ignored, so an operator can disable a flaky provider just
-    by dropping it from the list.
+    Unknown names are ignored.
     """
     raw = os.getenv("LYRICS_PROVIDERS", DEFAULT_PROVIDER_ORDER)
     names = [n.strip().lower() for n in raw.split(",") if n.strip()]
@@ -590,10 +564,8 @@ def _matches_request(meta, artist, title, duration):
     """True if a provider's matched candidate lines up with the requested track.
 
     Title and artist must be equal once folded (see _fold_name). When both
-    durations are known they must fall within VERIFY_DURATION_TOLERANCE seconds
-    — the surest way to tell the real recording from a live/remix/cover of the
-    same song. A candidate that carries no duration (e.g. Genius) is accepted on
-    title + artist alone, since that is all it can offer.
+    durations are known they must fall within VERIFY_DURATION_TOLERANCE seconds;
+    a candidate with no duration (e.g. Genius) is accepted on title and artist.
     """
     if not meta:
         return False
@@ -635,8 +607,6 @@ def _search_providers(artist, title, album, duration, verify):
             log.info("lyrics: %s has no match (%d ms)", name, _elapsed_ms(started))
             continue
         if verify and not _matches_request(found.get("meta"), artist, title, duration):
-            # A candidate came back but doesn't match the requested track; skip
-            # it rather than write the wrong lyrics, and try the next provider.
             meta = found.get("meta") or {}
             log.info(
                 "lyrics: %s answered with %r by %r (%ss), not %r by %r (%ss) - rejected",
@@ -664,22 +634,19 @@ def fetch_lyrics(track_id, artist, title, album=None, duration=None, force=False
 
     Tries each enabled provider in order and keeps the first non-empty result.
     Returns a dict {"lyrics": str|None, "synced": str|None, "source": str}.
-    `source` is the winning provider name (kept across cache hits so the UI can
-    show where the lyrics came from), "none" when nothing was found, "rejected"
+    `source` is the winning provider name (kept across cache hits), "none" when
+    nothing was found, "rejected"
     when a candidate came back but failed verification, or "unavailable" when no
     provider could be reached — the one outcome that is not cached, so a search
     is retried as soon as they answer again.
 
     A provider that found several uploads of the song also returns "versions"
     for the page to cycle through: the winner first, then the rest synced
-    before plain, at most MAX_VERSIONS long. Callers that only want lyrics can
-    ignore it.
+    before plain, at most MAX_VERSIONS long.
 
-    With `verify=True` (used by the batch CLI, which writes lyrics permanently
-    into tags), a provider's result is only accepted when its own metadata
-    matches the requested track (see _matches_request). This trades some recall
-    for precision: better to leave a file without lyrics than to stamp it with
-    the wrong song's.
+    With `verify=True` (the batch CLI, which writes into tags), a result is only
+    accepted when its own metadata matches the requested track (see
+    _matches_request).
     """
     if not title or not artist:
         log.info("lyrics: search skipped, track %s has no artist or title", track_id)
@@ -688,11 +655,8 @@ def fetch_lyrics(track_id, artist, title, album=None, duration=None, force=False
         log.info("lyrics: search skipped for track %s, a metadata field exceeds %d chars", track_id, MAX_FIELD_LEN)
         return {"lyrics": None, "synced": None, "source": "none"}
 
-    # track_id alone isn't a reliable cache key: streamed "flow"/mix sources
-    # can keep the same playlist track_id for an entire session while artist
-    # and title change underneath it, which would otherwise serve the first
-    # song's lyrics for every later one. `verify` is part of the key too, since
-    # a lenient and a verified lookup can legitimately differ.
+    # Streams like a Deezer flow keep one track_id across songs; `verify` is in the
+    # key since a lenient and a verified lookup can differ.
     cache_key = f"{track_id or ''}|{artist}|{title}|{int(bool(verify))}"
     if not force:
         cached = _cache_get(cache_key)

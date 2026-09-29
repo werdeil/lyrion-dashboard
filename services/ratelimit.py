@@ -1,9 +1,7 @@
 """Tiny in-process rate limiting, no external dependency.
 
-Sized for a LAN dashboard: a handful of client IPs and low request rates, so
-plain dicts under a lock are plenty. State is bounded the same way the lyrics
-cache is: idle entries are swept on every call, so the maps can't outgrow the
-few clients that actually talk to us.
+Plain dicts under a lock, sized for a LAN's handful of clients; idle entries are
+swept on every call, so the maps stay bounded.
 """
 
 import threading

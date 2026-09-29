@@ -12,8 +12,7 @@ log = logging.getLogger(__name__)
 
 
 def _log_startup(flask_app):
-    """Report the effective configuration once, so a `docker logs` dump opens
-    with what the container actually resolved rather than what .env intended."""
+    """Report the effective configuration once, as the container resolved it."""
     log.info(
         "lyrion-dashboard %s starting (lyrion=%s, providers=%s, dev=%s, log_level=%s)",
         flask_app.config["VERSION"],
@@ -62,10 +61,8 @@ def create_app():
 
     @flask_app.after_request
     def set_security_headers(response):
-        # Everything the page needs is same-origin, so a tight CSP costs
-        # nothing; nosniff stops the browser from second-guessing content
-        # types (which matters for whatever lands in /files/), and the frame
-        # header keeps the dashboard out of third-party iframes.
+        # Everything the page needs is same-origin; nosniff also covers whatever
+        # lands in /files/.
         response.headers.setdefault("Content-Security-Policy", "default-src 'self'")
         response.headers.setdefault("X-Content-Type-Options", "nosniff")
         response.headers.setdefault("X-Frame-Options", "SAMEORIGIN")

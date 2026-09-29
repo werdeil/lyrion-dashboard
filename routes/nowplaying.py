@@ -25,9 +25,8 @@ COVERID_RE = re.compile(r"[0-9a-fA-F]+")
 # reported, never sent upstream, but keep junk out anyway.
 PLAYER_ID_RE = re.compile(r"[0-9A-Fa-f:.\-]{1,64}")
 
-# Fuses for the outbound lyrics searches: per-IP rate limit, per-track cooldown
-# on refresh=1. The cooldown only has to absorb a double-click — the per-IP
-# limit is what bounds the fan-out to the providers.
+# Fuses for the outbound lyrics searches: a per-IP rate limit, and a per-track
+# cooldown on refresh=1 that only has to absorb a double-click.
 LYRICS_RATE = RateLimiter(limit=10, window=60)
 REFRESH_COOLDOWN = Cooldown(interval=5)
 THROTTLED_RESULT = {"lyrics": None, "synced": None, "source": "none", "throttled": True}
@@ -50,14 +49,10 @@ def index():
 def now_playing_json():
     """Live state of the player to display, polled by the page.
 
-    The page passes ?known=<track key> — the id|title|artist|album key of the
-    track it already displays (the same key render() dedupes on). Lyrics are
-    only looked up and included when the playing track differs from it, so the
-    steady-state poll skips the database entirely; the page only reads lyrics
-    on a track change anyway.
-
-    ?player=<id> pins a player (the switcher's pick), honoured while it keeps
-    playing, else the automatic selection. A malformed id is ignored.
+    ?known={track key}, the id|title|artist|album of the track on screen, omits
+    the lyrics and skips their lookup while that track still plays. ?player={id}
+    pins a player while it keeps playing, else the automatic selection applies;
+    a malformed id is ignored.
     """
     selected = request.args.get("player")
     if selected and not PLAYER_ID_RE.fullmatch(selected):
@@ -74,11 +69,9 @@ def now_playing_json():
 
 @nowplaying_bp.route("/cover/<coverid>.jpg")
 def cover(coverid):
-    """Proxy an album cover from Lyrion, served same-origin so the page can
-    sample its colours on a canvas. Cached client-side since covers are stable.
+    """Proxy an album cover from Lyrion same-origin, so the page can sample it on a canvas.
 
-    ?size=N asks Lyrion for an NxN thumbnail instead of the full artwork; the
-    mosaic uses it to load its many covers cheaply."""
+    Cached client-side. ?size=N asks for Lyrion's NxN thumbnail instead of the full artwork."""
     if not COVERID_RE.fullmatch(coverid):
         abort(404)
     size = request.args.get("size", type=int)
@@ -117,9 +110,8 @@ def mosaic_covers_json():
     """Album cover ids for the empty-state mosaic: the most recently played
     albums, newest first, one cover per album.
 
-    The page passes ?limit= (how many tiles its panel fits), clamped to keep
-    the query and the page sane. A library with no play history yet falls back
-    to a random selection so the backdrop is never empty.
+    ?limit= (the tiles the panel fits) is clamped. A library with no play
+    history yet gets a random selection instead.
     """
     limit = min(max(request.args.get("limit", default=24, type=int), 1), 200)
     covers = get_recent_album_covers(limit)
@@ -133,10 +125,8 @@ def recent_covers_json():
     """Cover ids of the most recently played albums, newest first, for the
     pile of sleeves under the now-playing cover.
 
-    The page passes ?limit= — as many sleeves as fit under the cover plus a
-    small buffer, since it drops the currently playing album client-side —
-    clamped to keep the query sane. Unlike the mosaic there is no random
-    fallback: with no play history yet the pile simply doesn't show.
+    ?limit= is clamped. Unlike the mosaic there is no random fallback: with no
+    play history yet the pile doesn't show.
     """
     limit = min(max(request.args.get("limit", default=16, type=int), 1), 50)
     return jsonify(get_recent_album_covers(limit))
@@ -149,19 +139,11 @@ def stats_json():
 
 @nowplaying_bp.route("/lyrics.json")
 def lyrics_json():
-    """Fetch lyrics from the web for a track, on explicit user request.
+    """Fetch lyrics for a track from the web, from the metadata the page displays.
 
-    The page calls this only when the local library has no lyrics, passing the
-    metadata it already displays so we avoid re-querying Lyrion. Results are
-    cached in-memory by services.lyrics, so repeated clicks are cheap. Rate
-    limited (see LYRICS_RATE / REFRESH_COOLDOWN above) because every cache
-    miss fans out to third-party services from our IP.
-
-    A response carries `"throttled": true` when one of those fuses kept the
-    search from running and nothing came back, so the page can say the retry
-    was held rather than that the track has no lyrics anywhere, and
-    `"retry_after": <seconds>` on any ?refresh=1 so it can hold its retry
-    button for exactly as long as a new search would be refused.
+    Fused by LYRICS_RATE and, on ?refresh=1, REFRESH_COOLDOWN. `"throttled": true`
+    marks a search a fuse kept from running that came back empty; `"retry_after"`
+    (seconds) comes with any ?refresh=1, for as long as a new search would be refused.
     """
     if not LYRICS_RATE.allow(request.remote_addr or "unknown"):
         log.warning("lyrics: rate limit hit by %s, search refused", request.remote_addr)

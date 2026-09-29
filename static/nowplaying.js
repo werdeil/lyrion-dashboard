@@ -11,10 +11,7 @@ document.querySelectorAll('.stat-group-title').forEach(function(title) {
 
 var LYRION_HOST = document.body.dataset.lyrionHost || '';
 
-// Inside the Android app a native bridge (window.LyrionApp) is injected;
-// reveal the header bar (hidden on the web, where the branding lives in the
-// tab title) with its menu button wired to the native full-screen settings
-// screen (openMenu on current apps, openSettings on ones that predate it).
+// Injected by the Android app; shells that predate openMenu only have openSettings.
 var APP_BRIDGE = window.LyrionApp;
 
 (function () {
@@ -71,8 +68,7 @@ function updateRetry() {
     syncTools();
 }
 
-// The row draws the pill both controls sit in, so it has to go when neither
-// of them is showing, or an empty outline is left over the lyrics.
+// The row draws the pill, so it hides whenever neither control shows.
 function syncTools() {
     if (!el.lyricsTools) { return; }
     el.lyricsTools.hidden = (!el.source || el.source.hidden) && (!el.retry || el.retry.hidden);
@@ -114,10 +110,7 @@ function setMaterialLink(anchor, playerId) {
 
 function setLyrionLink(playerId) {
     setMaterialLink(el.lyrionLink, playerId);
-    // The player-name link opens Lyrion focused on the very player shown.
     setMaterialLink(el.playerLink, playerId);
-    // The empty-state "open Lyrion" button always targets the plain Material
-    // page: with nothing playing there is no player to focus.
     setMaterialLink(el.emptyOpen, null);
 }
 
@@ -157,7 +150,6 @@ function closeSwitchMenu() {
     if (menu) { menu.hidden = true; }
     if (toggle) { toggle.setAttribute('aria-expanded', 'false'); }
 }
-// Close the menu on an outside click or Escape.
 document.addEventListener('click', function (e) {
     if (el.playerSwitch && !el.playerSwitch.contains(e.target)) { closeSwitchMenu(); }
 });
@@ -165,15 +157,13 @@ document.addEventListener('keydown', function (e) {
     if (e.key === 'Escape') { closeSwitchMenu(); }
 });
 
-// Signature (player ids + active id) so the DOM is only rebuilt on real change,
-// keeping the menu state across steady-state polls.
+// Rebuilt only when the players or the active one change, so the menu keeps its state.
 var lastSwitchKey = null;
 
 function renderPlayerSwitch(data) {
     if (!el.playerSwitch) { return; }
     var players = data.players || [];
 
-    // Followed player stopped (or was ignored): revert to automatic selection.
     if (selectedPlayer && data.selection_active === false) {
         setSelectedPlayer(null);
     }
@@ -185,7 +175,7 @@ function renderPlayerSwitch(data) {
         return;
     }
 
-    el.playerRow.hidden = true;  // the dropdown takes over the name row
+    el.playerRow.hidden = true;
     el.playerSwitch.hidden = false;
 
     var activeId = data.player_id;
@@ -194,7 +184,6 @@ function renderPlayerSwitch(data) {
     lastSwitchKey = key;
     el.playerSwitch.textContent = '';
 
-    // Trigger: the followed player's name + a chevron, opening the menu.
     var toggle = document.createElement('button');
     toggle.type = 'button';
     toggle.className = 'np-switch-toggle';
@@ -215,13 +204,11 @@ function renderPlayerSwitch(data) {
         var current = p.id === activeId;
         var item;
         if (current) {
-            // The followed player's row opens Lyrion (like the single-player name).
             item = document.createElement('a');
             setMaterialLink(item, p.id);
             item.title = I18N.open_lyrion;
             item.appendChild(document.createTextNode(p.name || ''));
             item.appendChild(makeIcon(LYRION_ARROW_PATH, 'np-switch-arrow'));
-            // Let the link open, but close the menu behind it.
             item.addEventListener('click', closeSwitchMenu);
         } else {
             item = document.createElement('button');
@@ -259,22 +246,13 @@ var versionIdx = -1;
 var echoed = false;
 
 var lrcLines = null;
-// The .lrc-line elements paralleling lrcLines, cached at build time so the
-// karaoke tick (4×/s) never re-queries the DOM; and the index of the line
-// currently highlighted, so ticks where it hasn't moved skip the DOM
-// entirely — the active line only changes every few seconds.
+// Cached with the active index, so the 4×/s karaoke tick skips the DOM while the line holds.
 var lrcNodes = null;
 var lrcActiveIdx = -1;
 
-// Whether the lyrics box auto-scrolls to keep the karaoke-highlighted line in
-// view. A manual scroll (wheel/touch) pauses it so the user can read ahead or
-// back without fighting the highlight; the reset button (or a new track)
-// resumes it.
+// A manual scroll pauses the follow; the reset button or a new track resumes it.
 var autoFollowScroll = true;
-// Cumulative scroll distance (px) tracked while auto-follow is still on, so a
-// deliberate scroll pauses it but a stray wheel tick or finger brush doesn't.
-// Only guards the initial trip out of auto-follow — once paused, scrolling is
-// unrestricted.
+// Only guards the trip out of auto-follow, so a stray wheel tick or brush doesn't pause it.
 var SCROLL_PAUSE_THRESHOLD = 60;
 var wheelAccum = 0;
 var wheelLastAt = 0;
@@ -289,10 +267,7 @@ function setAutoFollow(on) {
     updateScrollReset();
 }
 
-// The reset button only makes sense while synced lyrics are on screen with the
-// karaoke follow paused. Plain lyrics have no follow to resume, so keep the
-// button hidden even if a pause is still remembered (it survives a mode switch
-// via keepScroll and reapplies when the synced view comes back).
+// Plain lyrics have no follow to resume, even with a pause remembered across a mode switch.
 function updateScrollReset() {
     if (el.scrollReset) { el.scrollReset.hidden = autoFollowScroll || !lrcLines; }
 }
@@ -313,10 +288,7 @@ function resetColors() {
     setAccent(ACCENT_DEFAULT);
 }
 
-// Cover colour extraction mirrors Lyrion's Material skin (currentcover.js):
-// the tint is the *average* colour (FastAverageColor) while the accent is the
-// *dominant* vibrant swatch (Vibrant.js), normalised in HSV so every accent
-// lands at a consistent brightness. Helpers below are copied from Material.
+// Mirrors Lyrion Material's currentcover.js; the HSV helpers are copied from it.
 
 function rgb2Hsv(rgb) {
     var r = rgb[0], g = rgb[1], b = rgb[2],
@@ -404,7 +376,6 @@ function sampleCoverTint() {
             }
         } catch (e) { /* fall through to average-only */ }
 
-        // Average colour -> tint.
         if (!fac) { fac = new FastAverageColor(); }
         var avg = fac.getColor(img, { mode: 'precision' });
         var avRgb = [avg.value[0], avg.value[1], avg.value[2]];
@@ -468,9 +439,7 @@ function parseLRC(text) {
         if (LRC_META_RE.test(line)) { continue; }
         var m = line.match(LRC_LINE_RE);
         if (!m) {
-            // Preserve blank separator lines between verses. They carry no
-            // timestamp, so reuse the previous line's time (they sort right
-            // after it) and flag them so they never become the active line.
+            // Blank separators take the previous line's time, flagged so they never become active.
             if (line.trim() === '' && parsed.length) {
                 parsed.push({ time: lastTime, text: '', blank: true });
             }
@@ -480,9 +449,7 @@ function parseLRC(text) {
         var ss = parseFloat(m[2]);
         var t = mm * 60 + ss + offset;
         lastTime = t;
-        // Trim so a timestamp with only whitespace (e.g. "[00:06.13] ") is
-        // treated as a blank separator: rendered as a visible gap and never
-        // allowed to become the active line, like the untimed blank lines above.
+        // A timestamp with only whitespace is a blank separator too.
         var txt = (m[3] || '').trim();
         if (txt === '') {
             parsed.push({ time: t, text: '', blank: true });
@@ -499,8 +466,6 @@ function parseLRC(text) {
 // changes); by default the view resets to the top (used on a new track).
 function setLyrics(text, isEmpty, keepScroll) {
     var prevScroll = keepScroll ? el.lyrics.scrollTop : 0;
-    // A new track (not just a mode switch on the same one) restarts the
-    // karaoke follow, since any earlier manual pause no longer applies to it.
     if (!keepScroll) { setAutoFollow(true); }
     el.lyrics.classList.remove('empty', 'lrc-mode');
     el.lyrics.textContent = '';
@@ -550,9 +515,6 @@ function currentTime() {
     return t;
 }
 
-// Repaint one line's classes from its distance to the current active index.
-// Only the handful of lines around the old and new active positions ever
-// change state, so repainting is per-line rather than a full sweep.
 function paintLine(idx) {
     if (!lrcNodes || idx < 0 || idx >= lrcNodes.length) { return; }
     lrcNodes[idx].classList.toggle('active', idx === lrcActiveIdx);
@@ -567,17 +529,12 @@ function syncLyrics(forceScroll) {
     var activeIdx = -1;
     for (var i = 0; i < lrcLines.length; i++) {
         if (lrcLines[i].time <= t) {
-            // Blank separator lines share the previous line's time; never let
-            // one be the active line — keep the last real line highlighted.
             if (!lrcLines[i].blank) { activeIdx = i; }
         } else { break; }
     }
 
     if (activeIdx !== lrcActiveIdx) {
-        // The active line only moves every few seconds while this runs four
-        // times a second; when it does move, touch just the lines whose state
-        // changes (old and new active lines and their neighbours) instead of
-        // rewriting every line of the song.
+        // Only the old and new active lines and their neighbours change state.
         var prev = lrcActiveIdx;
         lrcActiveIdx = activeIdx;
         paintLine(prev - 1);
@@ -591,23 +548,19 @@ function syncLyrics(forceScroll) {
 
     if (forceScroll && autoFollowScroll && activeIdx >= 0) {
         var active = lrcNodes[activeIdx];
-        // Anchor the active line around the upper third of the box rather than
-        // dead centre, so fewer past lines linger and more upcoming lines show.
+        // Anchored on the upper third, so more upcoming lines show.
         var target = active.offsetTop - el.lyrics.clientHeight / 3 + active.clientHeight / 2;
         el.lyrics.scrollTop = Math.max(0, target);
     }
 }
 
-// Doubles as the synced/plain indicator. Every caller runs right after
-// setLyrics() on the same content, so lrcLines already tells whether the
-// lyrics on screen are time-synced: if so, tint the line in the accent
-// colour; plain lyrics keep the muted default.
 function versionLength(version) {
     var secs = version && version.duration;
     if (!secs) { return ''; }
     return ' \u00b7 ' + Math.floor(secs / 60) + ':' + ('0' + (Math.round(secs) % 60)).slice(-2);
 }
 
+// Callers run right after setLyrics(), so lrcLines tells whether the text on screen is synced.
 function updateSource() {
     if (!el.source) { return; }
     var version = versions[versionIdx];
@@ -616,8 +569,6 @@ function updateSource() {
     var canCycle = versions.length > 1 && !searching;
     el.source.hidden = !label;
     el.source.disabled = !canCycle;
-    // While a search runs the chip says so, which is why no spinner shares the
-    // lyrics box with it.
     el.sourceLabel.textContent = searching ? I18N.searching : (label
         ? label + (canCycle ? versionLength(version) + ' (' + (versionIdx + 1) + '/' + versions.length + ')' : '')
         : '');
@@ -688,7 +639,6 @@ function pushWebVersions(res) {
     return versions.length - before;
 }
 
-// The first time-synced version from `from` on, or -1.
 function firstSyncedIdx(from) {
     for (var i = from; i < versions.length; i++) {
         if (versions[i].synced) { return i; }
@@ -740,7 +690,6 @@ function prefersReducedMotion() {
 // The spare slot per row is load-bearing: it keeps both row ends off the card,
 // which is what lets a cover cross rows out of sight (mosaicSlot).
 function mosaicGridRows(W, H, rows) {
-    // A tile is a gap shorter than its row band, so rows don't touch.
     var rowH = H / rows;
     return {
         rows: rows, rowH: rowH, step: rowH, tile: rowH - MOSAIC_GAP,
@@ -792,8 +741,7 @@ function mosaicSlot(g, s) {
     var closing = s === g.slots - 1;
     var row = closing ? g.rows - 1 : Math.floor(s / g.perRow);
     var k = closing ? g.perRow : (s % g.perRow);
-    // Even rows travel right, odd rows left: boustrophedon. The whole belt sits
-    // a step to the left, so covers enter from off the edge, not at x=0.
+    // Even rows travel right, odd rows left; the belt starts a step off the left edge.
     return {
         x: ((row % 2 === 0) ? k : (g.perRow - k)) * g.step - g.step,
         y: row * g.rowH + MOSAIC_GAP / 2,
@@ -850,11 +798,8 @@ function stopMosaic() {
     mosaicTimer = 0;
 }
 
-// Covers are fetched in parallel (fast) but revealed strictly in belt order —
-// row 0 left→right, row 1 right→left, and so on — so the collage fills in along
-// the caterpillar's path instead of popping in at random. Tiles start hidden
-// (CSS opacity 0); the cursor uncovers them one by one, waiting whenever the
-// next tile hasn't downloaded yet and resuming from that tile's load handler.
+// Fetched in parallel, revealed strictly in belt order: the cursor waits on a tile
+// still downloading and resumes from its load handler.
 var MOSAIC_REVEAL_STEP = 25;   // ms between covers appearing
 var mosaicRevealCursor = 0;
 var mosaicRevealTimer = null;
@@ -873,8 +818,6 @@ function advanceMosaicReveal() {
     mosaicRevealTimer = setTimeout(advanceMosaicReveal, MOSAIC_REVEAL_STEP);
 }
 
-// Lay the fetched covers out along the belt, sized to the current card. Called
-// on first load and again on resize (reusing the covers already fetched).
 // A finished download (or error) may need to un-stall the reveal cursor if it
 // was waiting on this very tile.
 function mosaicTileSettled() {
@@ -889,8 +832,7 @@ function layoutMosaic(ids) {
     var W = mosaicCardW();
     var H = mosaicCardH();
     var grid = mosaicGrid(W, H);
-    // Too few covers for that many rows: fewer, taller ones. Dropping a row
-    // without regrowing the rest would leave bare card at the bottom.
+    // Too few covers for that many rows: fewer, taller ones, never a bare band.
     while (grid.rows > 1 && ids.length < grid.rows * grid.perRow + 1) {
         grid = mosaicGridRows(W, H, grid.rows - 1);
     }
@@ -926,8 +868,6 @@ function layoutMosaic(ids) {
     // position has no earlier transform, so the glide can't fire on layout.
     positionMosaic(0);
     el.emptyMosaic.appendChild(frag);
-    // Reduced motion: no caterpillar fill, show everything at once (tiles were
-    // already marked shown above); otherwise start the ordered reveal.
     if (reduce) {
         mosaicRevealCursor = tiles.length;
     } else {
@@ -935,12 +875,8 @@ function layoutMosaic(ids) {
     }
 }
 
-// Fill the empty-state background with the most recently played covers.
-// Fetched when the empty state shows and invalidated while something plays
-// (see render()): playback changes what "recently played" means, so a mosaic
-// kept from page load would miss the very listens that just ended.
-// On failure the guard resets so the next poll retries; without covers the
-// empty state simply stays as plain text, same as before.
+// Invalidated while something plays (see render()), since playback changes what
+// "recently played" means; a failure resets the guard so the next poll retries.
 var mosaicLoading = false;
 var mosaicLoaded = false;
 // Re-lays the belt even when the cover list comes back unchanged.
@@ -990,15 +926,14 @@ window.addEventListener('resize', function() {
     }, 300);
 });
 
-// Recent plays as a pile of sleeves under the cover (desktop only): freshest
-// on top, older ones smaller and dimmer. Ratios are fractions of the column.
+// Ratios are fractions of the pile's column.
 var RECENT_COVER_SIZE = 512;
 // Sizes of the freshest and oldest sleeves; the ones between interpolate.
 var RECENT_TOP_RATIO = 0.70;
 var RECENT_BOTTOM_RATIO = 0.20;
 // Overlap between two sleeves, as a fraction of the upper one's height.
 var RECENT_OVERLAP = 0.30;
-// Horizontal nudge off centre, alternating by depth — the pile's "tossed" lean.
+// Horizontal nudge off centre, alternating by depth.
 var RECENT_LANE_SHIFT = 0.08;
 // Sanity cap only — renderRecent's fit loop is the real bound. Must stay under
 // .np-cover's z-index (30), which a sleeve's own z-index counts up towards.
@@ -1009,7 +944,6 @@ var RECENT_HOVER_GROW_MIN = 1.05;
 // Lift duration, scaled between these two by how far the sleeve travels.
 var RECENT_HOVER_MS_MIN = 200;
 var RECENT_HOVER_MS_MAX = 400;
-// Small tilts cycled by depth so the pile looks tossed rather than ruled.
 var RECENT_TILTS = [-2.5, 1.8, -1.4, 2.2, -1.8, 1.2];
 // The layout that leaves a free column under the cover — must match the CSS
 // media query that sets .np-recent to display:flex.
@@ -1042,10 +976,7 @@ var recentKey = null;      // track key the payload was fetched for
 var recentLoading = false;
 var recentSleeves = [];
 
-// Lay the cached cover ids out as a pile sized to the space under the cover.
-// Never repeats a cover (unlike the empty-state mosaic, which loops its list
-// to fill the belt): with fewer covers than fit the pile is just shorter, and
-// below RECENT_MIN it hides entirely.
+// Never repeats a cover, unlike the mosaic: with fewer covers the pile is just shorter.
 function renderRecent() {
     if (!el.recent || !el.recentPile) { return; }
     var current = currentTrack || {};
@@ -1054,27 +985,23 @@ function renderRecent() {
     for (var i = 0; i < (recentCovers || []).length; i++) {
         var cover = recentCovers[i];
         if (!cover || seen[cover]) { continue; }
-        // The album on the big cover heads the play history by definition;
-        // keeping it would duplicate the artwork right above the pile.
+        // The album on the big cover heads the history; kept, it would repeat the artwork.
         if (current.coverid && String(cover) === String(current.coverid)) { continue; }
         seen[cover] = true;
         covers.push(cover);
     }
-    // Hidden whenever there's nothing to show or the layout has no free column
-    // under the cover (narrow/short screens — the CSS keeps .np-recent
-    // display:none there anyway, but gating here avoids a pointless retry loop).
+    // Gated here too, or a pile the CSS hides would loop through the retries below.
     if (!covers.length || !recentLayoutActive()) {
         el.recent.hidden = true;
         recentRetries = 0;
         return;
     }
-    // Un-hide so the media query lays it out, then measure the free column.
+    // Un-hidden before measuring, or it has no size.
     el.recent.hidden = false;
     var w = el.recentPile.clientWidth;
     var h = el.recentPile.clientHeight;
     if (w <= 0 || h <= 0) {
-        // The layout is active but the flex chain hasn't resolved a size yet
-        // (first-paint race): retry next frame instead of hiding for good.
+        // First-paint race: the flex chain has no size yet.
         if (recentRetries++ < 30) {
             requestAnimationFrame(renderRecent);
         } else {
@@ -1085,7 +1012,6 @@ function renderRecent() {
     recentRetries = 0;
     el.recentPile.textContent = '';
 
-    // Largest pile that still fits the column; under RECENT_MIN it hides.
     var plan = null;
     var maxCount = Math.min(covers.length, RECENT_MAX);
     for (var c = RECENT_MIN; c <= maxCount; c++) {
@@ -1104,14 +1030,9 @@ function renderRecent() {
 
     for (i = 0; i < count; i++) {
         var size = plan[i].size;
-        // Decorative: the pile shows the recent covers, with no name or action,
-        // so it isn't focusable — the lift is a mouse-hover flourish only.
         var sleeve = document.createElement('div');
         sleeve.className = 'np-recent-sleeve';
-        // Centred, then nudged a little off-centre, alternating left/right by
-        // depth (freshest left, next right, …): the shrinking stack keeps a
-        // tossed feel and each sleeve peeks out to the side of the wider one on
-        // top of it, so it stays hoverable.
+        // Alternating sides, each sleeve peeks out from under the wider one and stays hoverable.
         var shift = (i % 2 === 0 ? -1 : 1) * Math.round(w * RECENT_LANE_SHIFT);
         var left = Math.round((w - size) / 2 + shift);
         sleeve.style.setProperty('--np-recent-w', size + 'px');
@@ -1121,11 +1042,7 @@ function renderRecent() {
         sleeve.style.setProperty('--np-recent-x2',
             Math.round(left + (size - lifted) / 2) + 'px');
         sleeve.style.setProperty('--np-recent-rot', RECENT_TILTS[i % RECENT_TILTS.length] + 'deg');
-        // Freshest listen frontmost; z decreases with depth so each older
-        // sleeve sits behind the one above it.
         sleeve.style.setProperty('--np-recent-z', String(count - i));
-        // Older sleeves sink into the shadow too: full light for the freshest
-        // fading towards ~half brightness for the oldest visible one.
         var age = count > 1 ? i / (count - 1) : 0;
         sleeve.style.setProperty('--np-recent-age', (0.95 - 0.5 * age).toFixed(3));
         sleeve.style.setProperty('--np-recent-sat', (1 - 0.25 * age).toFixed(3));
@@ -1172,9 +1089,8 @@ function fitSleeve() {
     }
 }
 
-// Fetch the play history for the pile — once per track, since only a track
-// change can reorder it (the album that just finished surfaces on top). On
-// failure recentKey keeps its old value, so the next track change retries.
+// Once per track, as only a track change reorders the history; on failure
+// recentKey stays, so the next track change retries.
 function loadRecent() {
     if (!el.recent || recentLoading || recentKey === lastTrackKey) { return; }
     recentLoading = true;
@@ -1192,8 +1108,6 @@ function loadRecent() {
         .catch(function() { recentLoading = false; });
 }
 
-// Re-size the pile to the new space on resize (debounced); reuses the albums
-// already fetched, so no extra network.
 var recentResizeTimer = null;
 window.addEventListener('resize', function() {
     if (!recentCovers) { return; }
@@ -1206,8 +1120,7 @@ function render(data) {
         nowPlaying.classList.add('is-empty');
         loadMosaic();
         startMosaic();
-        // Drop the pile's cache: the listens that just ended will reorder it,
-        // so the next playback refetches instead of showing a stale pile.
+        // The listens that just ended reorder the pile, so the next playback refetches it.
         recentCovers = null;
         recentKey = null;
         if (el.recent) { el.recent.hidden = true; }
@@ -1252,10 +1165,8 @@ function render(data) {
         ? (data.year ? data.album + ' (' + data.year + ')' : data.album)
         : '';
 
-    // Some streamed sources (e.g. a Deezer "flow"/mix) keep a single playlist
-    // entry for the whole session and only push new title/artist/album via
-    // metadata updates, so track_id alone never changes between songs. Key
-    // off the visible metadata too so the cover still refreshes.
+    // Streams like a Deezer flow keep one track_id across songs, so the key
+    // includes the visible metadata.
     var trackKey = [data.track_id, data.title, data.artist, data.album].join('|');
     if (trackKey !== lastTrackKey) {
         lastTrackKey = trackKey;
@@ -1264,9 +1175,6 @@ function render(data) {
         el.cover.src = data.artwork_url
             ? '/cover/remote.jpg?t=' + encodeURIComponent(trackKey)
             : '/cover/' + (data.coverid || 0) + '.jpg?size=' + COVER_SIZE;
-        // Refresh the pile of past listens: the album that just finished
-        // belongs on top of it now — and the new track's own album, if it was
-        // in the pile, must come out (renderRecent drops it).
         loadRecent();
         syncCoverZoom();
         versions = data.lyrics ? [{ text: data.lyrics, source: 'library' }] : [];
@@ -1287,9 +1195,8 @@ function render(data) {
     }
 }
 
-// Why the panel came back empty: a search that ran and found nothing reads
-// differently from one the server's fuses held back or that never reached the
-// providers — both return instantly, which otherwise looks like a broken retry.
+// Throttled and unavailable answers return instantly, so they need their own
+// message, or the retry looks broken.
 function emptyLyricsMessage(res) {
     if (res && res.throttled) { return I18N.lyrics_throttled; }
     if (res && res.source === 'unavailable') { return I18N.lyrics_unavailable; }
@@ -1315,12 +1222,10 @@ function fetchLyrics() {
     fetch('/lyrics.json?' + params.toString(), { cache: 'no-store' })
         .then(function(r) { return r.json(); })
         .then(function(res) {
-            // The track may have changed while the request was in flight; if so,
-            // render() has already reset the UI for the new one — don't clobber it.
+            // render() may have moved on to another track while this was in flight.
             if (track !== currentTrack) { return; }
             setSearching(false);
             holdRetry(res.retry_after || 0);
-            // Prefer the synced (LRC) version; fall back to plain text.
             if (pushWebVersions(res)) {
                 showVersion(0);
             } else {
@@ -1366,11 +1271,9 @@ function trySyncedFromWeb() {
         });
 }
 
-// Re-run the web search for the current track, bypassing the server cache.
 function retryLyrics() {
     if (!currentTrack) { return; }
-    // Drop the previous search's answer, so the new one doesn't stack a second
-    // copy of the same version onto the cycle.
+    // Drop the previous answer, or the new one stacks a second copy onto the cycle.
     var web = webVersionIdx();
     if (web >= 0) {
         versions.length = web;
@@ -1398,19 +1301,12 @@ function scrollRoom(delta) {
     return Math.max(0, el.lyrics.scrollTop);
 }
 
-// A deliberate scroll gesture (wheel or touch drag) on the synced lyrics pauses
-// the karaoke auto-follow, so it doesn't fight the user for control. Only the
-// travel the box can absorb counts: a gesture pushing against an end it already
-// rests at moves nothing, so it can't mean "let me read elsewhere".
-// Programmatic scrolls from syncLyrics() never fire these events, so no
-// bookkeeping is needed to tell them from a real gesture. The listeners are
-// passive — the native scroll applies regardless, so below the threshold resync
-// at once rather than letting the next periodic tick snap back as a bounce.
+// Only travel the box can absorb counts. syncLyrics() never fires these events, and the
+// native scroll applies regardless, so below the threshold resync at once.
 el.lyrics.addEventListener('wheel', function(e) {
     if (!lrcLines || !autoFollowScroll) { return; }
     var now = Date.now();
-    // A gap between ticks starts a new gesture, so unrelated bumps spread out
-    // over time don't add up into a false trigger.
+    // A gap between ticks starts a new gesture.
     if (now - wheelLastAt > 400) { wheelAccum = 0; }
     wheelLastAt = now;
     wheelAccum += Math.min(Math.abs(e.deltaY), scrollRoom(e.deltaY));
@@ -1521,8 +1417,6 @@ if (pullBadge && APP_BRIDGE && APP_BRIDGE.reload) {
     nowPlaying.addEventListener('touchcancel', resetPull, { passive: true });
 }
 
-// Enlarged cover: the card's artwork is a button that blows it up over the
-// panel, dismissed by a click anywhere on it or by Escape.
 var coverZoom = {
     root: document.getElementById('cover-zoom'),
     figure: document.getElementById('cover-zoom-figure'),
@@ -1626,8 +1520,7 @@ function animateCard(from, to, closing) {
         [{ height: from + 'px' }, { height: to + 'px' }], zoomOpts(closing)));
 }
 
-// The card's content clears out under the enlarged cover, on the same beat as
-// the picture, so the panel keeps its own background rather than gaining a veil.
+// The card's content clears out under the enlarged cover, on the picture's beat.
 function animateCardContent(closing) {
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) { return; }
     var frames = closing
@@ -1712,8 +1605,8 @@ el.cover.addEventListener('error', function() {
 // Kept in step with the server-side cache (NOW_PLAYING_TTL, 2s), which bounds
 // how often Lyrion is queried regardless of poll rate.
 var POLL_INTERVAL_MS = 2000;
-// A request the OS suspended mid-flight (network handover, doze) can hang for
-// minutes without ever failing, so give every poll a deadline of its own.
+// A request the OS suspended mid-flight (network handover, doze) can hang
+// without ever failing.
 var POLL_TIMEOUT_MS = 8000;
 
 // Ticks are skipped while a poll is still in flight, so a stuck request can't
@@ -1752,16 +1645,10 @@ function poll() {
     var controller = new AbortController();
     pollController = controller;
     pollWatchdog = setTimeout(restartPoll, POLL_TIMEOUT_MS);
-    // Time the round trip so render() can back-date the position. data.time is
-    // measured server-side (when it queries Lyrion), but we only learn it after
-    // the whole network round trip, by which point playback has moved on. The
-    // measurement sits roughly mid-trip, so half the RTT is a fair estimate of
-    // how stale the value already is when it reaches us.
+    // data.time is read mid-trip, so render() back-dates it by half the round trip.
     var sentAt = Date.now();
-    // Tell the server which track is already on screen: it skips the lyrics
-    // lookup (and the response omits them) while the track hasn't changed —
-    // render() only reads data.lyrics on a track change anyway. And, when set,
-    // which player this device pinned.
+    // ?known skips the lyrics lookup while the track on screen is unchanged;
+    // ?player sends this device's pin.
     var params = [];
     if (lastTrackKey !== null) { params.push('known=' + encodeURIComponent(lastTrackKey)); }
     if (selectedPlayer) { params.push('player=' + encodeURIComponent(selectedPlayer)); }
@@ -1784,8 +1671,7 @@ function renderStats(stats) {
         if (value === undefined) { return; }
         var pctKey = el.dataset.statPct;
         if (pctKey) {
-            // Rebuilt with text nodes (not innerHTML) so a value could never
-            // be interpreted as markup; mirrors the server-rendered structure.
+            // Text nodes, never innerHTML, mirroring the server-rendered structure.
             el.textContent = value + ' ';
             var small = document.createElement('small');
             small.textContent = '(' + stats[pctKey] + '%)';
@@ -1827,7 +1713,5 @@ dimZeroSubRows();
 poll();
 setInterval(poll, POLL_INTERVAL_MS);
 setInterval(pollStats, 60000);
-// The extrapolated position advances continuously between network polls, so
-// repaint the bar (and, while there are lyrics, the karaoke highlight via
-// paintProgress) a few times a second for a smooth follow.
+// Extrapolates the position, and drives the karaoke, between network polls.
 setInterval(paintProgress, 250);

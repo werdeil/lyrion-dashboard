@@ -1,10 +1,8 @@
 """Read music metadata and embed lyrics or cover art into a file's tags.
 
-Framework-free so it can be reused from a CLI or the web app. Lyrion is never
-touched here: this works directly on the audio files via mutagen, and Lyrion
-picks any change up on its next scan. Lyrics are stored as plain text
-(timestamps from synced LRC are stripped) for maximum player compatibility;
-cover art is stored as the JPEG bytes it was handed, never re-encoded.
+Framework-free, shared by the CLI and the web app; works on the audio files via
+mutagen, and Lyrion picks changes up on its next scan. Lyrics are stored as plain
+text (LRC timestamps stripped), cover art as the bytes handed in, never re-encoded.
 """
 
 import os
@@ -194,8 +192,7 @@ def write_cover(path, data, mime="image/jpeg"):
 
     Any existing artwork is dropped first, so a file ends up with exactly one
     picture. Raises CoverTagError on unrecognised/unsupported format or write
-    failure. Embedding rewrites the file, since artwork rarely fits the padding
-    a smaller cover left behind.
+    failure. Embedding usually rewrites the whole file.
     """
     if not data:
         raise CoverTagError("empty cover")

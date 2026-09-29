@@ -19,18 +19,12 @@
     --accent-color: #4f86c6;
     /* Lyrion Material's default dark-theme background (--std-background-color). */
     --base-bg: #212121;
-    /* Bottom of the lyrics box left clear for the floating source chip. */
     --source-clearance: 40px;
-    /* Shared type scale: the now-playing card and the stats panel both draw
-       from these five steps, so text with the same role (overline, data row,
-       body…) reads at the same size on both sides of the page. */
     --fs-xs: 0.8rem;   /* uppercase overlines, captions, sub stat rows */
     --fs-sm: 0.9rem;   /* data rows, secondary meta (album line) */
     --fs-md: 1rem;     /* reading text (lyrics), panel heading */
     --fs-lg: 1.1rem;   /* emphasized secondary (artist, empty-state text) */
     --fs-xl: 1.4rem;   /* hero title */
-    /* Grey ramp, same idea as the type scale: one grey per text role instead
-       of near-duplicates (#e8e8e8/#e0e0e0, #aaaaaa/#9e9e9e…) scattered around. */
     --text-bright: #f5f5f5;    /* headings: track title */
     --text: #e0e0e0;           /* reading text: lyrics, stat rows */
     --text-muted: #aaaaaa;     /* secondary: overlines, album line, sub rows */
@@ -70,8 +64,6 @@ h1, h2 {
     margin: 0;
 }
 
-/* Heading kept for assistive tech only: the visible branding is the tab
-   title on the web and the app-only header bar inside the Android app. */
 .visually-hidden {
     position: absolute;
     width: 1px;
@@ -84,8 +76,6 @@ h1, h2 {
     border: 0;
 }
 
-/* The in-app title is a quiet overline in the same voice as the stats-panel
-   headings, not a large heading — the now-playing card is the hero. */
 .page-title {
     display: flex;
     align-items: center;
@@ -201,8 +191,7 @@ hr {
 
 .stat-group-title-label::after {
     content: "▼";
-    /* em, not rem: the chevron tracks the title it decorates, and it
-       inherits the title's grey. */
+    /* em, not rem: the chevron tracks the title it decorates. */
     font-size: 0.85em;
     transition: transform 0.2s ease;
 }
@@ -267,8 +256,7 @@ hr {
     padding: 20px;
 }
 
-/* Left column (cover + recent-plays stack). The grid placement lives here so
-   the responsive rules below only ever re-place this wrapper. */
+/* Holds the grid placement, so the responsive rules only re-place this wrapper. */
 .np-side {
     grid-column: 1;
     grid-row: 1 / span 2;
@@ -315,30 +303,25 @@ hr {
     border: 1px solid var(--border-color);
 }
 
-/* Recent plays as a pile of record sleeves, freshest on top. display:none
-   until the media query at the bottom of this file turns it on. */
+/* Turned on by the wide-layout media query further down. */
 .np-recent {
     display: none;
-    /* Deliberately NOT a stacking context: the sleeves' z-indexes must compete
-       with the cover's in the card, so a lifted sleeve (z 50) can rise above
-       the cover (z 10) while resting ones (z 1..count) stay under it. */
+    /* Not a stacking context: the sleeves' z-indexes compete with the cover's (30),
+       so a lifted one rises above it and resting ones stay under. */
     flex: 1 1 auto;
     flex-direction: column;
     min-height: 0;
-    /* Negative, so the pile starts higher and the freshest sleeve slips under
-       the cover's bottom edge (which sits above it, see .np-cover). */
+    /* The freshest sleeve slips under the cover's bottom edge. */
     margin-top: -22px;
 }
 
-/* JS hides the block when there is nothing to show (no play history yet, or
-   too few covers to make a pile); keep the attribute effective despite the
-   display:flex from the media query below. */
+/* Keeps [hidden] effective over the media query's display:flex. */
 .np-recent[hidden] {
     display: none;
 }
 
-/* Containing block of the absolutely-placed sleeves. overflow:visible so a
-   lifted sleeve can grow past the pile into the card's own padding. */
+/* Containing block of the sleeves, overflow visible so a lifted one can grow
+   into the card's padding. */
 .np-recent-pile {
     position: relative;
     flex: 1 1 auto;
@@ -367,8 +350,8 @@ hr {
     transition-timing-function: ease;
 }
 
-/* Mouse-only: the pile is decorative, so no sleeve is focusable. The lift is
-   laid out, not scaled, so the picture stays sharp while it grows. */
+/* Mouse-only: the pile is decorative. Laid out, not scaled, so the picture
+   stays sharp. */
 .np-recent-sleeve:hover {
     width: calc(var(--np-recent-w2) * var(--np-recent-fw));
     height: calc(var(--np-recent-w2) * var(--np-recent-fh));
@@ -497,8 +480,7 @@ body.in-app .np-pull {
     color: var(--text-muted);
 }
 
-/* The player name links to Lyrion's Material UI focused on that player.
-   The negative margin pads the touch target without moving the label. */
+/* The negative margin pads the touch target without moving the label. */
 .np-player-link {
     display: inline-flex;
     align-items: center;
@@ -524,9 +506,7 @@ body.in-app .np-pull {
     opacity: 0.7;
 }
 
-/* Player picker replacing .np-player when >= 2 players play: a compact
-   name + chevron trigger opening a dropdown of the playing players. Stays on
-   one line whatever the count or name length. */
+/* Replaces .np-player when two or more players play. */
 .np-player-switch {
     position: relative;
     display: flex;
@@ -581,7 +561,6 @@ body.in-app .np-pull {
     transform: rotate(180deg);
 }
 
-/* The menu of playing players, anchored under the trigger. */
 .np-switch-menu[hidden] {
     display: none;  /* the class's display:flex would otherwise beat [hidden] */
 }
@@ -681,7 +660,6 @@ body.in-app .np-pull {
     line-height: 2.0;
     color: var(--text);
     font-size: var(--fs-md);
-    /* Centre plain lyrics too, so they match the synced (karaoke) layout. */
     text-align: center;
 }
 
@@ -696,26 +674,19 @@ body.in-app .np-pull {
 }
 
 .lrc-line {
-    /* No vertical padding: rely on the container's line-height so synced lines
-       sit at the same spacing as plain text. Inherit the container's colour so
-       inactive lines always match plain-text lyrics — the two modes must look
-       the same. */
+    /* No vertical padding and an inherited colour: synced lines must match plain text. */
     color: inherit;
     transition: color 0.3s ease, transform 0.3s ease;
 }
 
 .lrc-line.near {
-    /* Halfway step of the progression gradient: the lines around the active
-       one warm up towards the accent, from .np-lyrics's text colour. */
     color: color-mix(in srgb, var(--accent-color) 30%, var(--text));
 }
 
 .lrc-line.active {
     color: var(--accent-color);
     font-weight: bold;
-    /* Transforms don't affect layout, so a near-full-width line grows past
-       the content box — the container's side padding is what keeps it from
-       being clipped (see .np-lyrics). */
+    /* Grows past the content box; .np-lyrics's side padding keeps it unclipped. */
     transform: scale(1.03);
 }
 
@@ -774,8 +745,6 @@ body.in-app .np-pull {
     display: none;
 }
 
-/* Disabled is the single-version state, so it has to read as a plain label
-   rather than as a dimmed control. */
 .np-lyrics-source:disabled {
     cursor: default;
 }
@@ -814,8 +783,6 @@ body.in-app .np-pull {
     border-radius: 3px;
 }
 
-/* Accent tint when the lyrics on screen are time-synced (karaoke); plain
-   lyrics keep the muted grey above. */
 .np-lyrics-source.is-synced {
     color: var(--accent-color);
 }
@@ -825,8 +792,7 @@ body.in-app .np-pull {
     align-items: center;
     justify-content: center;
     margin: 0;
-    /* Square around a 14px glyph: equal padding centres it, and its fixed width
-       keeps the button still while the chip's label changes. */
+    /* Fixed width, so it stays put while the chip's label changes. */
     padding: 0 8px;
     border: 0;
     background: none;
@@ -857,9 +823,6 @@ body.in-app .np-pull {
 
 .np-scroll-reset {
     position: absolute;
-    /* Inset below the progress bar and away from the lyrics box's own edges,
-       so it reads as a floating control rather than sitting flush on top of
-       the progress bar or pinned to a corner. */
     top: 40px;
     left: 14px;
     z-index: 1;
@@ -871,8 +834,6 @@ body.in-app .np-pull {
     padding: 0;
     border-radius: 50%;
     border: none;
-    /* Solid accent + dark glyph, same scheme as the app's standard buttons;
-       the global button:hover brightness applies to it unchanged. */
     background: var(--accent-color);
     color: var(--text-on-accent);
     cursor: pointer;
@@ -893,46 +854,32 @@ body.in-app .np-pull {
     position: relative;
     overflow: hidden;
     grid-column: 1 / -1;
-    /* Span both template rows of the big-screen layout (auto 1fr) so the
-       mosaic fills the whole card height, not just the first auto row. */
+    /* Both template rows, so the mosaic fills the card's full height. */
     grid-row: 1 / -1;
     flex-direction: column;
     align-items: stretch;
     justify-content: center;
     min-height: 280px;
-    /* The card's 12px outer radius minus its 1px border: the collage below
-       bleeds to the border edge (negative margin), so clip it on the same
-       curve to keep it from poking past the card's rounded corners. */
+    /* The card's 12px radius minus its border, clipping the collage that bleeds
+       to its edge through the negative margin. */
     border-radius: 11px;
-    /* Pull the collage out to the card's padding edge so it reads as the
-       card's own background rather than an inset picture. */
     margin: -20px;
     color: var(--text-faint);
 }
 
-/* Decorative collage of random library covers behind the message. Oversized
-   and slightly rotated so its edges never show inside the card. The covers ride
-   a single serpentine belt (positioned tile by tile in nowplaying.js): each row
-   scrolls the opposite way to its neighbour, a cover leaving one side drops onto
-   the next row down, and the belt loops back to the top — so every cover passes
-   through the well-lit centre instead of idling in a dim corner. */
+/* Oversized and tilted so its edges never show; nowplaying.js drives the tiles
+   along one serpentine belt. */
 .np-empty-mosaic {
     position: absolute;
-    /* Overscan just big enough for the 3° tilt to never expose the card's
-       corners. The margin the tilt needs is mostly an absolute distance
-       (≈ half the card width × sin3°), so a pure percentage collapses to
-       nothing on a short phone card and leaves gaps: pair a small percentage
-       (which keeps up on very large screens) with a fixed floor. */
+    /* The tilt's overscan is mostly absolute, so a percentage alone leaves gaps
+       on a short card: it takes a fixed floor too. */
     inset: calc(-3% - 16px);
     overflow: hidden;
     transform: rotate(-3deg);
     pointer-events: none;
 }
 
-/* Every tile is absolutely placed; JS drives its transform along the belt.
-   Tiles start hidden and are faded in one by one in belt order (see the reveal
-   cursor in nowplaying.js), so the collage fills along the caterpillar's path
-   rather than popping in at random as covers download. */
+/* Placed and revealed tile by tile from nowplaying.js. */
 .np-mosaic-tile {
     --mosaic-fw: min(1, var(--mosaic-r, 1));
     --mosaic-fh: min(1, 1 / var(--mosaic-r, 1));
@@ -972,7 +919,6 @@ body.in-app .np-pull {
     gap: 12px;
     flex: 1;
     padding: 40px 20px;
-    /* Quiet vignette behind the message so it stays readable over covers. */
     background: radial-gradient(55% 55% at 50% 50%,
         rgba(33, 33, 33, 0.55) 0%,
         rgba(33, 33, 33, 0.1) 100%);
@@ -1019,8 +965,7 @@ body.in-app .np-pull {
     }
 }
 
-/* The card's default align-items:start would shrink the empty block to its
-   content height; stretch it so the mosaic fills the whole card. */
+/* Stretch, or align-items:start shrinks the empty block to its content. */
 .now-playing.is-empty {
     align-items: stretch;
 }
@@ -1071,22 +1016,16 @@ body.in-app .np-pull {
     height: 1rem;
 }
 
-/* The app-menu glyph is an inline svg; give it the standard text grey here
-   rather than a hardcoded fill in the markup. */
 .lyrion-link svg {
     fill: var(--text);
 }
 
-/* display:inline-flex would override the hidden attribute (used by the
-   app-menu button, revealed only inside the Android app). */
+/* Keeps [hidden] effective over display:inline-flex. */
 .lyrion-link[hidden] {
     display: none;
 }
 
-/* App menu | centered title | Lyrion link. The 1fr side columns keep the
-   title centered and the buttons symmetric. The whole bar only exists inside
-   the Android app: nowplaying.js tags <body> with .in-app when the native
-   bridge is present; on the web the content starts at the top of the page. */
+/* Only inside the Android app: nowplaying.js tags <body> with .in-app. */
 .page-header {
     display: none;
 }
@@ -1197,8 +1136,6 @@ body.in-app .page-header {
     object-fit: contain;
 }
 
-/* A plaque hugging the text, laid on the artwork near its lower edge: the
-   absolute box shrinks to its content, the auto margins centre it. */
 .cover-zoom-meta {
     position: absolute;
     inset: auto 0 18px 0;
@@ -1233,13 +1170,11 @@ body.in-app .page-header {
     filter: blur(10px);
 }
 
-/* Stacked over both layers rather than under them. */
 .cover-zoom-meta > p {
     position: relative;
     z-index: 2;
 }
 
-/* Playback progress on the artwork's bottom edge, inside its rounded corner. */
 .cover-zoom-progress {
     position: absolute;
     inset: auto 0 0 0;
@@ -1276,9 +1211,7 @@ body.in-app .page-header {
     color: var(--text);
 }
 
-/* Stacked layouts grow the card with the lyrics far past its own width, so
-   the enlarged cover squares the panel off and takes it edge to edge — the
-   same width as the stats panel under it. */
+/* The stacked card grows with the lyrics, so the enlarged cover squares it off. */
 @media (max-width: 860px) and (min-height: 601px) {
     .left-panel.is-zoomed .now-playing {
         /* Definite, so the ratio squares the card off the panel's width; left
@@ -1298,15 +1231,11 @@ body.in-app .page-header {
     }
 }
 
-/* Fixed, non-scrolling viewport layout — wide screens, tall or in landscape.
-   Every overflowing region scrolls internally, so nothing is clipped out of reach. */
+/* Fixed, non-scrolling viewport: every overflowing region scrolls internally. */
 @media (min-width: 861px) and (min-height: 600px),
        (min-width: 861px) and (max-height: 600px) and (orientation: landscape) {
-    /* dvh (visible viewport) instead of 100vh, which is the *large* viewport on
-       iOS/iPadOS Safari and overflows past the screen when the toolbars show.
-       The lock must sit on <html> too: overflow:hidden on <body> alone doesn't
-       stop the document scrolling on Safari. vh kept as a fallback; min-height
-       overridden so the base body rule's min-height:100vh doesn't win. */
+    /* dvh: 100vh is iOS Safari's large viewport. The lock sits on <html> too, as
+       Safari scrolls the document past overflow:hidden on <body>. */
     html {
         height: 100vh;
         height: 100dvh;
@@ -1345,9 +1274,7 @@ body.in-app .page-header {
         align-self: stretch;
     }
     .np-lyrics {
-        /* basis 0 (not auto): grow from nothing to fill the leftover space
-           instead of from the (possibly huge) synced-lyrics content height, so
-           the source line and mode buttons below always stay on screen. */
+        /* Basis 0, not auto, or the synced lyrics' height pushes the controls off screen. */
         flex: 1 1 0;
         max-height: none;
         min-height: 0;
@@ -1358,11 +1285,8 @@ body.in-app .page-header {
     }
 }
 
-/* The recent-plays stack needs both the side-by-side cover+lyrics grid
-   (>1080px, see below) and the fixed-height layout above (≥600px tall) —
-   that combination is what leaves a tall empty column under the cover.
-   The wrapper stretches to the card's full height so the stack gets
-   exactly the leftover space below the cover. */
+/* The pile needs both the side-by-side grid and the fixed-height layout; must
+   match RECENT_MQ in nowplaying.js. */
 @media (min-width: 1081px) and (min-height: 600px) {
     .np-side {
         align-self: stretch;
@@ -1387,11 +1311,8 @@ body.in-app .page-header {
     }
 }
 
-/* Lyrics span the full card width, stacked under the cover, whenever the card
-   is too narrow for the side-by-side "300px cover + lyrics" grid. That covers
-   small screens AND the 861–1080px range, where the stats panel sits alongside
-   and squeezes the lyrics into a thin column (the card is actually narrowest
-   just above 860px). Above 1080px there's room for the cover beside the lyrics. */
+/* Lyrics stack under the cover wherever the card is too narrow for the side-by-side
+   grid, including 861–1080px, where the stats panel squeezes it. */
 @media (max-width: 1080px) {
     .now-playing {
         grid-template-columns: 200px 1fr;
@@ -1406,8 +1327,6 @@ body.in-app .page-header {
     }
 }
 
-/* Phones in landscape are too short for a full-size cover: shrink it so more
-   fits on screen. */
 @media (max-height: 600px) and (orientation: landscape) {
     .now-playing {
         grid-template-columns: 160px 1fr;
@@ -1459,10 +1378,8 @@ body.in-app .page-header {
     }
 }
 
-/* Shorter still, on the stacked layouts where the cover sets the card's first
-   row: 100px is the floor, under which the meta beside it takes over anyway.
-   Above 1080px the cover has a column of its own and the meta sets that row,
-   so shrinking it there would buy the lyrics nothing. */
+/* Stacked layouts only, where the cover sets the first row; 100px is about the
+   meta's height, under which the row stops shrinking. */
 @media (max-height: 500px) and (orientation: landscape) and (max-width: 1080px) {
     .now-playing {
         grid-template-columns: 100px 1fr;
@@ -1478,8 +1395,7 @@ body.in-app .page-header {
     .left-panel {
         display: flex;
         flex-direction: column;
-        /* dvh, as in the fixed layout above: 100vh is iOS Safari's *large*
-           viewport and would push the card's bottom under the toolbars. */
+        /* dvh, as in the fixed layout above. */
         height: calc(100vh - 2 * var(--page-pad));
         height: calc(100dvh - 2 * var(--page-pad));
     }
@@ -1498,8 +1414,7 @@ body.in-app .page-header {
         align-self: stretch;
     }
     .np-lyrics {
-        /* basis 0, as in the fixed layout: grow from nothing into the leftover
-           space, not from the synced lyrics' own content height. */
+        /* Basis 0, as in the fixed layout. */
         flex: 1 1 0;
     }
 }
