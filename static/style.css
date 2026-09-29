@@ -278,8 +278,10 @@ hr {
 }
 
 .np-cover {
-    width: 100%;
-    aspect-ratio: 1 / 1;
+    /* --np-cover-r comes from fitCardCover, already clamped. */
+    width: calc(100% * min(1, var(--np-cover-r, 1)));
+    aspect-ratio: var(--np-cover-r, 1);
+    margin-inline: auto;
     /* Above every resting sleeve (z-index 1..count, capped by RECENT_MAX),
        below a lifted one (50): a hovered sleeve rises in front of the cover. */
     position: relative;
@@ -287,7 +289,7 @@ hr {
 }
 
 /* The cover doubles as the button enlarging it; it must add no box of its
-   own so the image keeps filling the square. */
+   own so the image keeps filling the cover's box. */
 .np-cover-button {
     display: block;
     width: 100%;
@@ -343,12 +345,14 @@ hr {
     min-height: 0;
 }
 
-/* One sleeve; renderRecent sets its geometry and per-sleeve vars inline. */
+/* One sleeve; renderRecent and stackRecent set its geometry and per-sleeve vars inline. */
 .np-recent-sleeve {
+    --np-recent-fw: min(1, var(--np-recent-r, 1));
+    --np-recent-fh: min(1, 1 / var(--np-recent-r, 1));
     position: absolute;
-    width: var(--np-recent-w, 150px);
-    height: var(--np-recent-w, 150px);
-    left: var(--np-recent-x, 0);
+    width: calc(var(--np-recent-w, 150px) * var(--np-recent-fw));
+    height: calc(var(--np-recent-w, 150px) * var(--np-recent-fh));
+    left: calc(var(--np-recent-x, 0px) + var(--np-recent-w, 150px) * (1 - var(--np-recent-fw)) / 2);
     top: var(--np-recent-y, 0);
     z-index: var(--np-recent-z, 1);
     border-radius: 8px;
@@ -366,9 +370,9 @@ hr {
 /* Mouse-only: the pile is decorative, so no sleeve is focusable. The lift is
    laid out, not scaled, so the picture stays sharp while it grows. */
 .np-recent-sleeve:hover {
-    width: var(--np-recent-w2);
-    height: var(--np-recent-w2);
-    left: var(--np-recent-x2);
+    width: calc(var(--np-recent-w2) * var(--np-recent-fw));
+    height: calc(var(--np-recent-w2) * var(--np-recent-fh));
+    left: calc(var(--np-recent-x2) + var(--np-recent-w2) * (1 - var(--np-recent-fw)) / 2);
     top: var(--np-recent-y2);
     z-index: 50;
     transform: rotate(0deg);
@@ -930,11 +934,13 @@ body.in-app .np-pull {
    cursor in nowplaying.js), so the collage fills along the caterpillar's path
    rather than popping in at random as covers download. */
 .np-mosaic-tile {
+    --mosaic-fw: min(1, var(--mosaic-r, 1));
+    --mosaic-fh: min(1, 1 / var(--mosaic-r, 1));
     position: absolute;
-    top: 0;
-    left: 0;
-    width: var(--mosaic-tile, 130px);
-    height: var(--mosaic-tile, 130px);
+    top: calc(var(--mosaic-tile, 130px) * (1 - var(--mosaic-fh)) / 2);
+    left: calc(var(--mosaic-tile, 130px) * (1 - var(--mosaic-fw)) / 2);
+    width: calc(var(--mosaic-tile, 130px) * var(--mosaic-fw));
+    height: calc(var(--mosaic-tile, 130px) * var(--mosaic-fh));
     object-fit: cover;
     border-radius: 8px;
     /* Graded per tile, not on the moving container: a filter there would force
@@ -1393,6 +1399,7 @@ body.in-app .page-header {
     .np-side {
         grid-row: 1;
         max-width: 200px;
+        align-self: center;
     }
     .np-lyrics-block {
         grid-column: 1 / -1;
