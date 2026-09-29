@@ -72,6 +72,8 @@ When opening a PR, follow `.github/pull_request_template.md`: fill in the proble
 
 **A PR describes the branch as it now stands, not how it got there.** Before calling a PR ready — every time, not just when opening it — re-read the title and body against the actual diff (`git diff origin/master...HEAD`, with the `origin/`: a fresh clone's local `master` can lag and fold other people's commits into the comparison). Iteration routinely leaves them describing a first attempt whose constants, mechanism, even approach no longer exist; a stale body is worse than none, because a reviewer trusts it. The title is the squash-merge commit subject, so it has to name what finally landed.
 
+**Assign every PR to its author as soon as it is opened** — the GitHub account that opened it, read from the PR itself rather than assumed. When the tool that opens the PR takes no assignee, set it straight after through the issue API (a PR is an issue).
+
 **Never subscribe to / watch a PR for activity** (CI results, review comments) on this repo — don't auto-monitor or auto-fix. Report status when asked and let the maintainer drive the PR.
 
 **Never merge a PR** on this repo — merging is the maintainer's call, always. Prepare and push the branch, open or update the PR, but leave the merge to a human.
