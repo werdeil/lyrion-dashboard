@@ -342,6 +342,14 @@ var fac;
 // library covers are fetched, which also bounds the cost of remote artwork.
 var COVER_SIZE = 512;
 var swatchCanvas;
+// Past these bounds object-fit: cover crops the artwork.
+var COVER_R_MIN = 0.5;
+var COVER_R_MAX = 2;
+
+function coverRatio(img) {
+    var r = img.naturalWidth && img.naturalHeight ? img.naturalWidth / img.naturalHeight : 1;
+    return Math.min(Math.max(r, COVER_R_MIN), COVER_R_MAX);
+}
 
 function swatchSource(img) {
     if (!swatchCanvas) {
@@ -810,6 +818,12 @@ function advanceMosaicReveal() {
     mosaicRevealTimer = setTimeout(advanceMosaicReveal, MOSAIC_REVEAL_STEP);
 }
 
+// A finished download (or error) may need to un-stall the reveal cursor if it
+// was waiting on this very tile.
+function mosaicTileSettled() {
+    if (mosaicRevealTimer === null) { advanceMosaicReveal(); }
+}
+
 function layoutMosaic(ids) {
     el.emptyMosaic.textContent = '';
     if (mosaicRevealTimer) { clearTimeout(mosaicRevealTimer); mosaicRevealTimer = null; }
@@ -831,11 +845,11 @@ function layoutMosaic(ids) {
     for (var i = 0; i < count; i++) {
         var img = document.createElement('img');
         img.className = 'np-mosaic-tile';
-        // A finished download (or error) may need to un-stall the reveal cursor
-        // if it was waiting on this very tile.
-        img.onload = img.onerror = function() {
-            if (mosaicRevealTimer === null) { advanceMosaicReveal(); }
+        img.onload = function() {
+            this.style.setProperty('--mosaic-r', coverRatio(this));
+            mosaicTileSettled();
         };
+        img.onerror = mosaicTileSettled;
         img.src = '/cover/' + encodeURIComponent(ids[i % ids.length]) + '.jpg?size=' + size;
         img.alt = '';
         img.decoding = 'async';
@@ -960,6 +974,7 @@ function recentPlan(n, w) {
 var recentCovers = null;   // last /recent-covers.json payload (cover ids)
 var recentKey = null;      // track key the payload was fetched for
 var recentLoading = false;
+var recentSleeves = [];
 
 // Never repeats a cover, unlike the mosaic: with fewer covers the pile is just shorter.
 function renderRecent() {
@@ -1010,6 +1025,7 @@ function renderRecent() {
         return;
     }
     var count = plan.length;
+    recentSleeves = [];
     var maxTravel = plan[0].size - plan[count - 1].size;
 
     for (i = 0; i < count; i++) {
@@ -1021,12 +1037,10 @@ function renderRecent() {
         var left = Math.round((w - size) / 2 + shift);
         sleeve.style.setProperty('--np-recent-w', size + 'px');
         sleeve.style.setProperty('--np-recent-x', left + 'px');
-        sleeve.style.setProperty('--np-recent-y', plan[i].top + 'px');
         var lifted = Math.max(plan[0].size, Math.round(size * RECENT_HOVER_GROW_MIN));
         sleeve.style.setProperty('--np-recent-w2', lifted + 'px');
         sleeve.style.setProperty('--np-recent-x2',
             Math.round(left + (size - lifted) / 2) + 'px');
-        sleeve.style.setProperty('--np-recent-y2', (plan[i].top + size - lifted) + 'px');
         sleeve.style.setProperty('--np-recent-rot', RECENT_TILTS[i % RECENT_TILTS.length] + 'deg');
         sleeve.style.setProperty('--np-recent-z', String(count - i));
         var age = count > 1 ? i / (count - 1) : 0;
@@ -1037,6 +1051,7 @@ function renderRecent() {
             (RECENT_HOVER_MS_MAX - RECENT_HOVER_MS_MIN) * travel) + 'ms');
 
         var img = document.createElement('img');
+        img.onload = fitSleeve;
         img.src = '/cover/' + encodeURIComponent(covers[i]) +
             '.jpg?size=' + RECENT_COVER_SIZE;
         img.alt = '';
@@ -1044,6 +1059,33 @@ function renderRecent() {
         sleeve.appendChild(img);
 
         el.recentPile.appendChild(sleeve);
+        recentSleeves.push({ el: sleeve, img: img, size: size, lifted: lifted, r: 1 });
+    }
+    stackRecent();
+}
+
+// The overlap and the lift follow each artwork's real height; renderRecent's fit
+// loop assumes squares, the tallest case, so the pile never outgrows its column.
+function stackRecent() {
+    var y = 0;
+    for (var i = 0; i < recentSleeves.length; i++) {
+        var s = recentSleeves[i];
+        var fh = Math.min(1, 1 / s.r);
+        var h = s.size * fh;
+        s.el.style.setProperty('--np-recent-r', s.r);
+        s.el.style.setProperty('--np-recent-y', Math.round(y) + 'px');
+        s.el.style.setProperty('--np-recent-y2', Math.round(y + h - s.lifted * fh) + 'px');
+        y += h * (1 - RECENT_OVERLAP);
+    }
+}
+
+function fitSleeve() {
+    for (var i = 0; i < recentSleeves.length; i++) {
+        if (recentSleeves[i].img === this) {
+            recentSleeves[i].r = coverRatio(this);
+            stackRecent();
+            return;
+        }
     }
 }
 
@@ -1542,7 +1584,14 @@ if (coverZoom.button && coverZoom.root) {
     });
 }
 
-el.cover.addEventListener('load', sampleCoverTint);
+function fitCardCover() {
+    el.cover.closest('.np-cover').style.setProperty('--np-cover-r', coverRatio(el.cover));
+}
+
+el.cover.addEventListener('load', function() {
+    fitCardCover();
+    sampleCoverTint();
+});
 
 // Broken-cover fallback (an inline onerror would violate the CSP); the guard
 // keeps a broken placeholder from looping the error event forever.
