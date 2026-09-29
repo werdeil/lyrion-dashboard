@@ -370,7 +370,7 @@ var fac;
 // library covers are fetched, which also bounds the cost of remote artwork.
 var COVER_SIZE = 512;
 var swatchCanvas;
-// Past these bounds a cover crops rather than shrinking to a sliver.
+// Past these bounds object-fit: cover crops the artwork.
 var COVER_R_MIN = 0.5;
 var COVER_R_MAX = 2;
 
@@ -875,6 +875,12 @@ function advanceMosaicReveal() {
 
 // Lay the fetched covers out along the belt, sized to the current card. Called
 // on first load and again on resize (reusing the covers already fetched).
+// A finished download (or error) may need to un-stall the reveal cursor if it
+// was waiting on this very tile.
+function mosaicTileSettled() {
+    if (mosaicRevealTimer === null) { advanceMosaicReveal(); }
+}
+
 function layoutMosaic(ids) {
     el.emptyMosaic.textContent = '';
     if (mosaicRevealTimer) { clearTimeout(mosaicRevealTimer); mosaicRevealTimer = null; }
@@ -897,15 +903,11 @@ function layoutMosaic(ids) {
     for (var i = 0; i < count; i++) {
         var img = document.createElement('img');
         img.className = 'np-mosaic-tile';
-        // A finished download (or error) may need to un-stall the reveal cursor
-        // if it was waiting on this very tile.
         img.onload = function() {
             this.style.setProperty('--mosaic-r', coverRatio(this));
-            if (mosaicRevealTimer === null) { advanceMosaicReveal(); }
+            mosaicTileSettled();
         };
-        img.onerror = function() {
-            if (mosaicRevealTimer === null) { advanceMosaicReveal(); }
-        };
+        img.onerror = mosaicTileSettled;
         img.src = '/cover/' + encodeURIComponent(ids[i % ids.length]) + '.jpg?size=' + size;
         img.alt = '';
         img.decoding = 'async';
@@ -1038,7 +1040,7 @@ function recentPlan(n, w) {
 var recentCovers = null;   // last /recent-covers.json payload (cover ids)
 var recentKey = null;      // track key the payload was fetched for
 var recentLoading = false;
-var recentSleeves = [];    // the pile's sleeves, with their slot size and artwork ratio
+var recentSleeves = [];
 
 // Lay the cached cover ids out as a pile sized to the space under the cover.
 // Never repeats a cover (unlike the empty-state mosaic, which loops its list
@@ -1114,8 +1116,6 @@ function renderRecent() {
         var left = Math.round((w - size) / 2 + shift);
         sleeve.style.setProperty('--np-recent-w', size + 'px');
         sleeve.style.setProperty('--np-recent-x', left + 'px');
-        // The lifted box, on the sleeve's bottom edge and centre. Laid out
-        // rather than scaled: a scaled raster settles softer, and by depth.
         var lifted = Math.max(plan[0].size, Math.round(size * RECENT_HOVER_GROW_MIN));
         sleeve.style.setProperty('--np-recent-w2', lifted + 'px');
         sleeve.style.setProperty('--np-recent-x2',
@@ -1147,8 +1147,8 @@ function renderRecent() {
     stackRecent();
 }
 
-// Each sleeve hangs RECENT_OVERLAP into the one above it, measured on the
-// artwork's own height; renderRecent's fit loop assumed squares, the tallest case.
+// The overlap and the lift follow each artwork's real height; renderRecent's fit
+// loop assumes squares, the tallest case, so the pile never outgrows its column.
 function stackRecent() {
     var y = 0;
     for (var i = 0; i < recentSleeves.length; i++) {

@@ -278,8 +278,7 @@ hr {
 }
 
 .np-cover {
-    /* The box takes the artwork's ratio (--np-cover-r, set from JS, clamped
-       there) centred in the square slot: as wide as it can, never taller than wide. */
+    /* --np-cover-r comes from fitCardCover, already clamped. */
     width: calc(100% * min(1, var(--np-cover-r, 1)));
     aspect-ratio: var(--np-cover-r, 1);
     margin-inline: auto;
@@ -346,8 +345,7 @@ hr {
     min-height: 0;
 }
 
-/* One sleeve; renderRecent sets its square slot and per-sleeve vars inline. The
-   artwork's ratio (--np-recent-r) fits it in that slot, centred across it. */
+/* One sleeve; renderRecent and stackRecent set its geometry and per-sleeve vars inline. */
 .np-recent-sleeve {
     --np-recent-fw: min(1, var(--np-recent-r, 1));
     --np-recent-fh: min(1, 1 / var(--np-recent-r, 1));
@@ -939,7 +937,6 @@ body.in-app .np-pull {
     --mosaic-fw: min(1, var(--mosaic-r, 1));
     --mosaic-fh: min(1, 1 / var(--mosaic-r, 1));
     position: absolute;
-    /* The artwork's ratio (--mosaic-r), centred in its square slot on the belt. */
     top: calc(var(--mosaic-tile, 130px) * (1 - var(--mosaic-fh)) / 2);
     left: calc(var(--mosaic-tile, 130px) * (1 - var(--mosaic-fw)) / 2);
     width: calc(var(--mosaic-tile, 130px) * var(--mosaic-fw));
@@ -1402,7 +1399,6 @@ body.in-app .page-header {
     .np-side {
         grid-row: 1;
         max-width: 200px;
-        /* A landscape cover shorter than the meta sits level with its middle. */
         align-self: center;
     }
     .np-lyrics-block {
