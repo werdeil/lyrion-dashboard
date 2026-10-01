@@ -38,7 +38,8 @@ import math
 import os
 import sys
 import threading
-from typing import NamedTuple
+from types import MappingProxyType
+from typing import Mapping, NamedTuple
 
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, REPO_ROOT)
@@ -361,8 +362,8 @@ ANDROID_BRIDGE_JS = (
 # Margin left around an element-only capture.
 CROP_PAD = 14
 
-DESKTOP = {"width": 1440, "height": 820}
-PHONE = {"width": 390, "height": 844}
+DESKTOP = MappingProxyType({"width": 1440, "height": 820})
+PHONE = MappingProxyType({"width": 390, "height": 844})
 
 
 class Shot(NamedTuple):
@@ -374,7 +375,7 @@ class Shot(NamedTuple):
     """
     track: str
     locale: str = "en-US"
-    viewport: dict = DESKTOP
+    viewport: Mapping[str, int] = DESKTOP
     dpr: int = 1
     android: bool = False
     ready: str = READY_JS
@@ -390,7 +391,7 @@ def capture(browser, base_url, shot):
     SCENARIO.clear()
     SCENARIO.update(TRACKS[shot.track])
     ctx = browser.new_context(
-        locale=shot.locale, viewport=shot.viewport, device_scale_factor=shot.dpr,
+        locale=shot.locale, viewport=dict(shot.viewport), device_scale_factor=shot.dpr,
     )
     if shot.android:
         ctx.add_init_script(ANDROID_BRIDGE_JS)
