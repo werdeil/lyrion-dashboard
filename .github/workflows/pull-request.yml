@@ -1,0 +1,59 @@
+name: Pull request
+
+on:
+  # Base-branch context so Dependabot and fork PRs get a write token; never
+  # check out or run the PR's code here.
+  pull_request_target:
+    types: [opened, edited, synchronize, reopened]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pull-request-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  title:
+    name: Conventional Commits title
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check the title
+        env:
+          TITLE: ${{ github.event.pull_request.title }}
+        run: |
+          pattern='^(feat|fix|refactor|docs|chore)(\([a-z0-9-]+\))?!?: [^A-Z ].*[^.]$'
+          if ! printf '%s' "$TITLE" | grep -qE "$pattern"; then
+            echo "::error::PR title must read 'type(scope): summary' — type among feat, fix, refactor, docs, chore; lowercase after the colon; no trailing period."
+            exit 1
+          fi
+
+  labels:
+    name: Label
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+      pull-requests: write
+    steps:
+      - uses: actions/labeler@v7
+
+      - name: Label the type from the title
+        uses: actions/github-script@v9
+        with:
+          script: |
+            const types = ["feat", "fix", "refactor", "docs", "chore"];
+            const pr = context.payload.pull_request;
+            const type = pr.title.match(/^([a-z]+)[(!:]/)?.[1];
+            const current = pr.labels.map((label) => label.name);
+            const params = { ...context.repo, issue_number: pr.number };
+            for (const stale of current.filter((name) => types.includes(name) && name !== type)) {
+              // "docs" is also a path label; keep it while the diff touches documentation.
+              if (stale === "docs") continue;
+              await github.rest.issues.removeLabel({ ...params, name: stale }).catch((error) => {
+                if (error.status !== 404) throw error;
+              });
+            }
+            if (types.includes(type) && !current.includes(type)) {
+              await github.rest.issues.addLabels({ ...params, labels: [type] });
+            }
