@@ -117,13 +117,23 @@ def _year(value):
     return year or None
 
 
+def _volume(value):
+    # Lyrion reports a muted player's volume as its negated level.
+    try:
+        level = int(float(value))
+    except (TypeError, ValueError):
+        return None, False
+    return min(abs(level), 100), level < 0
+
+
 def get_now_playing(player_id):
     """Return the current track and transport state of a player.
 
     Tag A returns the artists joined by ", " under role keys; `trackartist` is
     preferred so a "feat." line shows everyone, as Lyrion does. Streamed tracks
     have no local coverid but may carry an `artwork_url` (tag K), sometimes
-    relative to the Lyrion host.
+    relative to the Lyrion host. `volume` is the player's mixer level (0-100,
+    None when unreported) and `muted` whether it is muted.
     """
     payload = {
         "id": 1,
@@ -138,6 +148,7 @@ def get_now_playing(player_id):
     if not track:
         return {"playing": False, "mode": result.get("mode", "stop")}
 
+    volume, muted = _volume(result.get("mixer volume"))
     artwork_url = track.get("artwork_url")
     if artwork_url and not artwork_url.startswith("http"):
         host = current_app.config["LYRION_HOST"]
@@ -155,6 +166,8 @@ def get_now_playing(player_id):
         "year": _year(track.get("year")),
         "coverid": track.get("coverid"),
         "artwork_url": artwork_url,
+        "volume": volume,
+        "muted": muted,
     }
 
 

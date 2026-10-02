@@ -13,7 +13,7 @@
 
 ## Features
 
-- **Now Playing** -- The player currently playing is detected automatically and its track shown live (cover art, title, artist, album), with the accent color sampled from the cover. Clicking the cover grows it over the panel.
+- **Now Playing** -- The player currently playing is detected automatically and its track shown live (cover art, title, artist, album) next to its volume, with the accent color sampled from the cover. Clicking the cover grows it over the panel.
 - **Recent plays** -- On wide screens the recently played albums stack up as a pile of sleeves under the cover, newest on top. Built from the play history, one cover per album; with the Alternative Play Count plugin installed, skips are excluded.
 - **Synced lyrics** -- Lyrics with LRC timestamps scroll line by line in time with playback, karaoke-style.
 - **Web lyrics fallback** -- LRCLIB, Musixmatch and Genius are queried for every playing track: they fill in what the library is missing and upgrade its plain text to a synced version when one exists. The provenance line under the lyrics then switches between everything found for the track — your library's own text and each upload the providers returned — so a wrong text in your tags, or a take whose words don't match the recording, can be read against the alternatives. Set `LYRICS_PROVIDERS` to an empty value to stop the app calling out at all.

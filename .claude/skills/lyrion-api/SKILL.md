@@ -49,7 +49,7 @@ data = lyrion_request(payload)
 | `c` | coverid | absent for remote/streamed tracks |
 | `K` | artwork_url | remote streams (Deezer/Spotify/radio); may be relative to the host |
 
-Title and track id come back by default. That track id is the key into the SQLite `tracks` table for lyrics (see `services/database.py`). When reading artists, prefer `trackartist` (full "feat." line) then fall back to `artist` then `albumartist`, matching `get_now_playing`.
+Title and track id come back by default, and so do the player-level fields such as `mixer volume` (negated while the player is muted; `_volume` maps it to `volume`/`muted`). That track id is the key into the SQLite `tracks` table for lyrics (see `services/database.py`). When reading artists, prefer `trackartist` (full "feat." line) then fall back to `artist` then `albumartist`, matching `get_now_playing`.
 
 Need a field the app doesn't fetch yet? Add its tag letter to the `tags:` string and map it in the returned dict — don't make a second call.
 

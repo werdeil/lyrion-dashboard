@@ -13,7 +13,7 @@
 
 ## Fonctionnalités
 
-- **Now Playing** -- Le lecteur en cours de lecture est détecté automatiquement et sa piste affichée en direct (pochette, titre, artiste, album), la couleur d'accent étant échantillonnée sur la pochette. Un clic sur la pochette l'agrandit jusqu'à remplir la carte.
+- **Now Playing** -- Le lecteur en cours de lecture est détecté automatiquement et sa piste affichée en direct (pochette, titre, artiste, album) à côté de son volume, la couleur d'accent étant échantillonnée sur la pochette. Un clic sur la pochette l'agrandit jusqu'à remplir la carte.
 - **Dernières écoutes** -- Sur grand écran, les albums récemment écoutés s'empilent comme des pochettes de disque sous la cover, le plus récent au-dessus. Construit à partir de l'historique d'écoute, une pochette par album ; avec le plugin Alternative Play Count installé, les sauts sont exclus.
 - **Paroles synchronisées** -- Les paroles avec timestamps LRC défilent ligne par ligne au rythme de la lecture, façon karaoké.
 - **Recherche web de paroles** -- LRCLIB, Musixmatch et Genius sont interrogés pour chaque morceau joué : ils complètent les paroles absentes de la bibliothèque et convertissent son texte simple en version synchronisée quand elle existe. La ligne de provenance sous les paroles bascule ensuite entre tout ce qui a été trouvé pour le morceau — le texte de votre bibliothèque et chaque version renvoyée par les fournisseurs — pour confronter des tags erronés, ou une prise dont les paroles ne collent pas à l'enregistrement, aux autres versions. Donnez une valeur vide à `LYRICS_PROVIDERS` pour que l'application n'appelle plus rien.

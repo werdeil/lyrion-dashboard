@@ -468,9 +468,50 @@ body.in-app .np-pull {
     color: var(--text-muted);
 }
 
+.np-player-line {
+    display: flex;
+    align-items: center;
+    gap: 0.9em;
+    min-width: 0;
+    margin: 0 0 4px;
+}
+
 .np-player,
 .np-player-switch {
-    margin: 0 0 4px;
+    margin: 0;
+    min-width: 0;
+}
+
+.np-volume {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3em;
+    flex: none;
+    font-size: var(--fs-xs);
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 1px;
+    color: var(--text-muted);
+}
+
+.np-volume[hidden] {
+    display: none;  /* the class's display would otherwise beat [hidden] */
+}
+
+.np-volume svg {
+    opacity: 0.7;
+}
+
+.np-volume .volume-mute,
+.np-volume.is-muted .volume-waves {
+    display: none;
+}
+
+.np-volume.is-muted .volume-mute {
+    display: inline;
+}
+
+.np-volume.is-muted {
+    opacity: 0.6;
 }
 
 .np-player {
@@ -561,6 +602,7 @@ body.in-app .np-pull {
     transform: rotate(180deg);
 }
 
+.np-player-switch[hidden],
 .np-switch-menu[hidden] {
     display: none;  /* the class's display:flex would otherwise beat [hidden] */
 }
