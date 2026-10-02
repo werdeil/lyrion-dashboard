@@ -37,6 +37,8 @@ var el = {
     playerRow: document.getElementById('np-player-row'),
     playerLink: document.getElementById('np-player-link'),
     playerSwitch: document.getElementById('np-player-switch'),
+    volume: document.getElementById('np-volume'),
+    volumeLevel: document.getElementById('np-volume-level'),
     title:  document.getElementById('np-title'),
     artist: document.getElementById('np-artist'),
     album:  document.getElementById('np-album'),
@@ -235,6 +237,22 @@ function renderPlayerSwitch(data) {
     el.playerSwitch.appendChild(toggle);
     el.playerSwitch.appendChild(menu);
 }
+function renderVolume(data) {
+    var known = data && typeof data.volume === 'number';
+    el.volume.hidden = !known;
+    if (!known) { return; }
+    el.volume.classList.toggle('is-muted', !!data.muted);
+    el.volumeLevel.textContent = data.volume;
+    var label = I18N.volume + ' ' + data.volume + ' %' + (data.muted ? ' (' + I18N.volume_muted + ')' : '');
+    el.volume.setAttribute('aria-label', label);
+    el.volume.title = label;
+    // The badge sits in whichever label names the player: the link, or the switch's toggle.
+    var toggle = !el.playerSwitch.hidden && el.playerSwitch.querySelector('.np-switch-toggle');
+    var host = toggle || el.playerLink;
+    var anchor = host.querySelector(toggle ? '.np-switch-chevron' : '.np-player-arrow');
+    if (el.volume.nextSibling !== anchor) { host.insertBefore(el.volume, anchor); }
+}
+
 var lastTrackKey = null;
 var currentTrack = null;
 var lyricsTried = false;
@@ -1127,6 +1145,7 @@ function render(data) {
         el.player.textContent = '';
         if (el.playerSwitch) { el.playerSwitch.hidden = true; el.playerSwitch.textContent = ''; }
         lastSwitchKey = null;
+        renderVolume(null);
         el.cover.removeAttribute('src');
         closeCoverZoom();
         setLyrionLink(null);
@@ -1159,6 +1178,7 @@ function render(data) {
     el.player.textContent = data.player_name || '';
     el.playerRow.hidden = !data.player_name;
     renderPlayerSwitch(data);
+    renderVolume(data);
     el.title.textContent = data.title || '';
     el.artist.textContent = data.artist || '';
     el.album.textContent = data.album

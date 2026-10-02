@@ -132,6 +132,7 @@ TRACKS = {
             "track_id": 1001, "title": "Horizon bleu", "artist": "Nova Ondine",
             "album": "Marées", "coverid": COVER_ROSE, "artwork_url": None,
             "player_name": "Salon", "player_id": "aa:bb:cc:dd:ee:01",
+            "volume": 42, "muted": False,
         },
         "lyrics": _lrc(9, 5.5, [
             "On y va, on y va, tous les deux",
@@ -159,6 +160,7 @@ TRACKS = {
             "track_id": 1002, "title": "Nuit corail", "artist": "Forêt Numérique",
             "album": "Signaux", "coverid": COVER_TEAL, "artwork_url": None,
             "player_name": "Chambre", "player_id": "aa:bb:cc:dd:ee:02",
+            "volume": 65, "muted": False,
         },
         # No library lyrics: the auto web search (mocked below) finds the
         # synced version, so this capture shows a web source (LRCLIB).
@@ -187,6 +189,7 @@ TRACKS = {
             "track_id": 1003, "title": "Braises", "artist": "Les Lanternes",
             "album": "Solstice", "coverid": COVER_EMBER, "artwork_url": None,
             "player_name": "Cuisine", "player_id": "aa:bb:cc:dd:ee:03",
+            "volume": 30, "muted": False,
         },
         "lyrics": _lrc(8, 5, [
             "Un feu qui dort sous la cendre grise",

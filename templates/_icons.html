@@ -97,3 +97,12 @@
     <polyline points="4 12.5 9 17.5 20 6.5"/>
 {% endcall %}
 {%- endmacro %}
+
+{# Speaker with sound waves, or with a cross once its parent carries .is-muted. #}
+{% macro volume_icon(size=20) -%}
+{% call _frame(size) %}
+    <path d="M11 5 6 9H2v6h4l5 4V5z"/>
+    <path class="volume-waves" d="M15.5 8.5a5 5 0 0 1 0 7M19 5a10 10 0 0 1 0 14"/>
+    <path class="volume-mute" d="m16 9 6 6m0-6-6 6"/>
+{% endcall %}
+{%- endmacro %}
