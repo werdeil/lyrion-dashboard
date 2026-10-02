@@ -53,28 +53,26 @@
                     </div>
                 </div>
                 <div class="np-meta">
-                    <div class="np-player-line">
-                        {# The player name doubles as the "open Lyrion" link on
-                           that player; hidden until a player is known. #}
-                        <p class="np-player" id="np-player-row" hidden>
-                            <a class="np-player-link" id="np-player-link"
-                               href="{{ (lyrion_host ~ '/material/') if lyrion_host else '#' }}"
-                               target="_blank" rel="noopener noreferrer" title="{{ t.open_lyrion }}">
-                                <span id="np-player"></span>
-                                <svg class="np-player-arrow" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                                    <path d="M19 19H5V5h7V3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2v-7h-2v7zM14 3v2h3.59l-9.83 9.83 1.41 1.41L19 6.41V10h2V3h-7z"/>
-                                </svg>
-                            </a>
-                        </p>
-                        {# Replaces the row above when >= 2 players play; filled by
-                           nowplaying.js. #}
-                        <div class="np-player-switch" id="np-player-switch"
-                             role="group" aria-label="{{ t.choose_player }}" hidden></div>
-                        <span class="np-volume" id="np-volume" role="img" hidden>
-                            {{ icons.volume_icon(14) }}
-                            <span id="np-volume-level"></span>
-                        </span>
-                    </div>
+                    {# The player name doubles as the "open Lyrion" link on
+                       that player; hidden until a player is known. #}
+                    <p class="np-player" id="np-player-row" hidden>
+                        <a class="np-player-link" id="np-player-link"
+                           href="{{ (lyrion_host ~ '/material/') if lyrion_host else '#' }}"
+                           target="_blank" rel="noopener noreferrer" title="{{ t.open_lyrion }}">
+                            <span id="np-player"></span>
+                            <span class="np-volume" id="np-volume" role="img" hidden>
+                                {{ icons.volume_icon(14) }}
+                                <span id="np-volume-level"></span>
+                            </span>
+                            <svg class="np-player-arrow" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                <path d="M19 19H5V5h7V3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2v-7h-2v7zM14 3v2h3.59l-9.83 9.83 1.41 1.41L19 6.41V10h2V3h-7z"/>
+                            </svg>
+                        </a>
+                    </p>
+                    {# Replaces the row above when >= 2 players play; filled by
+                       nowplaying.js. #}
+                    <div class="np-player-switch" id="np-player-switch"
+                         role="group" aria-label="{{ t.choose_player }}" hidden></div>
                     <p class="np-title" id="np-title">—</p>
                     <p class="np-artist" id="np-artist"></p>
                     <p class="np-album" id="np-album"></p>

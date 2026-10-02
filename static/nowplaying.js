@@ -246,6 +246,11 @@ function renderVolume(data) {
     var label = I18N.volume + ' ' + data.volume + ' %' + (data.muted ? ' (' + I18N.volume_muted + ')' : '');
     el.volume.setAttribute('aria-label', label);
     el.volume.title = label;
+    // The badge sits in whichever label names the player: the link, or the switch's toggle.
+    var toggle = !el.playerSwitch.hidden && el.playerSwitch.querySelector('.np-switch-toggle');
+    var host = toggle || el.playerLink;
+    var anchor = host.querySelector(toggle ? '.np-switch-chevron' : '.np-player-arrow');
+    if (el.volume.nextSibling !== anchor) { host.insertBefore(el.volume, anchor); }
 }
 
 var lastTrackKey = null;
