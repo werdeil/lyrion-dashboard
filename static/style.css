@@ -737,6 +737,9 @@ body.in-app .np-pull {
     background: none;
     font: inherit;
     font-size: var(--fs-xs);
+    /* Not normal: a glyph from a fallback font (the "…") would bring its own
+       taller metrics and grow the pill. */
+    line-height: 1.15;
     color: var(--text-muted);
     cursor: pointer;
 }
