@@ -787,18 +787,7 @@ body.in-app .np-pull {
     cursor: default;
 }
 
-/* Only the chevron goes when the chip is passive; the confirmation mark lives
-   in a span so this rule leaves it alone. */
 .np-lyrics-source:disabled > svg {
-    display: none;
-}
-
-.np-source-mark {
-    display: flex;
-    align-items: center;
-}
-
-.np-source-mark[hidden] {
     display: none;
 }
 
