@@ -48,6 +48,7 @@ var el = {
     sourceMark: document.getElementById('np-source-mark'),
     cover:  document.getElementById('np-cover-img'),
     retry:  document.getElementById('np-retry'),
+    hide:   document.getElementById('np-hide'),
     lyricsTools: document.querySelector('.np-lyrics-tools'),
     progressBar: document.getElementById('np-progress-bar'),
     lyrionLink: document.getElementById('lyrion-link'),
@@ -70,10 +71,11 @@ function updateRetry() {
     syncTools();
 }
 
-// The row draws the pill, so it hides whenever neither control shows.
+// The row draws the pill, so it hides whenever no control shows.
 function syncTools() {
     if (!el.lyricsTools) { return; }
-    el.lyricsTools.hidden = (!el.source || el.source.hidden) && (!el.retry || el.retry.hidden);
+    el.lyricsTools.hidden = (!el.source || el.source.hidden) && (!el.retry || el.retry.hidden)
+        && (!el.hide || el.hide.hidden);
 }
 
 // Held for exactly as long as the server says its per-track cooldown will run.
@@ -128,6 +130,45 @@ function setSelectedPlayer(id) {
         if (selectedPlayer) { localStorage.setItem(SELECTED_PLAYER_KEY, selectedPlayer); }
         else { localStorage.removeItem(SELECTED_PLAYER_KEY); }
     } catch (e) {}
+}
+
+// Per device, keyed by artist|title (a rescan renumbers track ids) plus the
+// text itself, so another version of the track still shows. Oldest go first.
+var HIDDEN_LYRICS_KEY = 'lyrion.hiddenLyrics';
+var HIDDEN_LYRICS_MAX = 200;
+var hiddenLyrics = [];
+try { hiddenLyrics = JSON.parse(localStorage.getItem(HIDDEN_LYRICS_KEY)) || []; } catch (e) {}
+if (!Array.isArray(hiddenLyrics)) { hiddenLyrics = []; }
+
+function hashText(text) {
+    var h = 5381;
+    for (var i = 0; i < text.length; i++) {
+        h = ((h << 5) + h + text.charCodeAt(i)) | 0;
+    }
+    return (h >>> 0).toString(36);
+}
+
+function hiddenKey(version) {
+    if (!currentTrack || !version) { return null; }
+    return [currentTrack.artist || '', currentTrack.title || ''].join('|').toLowerCase()
+        + '|' + hashText(textKey(version.text));
+}
+
+function isHidden(version) {
+    var key = hiddenKey(version);
+    return !!key && hiddenLyrics.indexOf(key) >= 0;
+}
+
+function setHidden(version, hide) {
+    var key = hiddenKey(version);
+    if (!key) { return; }
+    var at = hiddenLyrics.indexOf(key);
+    if (at >= 0) { hiddenLyrics.splice(at, 1); }
+    if (hide) { hiddenLyrics.push(key); }
+    if (hiddenLyrics.length > HIDDEN_LYRICS_MAX) {
+        hiddenLyrics.splice(0, hiddenLyrics.length - HIDDEN_LYRICS_MAX);
+    }
+    try { localStorage.setItem(HIDDEN_LYRICS_KEY, JSON.stringify(hiddenLyrics)); } catch (e) {}
 }
 
 var LYRION_ARROW_PATH = 'M19 19H5V5h7V3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2v-7h-2v7zM14 3v2h3.59l-9.83 9.83 1.41 1.41L19 6.41V10h2V3h-7z';
@@ -596,6 +637,20 @@ function updateSource() {
     if (el.sourceMark) { el.sourceMark.hidden = !confirmed; }
     el.source.title = canCycle ? I18N.switch_version
         : (confirmed ? I18N.lyrics_confirmed : (synced ? I18N.lyrics_synced_hint : ''));
+    updateHide();
+}
+
+function updateHide() {
+    if (el.hide) {
+        var version = versions[versionIdx];
+        var hidden = isHidden(version);
+        var label = hidden ? I18N.show_lyrics : I18N.hide_lyrics;
+        el.hide.hidden = !version;
+        el.hide.classList.toggle('is-hidden', hidden);
+        el.hide.setAttribute('aria-pressed', hidden ? 'true' : 'false');
+        el.hide.title = label;
+        el.hide.setAttribute('aria-label', label);
+    }
     syncTools();
 }
 
@@ -603,8 +658,17 @@ function showVersion(idx, keepScroll) {
     var version = versions[idx];
     if (!version) { return; }
     versionIdx = idx;
-    setLyrics(version.text, false, keepScroll);
+    if (isHidden(version)) { setLyrics(I18N.lyrics_hidden, true); }
+    else { setLyrics(version.text, false, keepScroll); }
     updateSource();
+}
+
+// Where the page lands by itself: the first version from `from` not hidden, else `from`.
+function firstVisibleIdx(from) {
+    for (var i = from; i < versions.length; i++) {
+        if (!isHidden(versions[i])) { return i; }
+    }
+    return from;
 }
 
 // Older responses carry only the winning upload, hence the fallback shape.
@@ -659,7 +723,7 @@ function pushWebVersions(res) {
 
 function firstSyncedIdx(from) {
     for (var i = from; i < versions.length; i++) {
-        if (versions[i].synced) { return i; }
+        if (versions[i].synced && !isHidden(versions[i])) { return i; }
     }
     return -1;
 }
@@ -676,6 +740,15 @@ if (el.source) {
         if (versions.length > 1) {
             showVersion((versionIdx + 1) % versions.length, true);
         }
+    });
+}
+
+if (el.hide) {
+    el.hide.addEventListener('click', function() {
+        var version = versions[versionIdx];
+        if (!version) { return; }
+        setHidden(version, !isHidden(version));
+        showVersion(versionIdx, true);
     });
 }
 
@@ -1200,7 +1273,8 @@ function render(data) {
         versions = data.lyrics ? [{ text: data.lyrics, source: 'library' }] : [];
         versionIdx = data.lyrics ? 0 : -1;
         echoed = false;
-        setLyrics(data.lyrics || I18N.no_lyrics_library, !data.lyrics);
+        if (versionIdx >= 0) { showVersion(versionIdx); }
+        else { setLyrics(I18N.no_lyrics_library, true); }
         updateSource();
         lyricsTried = false;
         setSearching(false);
@@ -1247,7 +1321,7 @@ function fetchLyrics() {
             setSearching(false);
             holdRetry(res.retry_after || 0);
             if (pushWebVersions(res)) {
-                showVersion(0);
+                showVersion(firstVisibleIdx(0));
             } else {
                 setLyrics(emptyLyricsMessage(res), true);
             }
@@ -1283,6 +1357,7 @@ function trySyncedFromWeb() {
             if (!pushWebVersions(res)) { updateSource(); return; }
             var synced = firstSyncedIdx(first);
             if (synced >= 0) { showVersion(synced); }
+            else if (isHidden(versions[versionIdx])) { showVersion(firstVisibleIdx(first)); }
             else { updateSource(); }
         })
         .catch(function() {

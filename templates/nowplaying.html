@@ -85,8 +85,8 @@
                     <button type="button" class="np-scroll-reset" id="np-scroll-reset" title="{{ t.resume_scroll }}" aria-label="{{ t.resume_scroll }}" hidden>
                         {{ icons.lyrics_sync_icon(15) }}
                     </button>
-                    {# Both lyrics controls share the box's lower-left corner: which
-                       version is on screen, and looking for another one. #}
+                    {# The lyrics controls share the box's lower-left corner: looking for
+                       another version, which one is on screen, and hiding it. #}
                     <div class="np-lyrics-tools">
                         <button type="button" class="np-retry" id="np-retry" title="{{ t.retry_lyrics }}" aria-label="{{ t.retry_lyrics }}" hidden>
                             {{ icons.retry_icon(14) }}
@@ -97,6 +97,9 @@
                                the web answered with the text already on screen. #}
                             <span class="np-source-mark" id="np-source-mark" hidden>{{ icons.confirmed_icon(12) }}</span>
                             {{ icons.next_version_icon(13) }}
+                        </button>
+                        <button type="button" class="np-hide" id="np-hide" title="{{ t.hide_lyrics }}" aria-label="{{ t.hide_lyrics }}" aria-pressed="false" hidden>
+                            {{ icons.hide_lyrics_icon(14) }}
                         </button>
                     </div>
                 </div>

@@ -825,7 +825,8 @@ body.in-app .np-pull {
     color: var(--accent-color);
 }
 
-.np-retry {
+.np-retry,
+.np-hide {
     display: flex;
     align-items: center;
     justify-content: center;
@@ -838,8 +839,8 @@ body.in-app .np-pull {
     cursor: pointer;
 }
 
-/* Only a divider when both segments show; alone, either is the whole pill. */
-.np-retry:not([hidden]) + .np-lyrics-source {
+/* Only a divider between segments that show; alone, any one is the whole pill. */
+.np-lyrics-tools > :not([hidden]) ~ :not([hidden]) {
     border-left: 1px solid color-mix(in srgb, var(--tint-color) 24%, rgba(255, 255, 255, 0.10));
 }
 
@@ -849,13 +850,23 @@ body.in-app .np-pull {
     border-color: color-mix(in srgb, var(--accent-color) 45%, transparent);
 }
 
+.np-hide:hover,
+.np-hide:focus-visible {
+    color: var(--accent-color);
+}
+
 .np-retry:disabled {
     opacity: 0.35;
     cursor: default;
 }
 
 /* display:flex above would defeat the hidden attribute without this. */
-.np-retry[hidden] {
+.np-retry[hidden],
+.np-hide[hidden] {
+    display: none;
+}
+
+.np-hide.is-hidden .hide-slash {
     display: none;
 }
 
