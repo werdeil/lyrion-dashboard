@@ -48,7 +48,6 @@ var el = {
     sourceMark: document.getElementById('np-source-mark'),
     cover:  document.getElementById('np-cover-img'),
     retry:  document.getElementById('np-retry'),
-    hide:   document.getElementById('np-hide'),
     lyricsTools: document.querySelector('.np-lyrics-tools'),
     progressBar: document.getElementById('np-progress-bar'),
     lyrionLink: document.getElementById('lyrion-link'),
@@ -71,11 +70,10 @@ function updateRetry() {
     syncTools();
 }
 
-// The row draws the pill, so it hides whenever no control shows.
+// The row draws the pill, so it hides whenever neither control shows.
 function syncTools() {
     if (!el.lyricsTools) { return; }
-    el.lyricsTools.hidden = (!el.source || el.source.hidden) && (!el.retry || el.retry.hidden)
-        && (!el.hide || el.hide.hidden);
+    el.lyricsTools.hidden = (!el.source || el.source.hidden) && (!el.retry || el.retry.hidden);
 }
 
 // Held for exactly as long as the server says its per-track cooldown will run.
@@ -133,7 +131,7 @@ function setSelectedPlayer(id) {
 }
 
 // Per device, keyed by artist|title (a rescan renumbers track ids) plus the
-// text itself, so another version of the track still shows. Oldest go first.
+// text itself, so a version found later still shows. Oldest go first.
 var HIDDEN_LYRICS_KEY = 'lyrion.hiddenLyrics';
 var HIDDEN_LYRICS_MAX = 200;
 var hiddenLyrics = [];
@@ -149,22 +147,22 @@ function hashText(text) {
 }
 
 function hiddenKey(version) {
-    if (!currentTrack || !version) { return null; }
     return [currentTrack.artist || '', currentTrack.title || ''].join('|').toLowerCase()
         + '|' + hashText(textKey(version.text));
 }
 
 function isHidden(version) {
-    var key = hiddenKey(version);
-    return !!key && hiddenLyrics.indexOf(key) >= 0;
+    return hiddenLyrics.indexOf(hiddenKey(version)) >= 0;
 }
 
-function setHidden(version, hide) {
-    var key = hiddenKey(version);
-    if (!key) { return; }
-    var at = hiddenLyrics.indexOf(key);
-    if (at >= 0) { hiddenLyrics.splice(at, 1); }
-    if (hide) { hiddenLyrics.push(key); }
+// Every version in the cycle is remembered, so the track opens hidden until a new one turns up.
+function rememberHidden(hide) {
+    for (var i = 0; i < versions.length; i++) {
+        var key = hiddenKey(versions[i]);
+        var at = hiddenLyrics.indexOf(key);
+        if (at >= 0) { hiddenLyrics.splice(at, 1); }
+        if (hide) { hiddenLyrics.push(key); }
+    }
     if (hiddenLyrics.length > HIDDEN_LYRICS_MAX) {
         hiddenLyrics.splice(0, hiddenLyrics.length - HIDDEN_LYRICS_MAX);
     }
@@ -303,6 +301,8 @@ var MAX_VERSIONS = 5;
 var versions = [];
 var versionIdx = -1;
 var echoed = false;
+// The cycle's last stop, past every version.
+var lyricsHidden = false;
 
 var lrcLines = null;
 // Cached with the active index, so the 4×/s karaoke tick skips the DOM while the line holds.
@@ -623,34 +623,22 @@ function versionLength(version) {
 function updateSource() {
     if (!el.source) { return; }
     var version = versions[versionIdx];
-    var label = version && SOURCE_LABELS[version.source];
+    var label = version && (lyricsHidden ? I18N.lyrics_hidden_chip : SOURCE_LABELS[version.source]);
     var synced = !!(label && lrcLines);
-    var canCycle = versions.length > 1 && !searching;
+    var canCycle = versions.length > 0 && !searching;
+    var ranked = versions.length > 1 && !searching && !lyricsHidden;
     el.source.hidden = !label;
     el.source.disabled = !canCycle;
     el.sourceLabel.textContent = searching ? I18N.searching : (label
-        ? label + (canCycle ? versionLength(version) + ' (' + (versionIdx + 1) + '/' + versions.length + ')' : '')
+        ? label + (ranked ? versionLength(version) + ' (' + (versionIdx + 1) + '/' + versions.length + ')' : '')
         : '');
     el.source.classList.toggle('is-synced', synced);
-    // The mark takes the chevron's place, so it only ever shows on a passive chip.
-    var confirmed = echoed && !canCycle && !searching && !!label;
+    var confirmed = echoed && !searching && !lyricsHidden && !!label;
     if (el.sourceMark) { el.sourceMark.hidden = !confirmed; }
-    el.source.title = canCycle ? I18N.switch_version
-        : (confirmed ? I18N.lyrics_confirmed : (synced ? I18N.lyrics_synced_hint : ''));
-    updateHide();
-}
-
-function updateHide() {
-    if (el.hide) {
-        var version = versions[versionIdx];
-        var hidden = isHidden(version);
-        var label = hidden ? I18N.show_lyrics : I18N.hide_lyrics;
-        el.hide.hidden = !version;
-        el.hide.classList.toggle('is-hidden', hidden);
-        el.hide.setAttribute('aria-pressed', hidden ? 'true' : 'false');
-        el.hide.title = label;
-        el.hide.setAttribute('aria-label', label);
-    }
+    el.source.title = [
+        confirmed ? I18N.lyrics_confirmed : (synced ? I18N.lyrics_synced_hint : ''),
+        canCycle ? I18N.switch_version : '',
+    ].filter(Boolean).join(' \u00b7 ');
     syncTools();
 }
 
@@ -658,17 +646,32 @@ function showVersion(idx, keepScroll) {
     var version = versions[idx];
     if (!version) { return; }
     versionIdx = idx;
-    if (isHidden(version)) { setLyrics(I18N.lyrics_hidden, true); }
-    else { setLyrics(version.text, false, keepScroll); }
+    lyricsHidden = false;
+    setLyrics(version.text, false, keepScroll);
     updateSource();
 }
 
-// Where the page lands by itself: the first version from `from` not hidden, else `from`.
+// The chip needs a version behind it, or it hides and takes the way back with it.
+function showHidden() {
+    versionIdx = Math.max(versionIdx, 0);
+    lyricsHidden = true;
+    setLyrics(I18N.lyrics_hidden, true);
+    updateSource();
+}
+
+function allHidden() {
+    for (var i = 0; i < versions.length; i++) {
+        if (!isHidden(versions[i])) { return false; }
+    }
+    return versions.length > 0;
+}
+
+// Where the page lands by itself: the first version from `from` not hidden.
 function firstVisibleIdx(from) {
     for (var i = from; i < versions.length; i++) {
         if (!isHidden(versions[i])) { return i; }
     }
-    return from;
+    return -1;
 }
 
 // Older responses carry only the winning upload, hence the fallback shape.
@@ -737,18 +740,16 @@ function webVersionIdx() {
 
 if (el.source) {
     el.source.addEventListener('click', function() {
-        if (versions.length > 1) {
-            showVersion((versionIdx + 1) % versions.length, true);
+        if (!versions.length) { return; }
+        if (lyricsHidden) {
+            rememberHidden(false);
+            showVersion(0);
+        } else if (versionIdx < versions.length - 1) {
+            showVersion(versionIdx + 1, true);
+        } else {
+            rememberHidden(true);
+            showHidden();
         }
-    });
-}
-
-if (el.hide) {
-    el.hide.addEventListener('click', function() {
-        var version = versions[versionIdx];
-        if (!version) { return; }
-        setHidden(version, !isHidden(version));
-        showVersion(versionIdx, true);
     });
 }
 
@@ -1273,8 +1274,10 @@ function render(data) {
         versions = data.lyrics ? [{ text: data.lyrics, source: 'library' }] : [];
         versionIdx = data.lyrics ? 0 : -1;
         echoed = false;
-        if (versionIdx >= 0) { showVersion(versionIdx); }
-        else { setLyrics(I18N.no_lyrics_library, true); }
+        lyricsHidden = false;
+        if (!data.lyrics) { setLyrics(I18N.no_lyrics_library, true); }
+        else if (allHidden()) { showHidden(); }
+        else { showVersion(0); }
         updateSource();
         lyricsTried = false;
         setSearching(false);
@@ -1321,7 +1324,8 @@ function fetchLyrics() {
             setSearching(false);
             holdRetry(res.retry_after || 0);
             if (pushWebVersions(res)) {
-                showVersion(firstVisibleIdx(0));
+                if (allHidden()) { showHidden(); }
+                else { showVersion(firstVisibleIdx(0)); }
             } else {
                 setLyrics(emptyLyricsMessage(res), true);
             }
@@ -1356,8 +1360,9 @@ function trySyncedFromWeb() {
             // An answer that only repeated the text on screen still refreshes the chip.
             if (!pushWebVersions(res)) { updateSource(); return; }
             var synced = firstSyncedIdx(first);
+            var fresh = firstVisibleIdx(first);
             if (synced >= 0) { showVersion(synced); }
-            else if (isHidden(versions[versionIdx])) { showVersion(firstVisibleIdx(first)); }
+            else if (lyricsHidden && fresh >= 0) { showVersion(fresh); }
             else { updateSource(); }
         })
         .catch(function() {

@@ -788,7 +788,7 @@ body.in-app .np-pull {
 }
 
 /* Only the chevron goes when the chip is passive; the confirmation mark lives
-   in a span so it can take that place. */
+   in a span so this rule leaves it alone. */
 .np-lyrics-source:disabled > svg {
     display: none;
 }
@@ -825,8 +825,7 @@ body.in-app .np-pull {
     color: var(--accent-color);
 }
 
-.np-retry,
-.np-hide {
+.np-retry {
     display: flex;
     align-items: center;
     justify-content: center;
@@ -839,8 +838,8 @@ body.in-app .np-pull {
     cursor: pointer;
 }
 
-/* Only a divider between segments that show; alone, any one is the whole pill. */
-.np-lyrics-tools > :not([hidden]) ~ :not([hidden]) {
+/* Only a divider when both segments show; alone, either is the whole pill. */
+.np-retry:not([hidden]) + .np-lyrics-source {
     border-left: 1px solid color-mix(in srgb, var(--tint-color) 24%, rgba(255, 255, 255, 0.10));
 }
 
@@ -850,23 +849,13 @@ body.in-app .np-pull {
     border-color: color-mix(in srgb, var(--accent-color) 45%, transparent);
 }
 
-.np-hide:hover,
-.np-hide:focus-visible {
-    color: var(--accent-color);
-}
-
 .np-retry:disabled {
     opacity: 0.35;
     cursor: default;
 }
 
 /* display:flex above would defeat the hidden attribute without this. */
-.np-retry[hidden],
-.np-hide[hidden] {
-    display: none;
-}
-
-.np-hide.is-hidden .hide-slash {
+.np-retry[hidden] {
     display: none;
 }
 

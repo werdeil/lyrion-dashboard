@@ -98,15 +98,6 @@
 {% endcall %}
 {%- endmacro %}
 
-{# Eye struck through, or open once its parent carries .is-hidden. #}
-{% macro hide_lyrics_icon(size=20) -%}
-{% call _frame(size) %}
-    <path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/>
-    <circle cx="12" cy="12" r="3"/>
-    <path class="hide-slash" d="M4 4l16 16"/>
-{% endcall %}
-{%- endmacro %}
-
 {# Speaker with sound waves, or with a cross once its parent carries .is-muted. #}
 {% macro volume_icon(size=20) -%}
 {% call _frame(size) %}
