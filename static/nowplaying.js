@@ -129,8 +129,7 @@ function setSelectedPlayer(id) {
     } catch (e) {}
 }
 
-// Per device, keyed by artist|title (a rescan renumbers track ids) plus the
-// text itself, so a version found later still shows. Oldest go first.
+// Keyed by artist|title, not the track id, which a rescan renumbers.
 var HIDDEN_LYRICS_KEY = 'lyrion.hiddenLyrics';
 var HIDDEN_LYRICS_MAX = 200;
 var hiddenLyrics = [];
@@ -154,7 +153,6 @@ function isHidden(version) {
     return hiddenLyrics.indexOf(hiddenKey(version)) >= 0;
 }
 
-// Every version in the cycle is remembered, so the track opens hidden until a new one turns up.
 function rememberHidden(hide) {
     for (var i = 0; i < versions.length; i++) {
         var key = hiddenKey(versions[i]);
@@ -299,7 +297,6 @@ var lyricsTried = false;
 var MAX_VERSIONS = 5;
 var versions = [];
 var versionIdx = -1;
-// The cycle's last stop, past every version.
 var lyricsHidden = false;
 
 var lrcLines = null;
@@ -648,7 +645,7 @@ function showVersion(idx, keepScroll) {
     updateSource();
 }
 
-// The chip needs a version behind it, or it hides and takes the way back with it.
+// The chip needs a version behind it, or it hides along with the way back.
 function showHidden() {
     versionIdx = Math.max(versionIdx, 0);
     lyricsHidden = true;
@@ -702,7 +699,6 @@ function offeredAs(text) {
     return null;
 }
 
-// A provider that returned a text already in the cycle is named beside its source instead.
 function noteEcho(version, source) {
     version.echoes = version.echoes || [];
     if (source !== version.source && version.echoes.indexOf(source) < 0) {
@@ -719,7 +715,7 @@ function sourceLabel(version) {
     return labels.join(' + ');
 }
 
-// The cycle runs in order of preference, so the version the page lands on is always 1/n.
+// Preference order: the version the page lands on must stay 1/n.
 function versionRank(version) {
     var rank = version.synced ? 0 : (version.source === 'library' ? 1 : 2);
     return isHidden(version) ? rank + 3 : rank;
@@ -749,7 +745,6 @@ function pushWebVersions(res) {
     return added;
 }
 
-// A synced top version takes the screen; otherwise what was on it stays, wherever it ranked.
 function landOnVersions(current) {
     if (allHidden()) { showHidden(); return; }
     if (!current || lyricsHidden || versions[0].synced) { showVersion(0); return; }
@@ -773,8 +768,7 @@ if (el.source) {
     });
 }
 
-// Where the box sizes to its text, a shorter version would pull the chip out from under
-// the finger: it keeps its height across taps, until the track or the width changes.
+// Released on a width change only: the mobile URL bar resizes the height on scroll.
 var heldWidth = 0;
 function holdLyricsHeight() {
     // The fitted layouts size the box from the viewport (flex-basis 0), not from its text.
