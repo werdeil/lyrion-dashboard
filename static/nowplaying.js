@@ -760,6 +760,7 @@ function landOnVersions(current) {
 if (el.source) {
     el.source.addEventListener('click', function() {
         if (!versions.length) { return; }
+        holdLyricsHeight();
         if (lyricsHidden) {
             rememberHidden(false);
             showVersion(0);
@@ -771,6 +772,24 @@ if (el.source) {
         }
     });
 }
+
+// Where the box sizes to its text, a shorter version would pull the chip out from under
+// the finger: it keeps its height across taps, until the track or the width changes.
+var heldWidth = 0;
+function holdLyricsHeight() {
+    // The fitted layouts size the box from the viewport (flex-basis 0), not from its text.
+    if (getComputedStyle(el.lyrics).flexBasis === '0px') { return; }
+    el.lyrics.style.minHeight = el.lyrics.offsetHeight + 'px';
+    heldWidth = window.innerWidth;
+}
+
+function releaseLyricsHeight() {
+    el.lyrics.style.minHeight = '';
+}
+
+window.addEventListener('resize', function() {
+    if (window.innerWidth !== heldWidth) { releaseLyricsHeight(); }
+});
 
 function setSearching(on) {
     searching = on;
@@ -1283,6 +1302,7 @@ function render(data) {
     var trackKey = [data.track_id, data.title, data.artist, data.album].join('|');
     if (trackKey !== lastTrackKey) {
         lastTrackKey = trackKey;
+        releaseLyricsHeight();
         currentTrack = data;
         // COVER_SIZE is the /cover route's cap; remote artwork has no resize form.
         el.cover.src = data.artwork_url
