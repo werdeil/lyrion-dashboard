@@ -662,14 +662,6 @@ function allHidden() {
     return versions.length > 0;
 }
 
-// Where the page lands by itself: the first version from `from` not hidden.
-function firstVisibleIdx(from) {
-    for (var i = from; i < versions.length; i++) {
-        if (!isHidden(versions[i])) { return i; }
-    }
-    return -1;
-}
-
 // Older responses carry only the winning upload, hence the fallback shape.
 // Synced entries lead, as they do server-side, so a cap trims from the back.
 function webVersions(res) {
@@ -726,30 +718,42 @@ function sourceLabel(version) {
     return labels.join(' + ');
 }
 
+// The cycle runs in order of preference, so the version the page lands on is always 1/n.
+function versionRank(version) {
+    var rank = version.synced ? 0 : (version.source === 'library' ? 1 : 2);
+    return isHidden(version) ? rank + 3 : rank;
+}
+
+function rankVersions() {
+    var ranked = versions.map(function(version, i) {
+        return { version: version, rank: versionRank(version), i: i };
+    });
+    ranked.sort(function(a, b) { return a.rank - b.rank || a.i - b.i; });
+    versions = ranked.map(function(entry) { return entry.version; });
+    // The library's text is never the one shed.
+    for (var j = versions.length - 1; versions.length > MAX_VERSIONS && j >= 0; j--) {
+        if (versions[j].source !== 'library') { versions.splice(j, 1); }
+    }
+}
+
 function pushWebVersions(res) {
     var web = webVersions(res);
-    var before = versions.length;
+    var added = 0;
     for (var i = 0; i < web.length; i++) {
         var same = offeredAs(web[i].text);
         if (same) { noteEcho(same, web[i].source); }
-        else { versions.push(web[i]); }
+        else { versions.push(web[i]); added++; }
     }
-    if (versions.length > MAX_VERSIONS) { versions.length = MAX_VERSIONS; }
-    return versions.length - before;
+    rankVersions();
+    return added;
 }
 
-function firstSyncedIdx(from) {
-    for (var i = from; i < versions.length; i++) {
-        if (versions[i].synced && !isHidden(versions[i])) { return i; }
-    }
-    return -1;
-}
-
-function webVersionIdx() {
-    for (var i = 0; i < versions.length; i++) {
-        if (versions[i].source !== 'library') { return i; }
-    }
-    return -1;
+// A synced top version takes the screen; otherwise what was on it stays, wherever it ranked.
+function landOnVersions(current) {
+    if (allHidden()) { showHidden(); return; }
+    if (!current || lyricsHidden || versions[0].synced) { showVersion(0); return; }
+    versionIdx = versions.indexOf(current);
+    updateSource();
 }
 
 if (el.source) {
@@ -1337,8 +1341,7 @@ function fetchLyrics() {
             setSearching(false);
             holdRetry(res.retry_after || 0);
             if (pushWebVersions(res)) {
-                if (allHidden()) { showHidden(); }
-                else { showVersion(firstVisibleIdx(0)); }
+                landOnVersions(null);
             } else {
                 setLyrics(emptyLyricsMessage(res), true);
             }
@@ -1369,14 +1372,10 @@ function trySyncedFromWeb() {
             if (track !== currentTrack) { return; }
             setSearching(false);
             holdRetry(res.retry_after || 0);
-            var first = versions.length;
+            var current = versions[versionIdx];
             // An answer that only repeated the text on screen still refreshes the chip.
             if (!pushWebVersions(res)) { updateSource(); return; }
-            var synced = firstSyncedIdx(first);
-            var fresh = firstVisibleIdx(first);
-            if (synced >= 0) { showVersion(synced); }
-            else if (lyricsHidden && fresh >= 0) { showVersion(fresh); }
-            else { updateSource(); }
+            landOnVersions(current);
         })
         .catch(function() {
             if (track !== currentTrack) { return; }
@@ -1387,11 +1386,8 @@ function trySyncedFromWeb() {
 function retryLyrics() {
     if (!currentTrack) { return; }
     // Drop the previous answer, or the new one stacks a second copy onto the cycle.
-    var web = webVersionIdx();
-    if (web >= 0) {
-        versions.length = web;
-        versionIdx = versions.length ? 0 : -1;
-    }
+    versions = versions.filter(function(version) { return version.source === 'library'; });
+    versionIdx = versions.length ? 0 : -1;
     for (var i = 0; i < versions.length; i++) { versions[i].echoes = []; }
     lyricsTried = true;  // force refresh=1 → bypass the server-side cache
     if (currentTrack.lyrics) {
