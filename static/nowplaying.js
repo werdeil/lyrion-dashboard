@@ -624,11 +624,12 @@ function updateSource() {
     var label = version && (lyricsHidden ? I18N.lyrics_hidden_chip : sourceLabel(version));
     var synced = !!(label && lrcLines);
     var canCycle = versions.length > 0 && !searching;
-    var ranked = versions.length > 1 && !searching && !lyricsHidden;
+    var ranked = versions.length > 1 && !searching;
     el.source.hidden = !label;
     el.source.disabled = !canCycle;
     el.sourceLabel.textContent = searching ? I18N.searching : (label
-        ? label + (ranked ? versionLength(version) + ' (' + (versionIdx + 1) + '/' + versions.length + ')' : '')
+        ? label + (ranked && lyricsHidden ? ' (0/' + versions.length + ')' : '')
+            + (ranked && !lyricsHidden ? versionLength(version) + ' (' + (versionIdx + 1) + '/' + versions.length + ')' : '')
         : '');
     el.source.classList.toggle('is-synced', synced);
     el.source.title = [
