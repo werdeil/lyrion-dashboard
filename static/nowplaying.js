@@ -64,8 +64,9 @@ var searching = false;
 var retryHeld = false;
 function updateRetry() {
     if (!el.retry) { return; }
-    el.retry.hidden = searching || !currentTrack;
-    el.retry.disabled = retryHeld;
+    el.retry.hidden = !currentTrack;
+    el.retry.disabled = retryHeld || searching;
+    el.retry.classList.toggle('is-busy', searching);
     syncTools();
 }
 

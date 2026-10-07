@@ -433,6 +433,10 @@ body.in-app .np-pull {
     animation: np-spin 0.8s linear infinite;
 }
 
+@keyframes np-spin {
+    to { transform: rotate(360deg); }
+}
+
 @media (prefers-reduced-motion: reduce) {
     .np-pull {
         transition: none;
@@ -841,6 +845,20 @@ body.in-app .np-pull {
 .np-retry:disabled {
     opacity: 0.35;
     cursor: default;
+}
+
+.np-retry.is-busy {
+    opacity: 1;
+}
+
+.np-retry.is-busy svg {
+    animation: np-spin 0.8s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .np-retry.is-busy svg {
+        animation: none;
+    }
 }
 
 /* display:flex above would defeat the hidden attribute without this. */
