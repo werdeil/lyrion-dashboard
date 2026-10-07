@@ -92,12 +92,6 @@
 {% endcall %}
 {%- endmacro %}
 
-{% macro confirmed_icon(size=20) -%}
-{% call _frame(size) %}
-    <polyline points="4 12.5 9 17.5 20 6.5"/>
-{% endcall %}
-{%- endmacro %}
-
 {# Speaker with sound waves, or with a cross once its parent carries .is-muted. #}
 {% macro volume_icon(size=20) -%}
 {% call _frame(size) %}

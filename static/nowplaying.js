@@ -45,7 +45,6 @@ var el = {
     lyrics: document.getElementById('np-lyrics'),
     source: document.getElementById('np-lyrics-source'),
     sourceLabel: document.getElementById('np-lyrics-source-label'),
-    sourceMark: document.getElementById('np-source-mark'),
     cover:  document.getElementById('np-cover-img'),
     retry:  document.getElementById('np-retry'),
     lyricsTools: document.querySelector('.np-lyrics-tools'),
@@ -128,6 +127,43 @@ function setSelectedPlayer(id) {
         if (selectedPlayer) { localStorage.setItem(SELECTED_PLAYER_KEY, selectedPlayer); }
         else { localStorage.removeItem(SELECTED_PLAYER_KEY); }
     } catch (e) {}
+}
+
+// Keyed by artist|title, not the track id, which a rescan renumbers.
+var HIDDEN_LYRICS_KEY = 'lyrion.hiddenLyrics';
+var HIDDEN_LYRICS_MAX = 200;
+var hiddenLyrics = [];
+try { hiddenLyrics = JSON.parse(localStorage.getItem(HIDDEN_LYRICS_KEY)) || []; } catch (e) {}
+if (!Array.isArray(hiddenLyrics)) { hiddenLyrics = []; }
+
+function hashText(text) {
+    var h = 5381;
+    for (var i = 0; i < text.length; i++) {
+        h = ((h << 5) + h + text.charCodeAt(i)) | 0;
+    }
+    return (h >>> 0).toString(36);
+}
+
+function hiddenKey(version) {
+    return [currentTrack.artist || '', currentTrack.title || ''].join('|').toLowerCase()
+        + '|' + hashText(textKey(version.text));
+}
+
+function isHidden(version) {
+    return hiddenLyrics.indexOf(hiddenKey(version)) >= 0;
+}
+
+function rememberHidden(hide) {
+    for (var i = 0; i < versions.length; i++) {
+        var key = hiddenKey(versions[i]);
+        var at = hiddenLyrics.indexOf(key);
+        if (at >= 0) { hiddenLyrics.splice(at, 1); }
+        if (hide) { hiddenLyrics.push(key); }
+    }
+    if (hiddenLyrics.length > HIDDEN_LYRICS_MAX) {
+        hiddenLyrics.splice(0, hiddenLyrics.length - HIDDEN_LYRICS_MAX);
+    }
+    try { localStorage.setItem(HIDDEN_LYRICS_KEY, JSON.stringify(hiddenLyrics)); } catch (e) {}
 }
 
 var LYRION_ARROW_PATH = 'M19 19H5V5h7V3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2v-7h-2v7zM14 3v2h3.59l-9.83 9.83 1.41 1.41L19 6.41V10h2V3h-7z';
@@ -261,7 +297,7 @@ var lyricsTried = false;
 var MAX_VERSIONS = 5;
 var versions = [];
 var versionIdx = -1;
-var echoed = false;
+var lyricsHidden = false;
 
 var lrcLines = null;
 // Cached with the active index, so the 4×/s karaoke tick skips the DOM while the line holds.
@@ -582,20 +618,21 @@ function versionLength(version) {
 function updateSource() {
     if (!el.source) { return; }
     var version = versions[versionIdx];
-    var label = version && SOURCE_LABELS[version.source];
+    var label = version && (lyricsHidden ? I18N.lyrics_hidden_chip : sourceLabel(version));
     var synced = !!(label && lrcLines);
-    var canCycle = versions.length > 1 && !searching;
+    var canCycle = versions.length > 0 && !searching;
+    var ranked = versions.length > 1 && !searching;
     el.source.hidden = !label;
     el.source.disabled = !canCycle;
     el.sourceLabel.textContent = searching ? I18N.searching : (label
-        ? label + (canCycle ? versionLength(version) + ' (' + (versionIdx + 1) + '/' + versions.length + ')' : '')
+        ? label + (ranked && lyricsHidden ? ' (0/' + versions.length + ')' : '')
+            + (ranked && !lyricsHidden ? versionLength(version) + ' (' + (versionIdx + 1) + '/' + versions.length + ')' : '')
         : '');
     el.source.classList.toggle('is-synced', synced);
-    // The mark takes the chevron's place, so it only ever shows on a passive chip.
-    var confirmed = echoed && !canCycle && !searching && !!label;
-    if (el.sourceMark) { el.sourceMark.hidden = !confirmed; }
-    el.source.title = canCycle ? I18N.switch_version
-        : (confirmed ? I18N.lyrics_confirmed : (synced ? I18N.lyrics_synced_hint : ''));
+    el.source.title = [
+        synced ? I18N.lyrics_synced_hint : '',
+        canCycle ? I18N.switch_version : '',
+    ].filter(Boolean).join(' \u00b7 ');
     syncTools();
 }
 
@@ -603,8 +640,24 @@ function showVersion(idx, keepScroll) {
     var version = versions[idx];
     if (!version) { return; }
     versionIdx = idx;
+    lyricsHidden = false;
     setLyrics(version.text, false, keepScroll);
     updateSource();
+}
+
+// The chip needs a version behind it, or it hides along with the way back.
+function showHidden() {
+    versionIdx = Math.max(versionIdx, 0);
+    lyricsHidden = true;
+    setLyrics(I18N.lyrics_hidden, true);
+    updateSource();
+}
+
+function allHidden() {
+    for (var i = 0; i < versions.length; i++) {
+        if (!isHidden(versions[i])) { return false; }
+    }
+    return versions.length > 0;
 }
 
 // Older responses carry only the winning upload, hence the fallback shape.
@@ -638,46 +691,99 @@ function textKey(text) {
     return (text || '').replace(/\s+/g, ' ').trim();
 }
 
-function alreadyOffered(text) {
+function offeredAs(text) {
     var key = textKey(text);
     for (var i = 0; i < versions.length; i++) {
-        if (textKey(versions[i].text) === key) { return true; }
+        if (textKey(versions[i].text) === key) { return versions[i]; }
     }
-    return false;
+    return null;
+}
+
+function noteEcho(version, source) {
+    version.echoes = version.echoes || [];
+    if (source !== version.source && version.echoes.indexOf(source) < 0) {
+        version.echoes.push(source);
+    }
+}
+
+function sourceLabel(version) {
+    var names = [version.source].concat(version.echoes || []);
+    var labels = [];
+    for (var i = 0; i < names.length; i++) {
+        if (SOURCE_LABELS[names[i]]) { labels.push(SOURCE_LABELS[names[i]]); }
+    }
+    return labels.join(' + ');
+}
+
+// Preference order: the version the page lands on must stay 1/n.
+function versionRank(version) {
+    var rank = version.synced ? 0 : (version.source === 'library' ? 1 : 2);
+    return isHidden(version) ? rank + 3 : rank;
+}
+
+function rankVersions() {
+    var ranked = versions.map(function(version, i) {
+        return { version: version, rank: versionRank(version), i: i };
+    });
+    ranked.sort(function(a, b) { return a.rank - b.rank || a.i - b.i; });
+    versions = ranked.map(function(entry) { return entry.version; });
+    // The library's text is never the one shed.
+    for (var j = versions.length - 1; versions.length > MAX_VERSIONS && j >= 0; j--) {
+        if (versions[j].source !== 'library') { versions.splice(j, 1); }
+    }
 }
 
 function pushWebVersions(res) {
     var web = webVersions(res);
-    var before = versions.length;
+    var added = 0;
     for (var i = 0; i < web.length; i++) {
-        if (alreadyOffered(web[i].text)) { echoed = true; }
-        else { versions.push(web[i]); }
+        var same = offeredAs(web[i].text);
+        if (same) { noteEcho(same, web[i].source); }
+        else { versions.push(web[i]); added++; }
     }
-    if (versions.length > MAX_VERSIONS) { versions.length = MAX_VERSIONS; }
-    return versions.length - before;
+    rankVersions();
+    return added;
 }
 
-function firstSyncedIdx(from) {
-    for (var i = from; i < versions.length; i++) {
-        if (versions[i].synced) { return i; }
-    }
-    return -1;
-}
-
-function webVersionIdx() {
-    for (var i = 0; i < versions.length; i++) {
-        if (versions[i].source !== 'library') { return i; }
-    }
-    return -1;
+function landOnVersions(current) {
+    if (allHidden()) { showHidden(); return; }
+    if (!current || lyricsHidden || versions[0].synced) { showVersion(0); return; }
+    versionIdx = versions.indexOf(current);
+    updateSource();
 }
 
 if (el.source) {
     el.source.addEventListener('click', function() {
-        if (versions.length > 1) {
-            showVersion((versionIdx + 1) % versions.length, true);
+        if (!versions.length) { return; }
+        holdLyricsHeight();
+        if (lyricsHidden) {
+            rememberHidden(false);
+            showVersion(0);
+        } else if (versionIdx < versions.length - 1) {
+            showVersion(versionIdx + 1, true);
+        } else {
+            rememberHidden(true);
+            showHidden();
         }
     });
 }
+
+// Released on a width change only: the mobile URL bar resizes the height on scroll.
+var heldWidth = 0;
+function holdLyricsHeight() {
+    // The fitted layouts size the box from the viewport (flex-basis 0), not from its text.
+    if (getComputedStyle(el.lyrics).flexBasis === '0px') { return; }
+    el.lyrics.style.minHeight = el.lyrics.offsetHeight + 'px';
+    heldWidth = window.innerWidth;
+}
+
+function releaseLyricsHeight() {
+    el.lyrics.style.minHeight = '';
+}
+
+window.addEventListener('resize', function() {
+    if (window.innerWidth !== heldWidth) { releaseLyricsHeight(); }
+});
 
 function setSearching(on) {
     searching = on;
@@ -1190,6 +1296,7 @@ function render(data) {
     var trackKey = [data.track_id, data.title, data.artist, data.album].join('|');
     if (trackKey !== lastTrackKey) {
         lastTrackKey = trackKey;
+        releaseLyricsHeight();
         currentTrack = data;
         // COVER_SIZE is the /cover route's cap; remote artwork has no resize form.
         el.cover.src = data.artwork_url
@@ -1199,8 +1306,10 @@ function render(data) {
         syncCoverZoom();
         versions = data.lyrics ? [{ text: data.lyrics, source: 'library' }] : [];
         versionIdx = data.lyrics ? 0 : -1;
-        echoed = false;
-        setLyrics(data.lyrics || I18N.no_lyrics_library, !data.lyrics);
+        lyricsHidden = false;
+        if (!data.lyrics) { setLyrics(I18N.no_lyrics_library, true); }
+        else if (allHidden()) { showHidden(); }
+        else { showVersion(0); }
         updateSource();
         lyricsTried = false;
         setSearching(false);
@@ -1247,7 +1356,7 @@ function fetchLyrics() {
             setSearching(false);
             holdRetry(res.retry_after || 0);
             if (pushWebVersions(res)) {
-                showVersion(0);
+                landOnVersions(null);
             } else {
                 setLyrics(emptyLyricsMessage(res), true);
             }
@@ -1278,12 +1387,10 @@ function trySyncedFromWeb() {
             if (track !== currentTrack) { return; }
             setSearching(false);
             holdRetry(res.retry_after || 0);
-            var first = versions.length;
+            var current = versions[versionIdx];
             // An answer that only repeated the text on screen still refreshes the chip.
             if (!pushWebVersions(res)) { updateSource(); return; }
-            var synced = firstSyncedIdx(first);
-            if (synced >= 0) { showVersion(synced); }
-            else { updateSource(); }
+            landOnVersions(current);
         })
         .catch(function() {
             if (track !== currentTrack) { return; }
@@ -1294,12 +1401,9 @@ function trySyncedFromWeb() {
 function retryLyrics() {
     if (!currentTrack) { return; }
     // Drop the previous answer, or the new one stacks a second copy onto the cycle.
-    var web = webVersionIdx();
-    if (web >= 0) {
-        versions.length = web;
-        versionIdx = versions.length ? 0 : -1;
-    }
-    echoed = false;
+    versions = versions.filter(function(version) { return version.source === 'library'; });
+    versionIdx = versions.length ? 0 : -1;
+    for (var i = 0; i < versions.length; i++) { versions[i].echoes = []; }
     lyricsTried = true;  // force refresh=1 → bypass the server-side cache
     if (currentTrack.lyrics) {
         trySyncedFromWeb();  // the library's text stays unless the web beats it
