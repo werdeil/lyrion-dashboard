@@ -433,6 +433,10 @@ body.in-app .np-pull {
     animation: np-spin 0.8s linear infinite;
 }
 
+@keyframes np-spin {
+    to { transform: rotate(360deg); }
+}
+
 @media (prefers-reduced-motion: reduce) {
     .np-pull {
         transition: none;
@@ -829,6 +833,7 @@ body.in-app .np-pull {
 
 /* Only a divider when both segments show; alone, either is the whole pill. */
 .np-retry:not([hidden]) + .np-lyrics-source {
+    border-radius: 0;
     border-left: 1px solid color-mix(in srgb, var(--tint-color) 24%, rgba(255, 255, 255, 0.10));
 }
 
@@ -841,6 +846,20 @@ body.in-app .np-pull {
 .np-retry:disabled {
     opacity: 0.35;
     cursor: default;
+}
+
+.np-retry.is-busy {
+    opacity: 1;
+}
+
+.np-retry.is-busy svg {
+    animation: np-spin 0.8s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .np-retry.is-busy svg {
+        animation: none;
+    }
 }
 
 /* display:flex above would defeat the hidden attribute without this. */
