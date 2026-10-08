@@ -62,11 +62,18 @@ var el = {
 // click never lands on a fuse.
 var searching = false;
 var retryHeld = false;
+// Set when a search behind the library's text failed, which the box itself never shows.
+var searchFailure = null;
 function updateRetry() {
     if (!el.retry) { return; }
     el.retry.hidden = !currentTrack;
     el.retry.disabled = retryHeld || searching;
     el.retry.classList.toggle('is-busy', searching);
+    var failed = !!searchFailure && !searching;
+    var label = failed ? searchFailure + ' \u00b7 ' + I18N.retry_lyrics : I18N.retry_lyrics;
+    el.retry.classList.toggle('is-failed', failed);
+    el.retry.title = label;
+    el.retry.setAttribute('aria-label', label);
     syncTools();
 }
 
@@ -1313,6 +1320,7 @@ function render(data) {
         else { showVersion(0); }
         updateSource();
         lyricsTried = false;
+        searchFailure = null;
         setSearching(false);
         // The cooldown is per track, so a new one starts with a live button.
         holdRetry(0);
@@ -1327,10 +1335,14 @@ function render(data) {
 
 // Throttled and unavailable answers return instantly, so they need their own
 // message, or the retry looks broken.
-function emptyLyricsMessage(res) {
+function searchFailureMessage(res) {
     if (res && res.throttled) { return I18N.lyrics_throttled; }
     if (res && res.source === 'unavailable') { return I18N.lyrics_unavailable; }
-    return I18N.no_lyrics_found;
+    return null;
+}
+
+function emptyLyricsMessage(res) {
+    return searchFailureMessage(res) || I18N.no_lyrics_found;
 }
 
 function fetchLyrics() {
@@ -1381,11 +1393,13 @@ function trySyncedFromWeb() {
         refresh:  lyricsTried ? '1' : '',
     });
     lyricsTried = true;
+    searchFailure = null;
     setSearching(true);
     fetch('/lyrics.json?' + params.toString(), { cache: 'no-store' })
         .then(function(r) { return r.json(); })
         .then(function(res) {
             if (track !== currentTrack) { return; }
+            searchFailure = searchFailureMessage(res);
             setSearching(false);
             holdRetry(res.retry_after || 0);
             var current = versions[versionIdx];
@@ -1395,6 +1409,7 @@ function trySyncedFromWeb() {
         })
         .catch(function() {
             if (track !== currentTrack) { return; }
+            searchFailure = I18N.lyrics_unavailable;
             setSearching(false);
         });
 }
