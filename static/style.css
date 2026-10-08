@@ -33,6 +33,7 @@
     --border-color: #3a3a3a;   /* hairlines: rules, cover edge */
     --page-pad: 16px;          /* body gutter, subtracted by the viewport-fitting calc */
     --surface: #303030;        /* raised neutral fills: progress track, cards */
+    --text-error: #ffb7c0;
     transition: --tint-color 900ms ease, --accent-color 900ms ease;
 }
 
@@ -837,6 +838,10 @@ body.in-app .np-pull {
     border-left: 1px solid color-mix(in srgb, var(--tint-color) 24%, rgba(255, 255, 255, 0.10));
 }
 
+.np-retry.is-failed {
+    color: var(--text-error);
+}
+
 .np-retry:hover:not(:disabled),
 .np-retry:focus-visible {
     color: var(--accent-color);
@@ -1130,7 +1135,7 @@ body.in-app .page-header {
 
 .status.error {
     background: rgba(255, 125, 135, 0.12);
-    color: #ffb7c0;
+    color: var(--text-error);
 }
 
 /* Enlarged cover, covering the now-playing panel only. It has no surface of

@@ -8,12 +8,12 @@ beautifulsoup4==4.15.0
 # tree as the last known-good one. Kept current by Dependabot.
 blinker==1.9.0
 certifi==2026.7.22
-charset-normalizer==3.5.1
+charset-normalizer==3.5.2
 click==8.5.0
 idna==3.20
 itsdangerous==2.2.0
 jinja2==3.1.6
-markupsafe==3.0.3
+markupsafe==3.0.4
 packaging==26.3
 soupsieve==2.10
 typing_extensions==4.16.0
