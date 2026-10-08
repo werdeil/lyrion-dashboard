@@ -238,8 +238,8 @@ def _provider_lrclib(artist, title, album, duration):
     """Ask LRCLIB for a track, preferring a synced record of that very recording.
 
     Tries the exact `get`, then `search`, which forgives album and duration
-    mismatches. LRCLIB stores lyrics per upload, so a plain-only `get` hit is only
-    a fallback while the search looks for a synced one. A synced candidate must
+    mismatches. LRCLIB stores lyrics per upload, so a `get` hit with no synced
+    record of this length is only a fallback while the search looks for one. A synced candidate must
     match the track's duration; one that doesn't still serves as plain text.
     Raises ProviderUnavailable when LRCLIB can't be reached at all.
     """
@@ -265,7 +265,7 @@ def _provider_lrclib(artist, title, album, duration):
         payload = None
 
     others = []
-    if payload is None or not payload.get("syncedLyrics"):
+    if payload is None or not _lrclib_version(payload, seconds)["synced"]:
         payload, others = _lrclib_search(artist, title, album, seconds, payload)
 
     if not payload:
