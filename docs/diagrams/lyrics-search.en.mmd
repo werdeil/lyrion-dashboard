@@ -1,0 +1,7 @@
+flowchart TD
+    A([Next provider: LRCLIB, Musixmatch, Genius]) --> B{Synced lyrics of this length?}
+    B -- yes --> C[Karaoke, the search stops]
+    B -- no --> D[Its plain text is kept if it is the first one found]
+    D --> E{Another provider left?}
+    E -- yes --> A
+    E -- no --> F[The first plain text found, or nothing]

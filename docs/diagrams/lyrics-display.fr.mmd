@@ -1,0 +1,9 @@
+flowchart TD
+    A([Un morceau commence]) --> B{Paroles dans vos tags ?}
+    B -- oui --> C[Affichées tout de suite]
+    B -- non --> D["Recherche…"]
+    C --> E[Recherche web]
+    D --> E
+    E -- version synchronisée --> F[Le karaoké prend la place]
+    E -- texte simple seulement --> G[Le texte de vos tags s'il existe, sinon celui du web]
+    E -- rien --> H["Le texte de vos tags s'il existe, sinon « Aucune parole trouvée »"]
