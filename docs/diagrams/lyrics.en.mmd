@@ -1,0 +1,12 @@
+flowchart TD
+    A([A track starts]) --> P[Next provider: LRCLIB, Musixmatch, Genius]
+    P --> S{Synced lyrics of this length?}
+    S -- yes --> K[Karaoke]
+    S -- no --> R[Its plain text is kept if it is the first one found]
+    R --> M{Another provider left?}
+    M -- yes --> P
+    M -- no --> T{Lyrics in your tags?}
+    T -- yes --> TAGS[Your tags' text]
+    T -- no --> W{Plain text found on the web?}
+    W -- yes --> WEB[The web's text]
+    W -- no --> N["“No lyrics found”"]

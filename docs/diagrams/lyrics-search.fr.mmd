@@ -1,7 +1,0 @@
-flowchart TD
-    A([Fournisseur suivant : LRCLIB, Musixmatch, Genius]) --> B{Paroles synchronisées de cette durée ?}
-    B -- oui --> C[Karaoké, la recherche s'arrête]
-    B -- non --> D[Son texte simple est gardé si c'est le premier trouvé]
-    D --> E{Reste un fournisseur ?}
-    E -- oui --> A
-    E -- non --> F[Le premier texte simple trouvé, ou rien]

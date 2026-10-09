@@ -52,5 +52,5 @@ python -m unittest discover
 Les schémas de ces pages sont des images PNG, car l'application mobile GitHub n'affiche pas Mermaid. Chacun est dessiné à partir du fichier `.mmd` du même nom dans `docs/diagrams/` : modifiez la source, puis redessinez l'image.
 
 ```bash
-npx --yes @mermaid-js/mermaid-cli -i docs/diagrams/lyrics-search.fr.mmd -o docs/diagrams/lyrics-search.fr.png -s 2 -b white
+npx --yes @mermaid-js/mermaid-cli -i docs/diagrams/lyrics.fr.mmd -o docs/diagrams/lyrics.fr.png -s 2 -b white
 ```
