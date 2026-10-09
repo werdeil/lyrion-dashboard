@@ -26,9 +26,10 @@ except ImportError:  # Genius scraping is skipped if bs4 isn't installed.
 LRCLIB_SITE = "https://lrclib.net"
 LRCLIB_BASE = f"{LRCLIB_SITE}/api"
 MXM_BASE = "https://apic-desktop.musixmatch.com/ws/1.1"
+NETEASE_BASE = "https://music.163.com/api"
 USER_AGENT = "lyrion-custom-data (https://github.com/werdeil)"
 # A browser-like UA avoids being blocked when scraping Genius / talking to the
-# Musixmatch desktop endpoint.
+# Musixmatch desktop endpoint or NetEase.
 BROWSER_UA = (
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
     "(KHTML, like Gecko) Chrome/120.0 Safari/537.36"
@@ -433,6 +434,110 @@ def _provider_musixmatch(artist, title, album, duration):
     return None
 
 
+_NETEASE_HEADERS = {"User-Agent": BROWSER_UA, "Referer": "https://music.163.com/"}
+_LRC_TIMESTAMP_RE = re.compile(r"^\[\d+:\d{2}", re.MULTILINE)
+# NetEase prepends the song credits as timed lines, in Chinese whatever the song's language.
+_NETEASE_CREDIT_RE = re.compile(
+    r"^\[[\d:.]+\]\s*(?:作词|作詞|作曲|编曲|編曲|制作人|製作人|监制|混音|母带|录音|和声|出品|词|曲)\s*[:：]"
+)
+
+
+def _netease_song_meta(song):
+    """Read a search hit into a verification meta, whichever field names the endpoint used."""
+    artists = [a.get("name") for a in song.get("artists") or song.get("ar") or [] if isinstance(a, dict)]
+    album = song.get("album") or song.get("al") or {}
+    millis = song.get("duration") or song.get("dt")
+    return {
+        "artists": [a for a in artists if a],
+        "title": song.get("name"),
+        "album": album.get("name") if isinstance(album, dict) else None,
+        "duration": millis / 1000 if isinstance(millis, (int, float)) and millis > 0 else None,
+    }
+
+
+def _netease_pick(songs, artist, title, duration):
+    """Return (id, meta) of the search hit that is this recording, nearest in length, or None.
+
+    The search is free-text and always answers with its nearest songs, so each
+    hit must pass _matches_request against one of its credited artists.
+    """
+    matches = []
+    for song in songs:
+        if not isinstance(song, dict) or not song.get("id"):
+            continue
+        meta = _netease_song_meta(song)
+        credited = next(
+            (a for a in meta["artists"] if _matches_request(dict(meta, artist=a), artist, title, duration)), None
+        )
+        if credited:
+            matches.append({
+                "id": song["id"], "artist": credited, "title": meta["title"],
+                "album": meta["album"], "duration": meta["duration"],
+            })
+    if not matches:
+        return None
+    best = _by_length(matches, _float_duration(duration))[0]
+    return best.pop("id"), best
+
+
+def _provider_netease(artist, title, _album, duration):
+    """Ask NetEase Cloud Music for a track's LRC.
+
+    Searches `artist title`, keeps the hit that verifies against the request and
+    fetches its lyrics; an LRC without timestamps is returned as plain text.
+    Raises ProviderUnavailable when NetEase can't be reached.
+    """
+    try:
+        r = requests.get(
+            f"{NETEASE_BASE}/search/get/web",
+            params={"s": f"{artist} {title}", "type": 1, "limit": 10, "offset": 0},
+            headers=_NETEASE_HEADERS,
+            timeout=6,
+        )
+        if r.status_code != 200:
+            log.info("netease: search returned HTTP %s", r.status_code)
+            return None
+        songs = (r.json().get("result") or {}).get("songs") or []
+    except requests.RequestException as exc:
+        raise ProviderUnavailable("netease") from exc
+    except (ValueError, AttributeError) as exc:
+        log.debug("netease: unreadable search response (%s)", exc)
+        return None
+
+    picked = _netease_pick(songs, artist, title, duration)
+    if not picked:
+        if songs:
+            log.info("netease: %d search results, none is %r by %r", len(songs), title, artist)
+        return None
+    song_id, meta = picked
+
+    try:
+        r = requests.get(
+            f"{NETEASE_BASE}/song/lyric",
+            params={"id": song_id, "lv": 1, "kv": 1, "tv": -1},
+            headers=_NETEASE_HEADERS,
+            timeout=6,
+        )
+        if r.status_code != 200:
+            log.info("netease: lyrics of song %s returned HTTP %s", song_id, r.status_code)
+            return None
+        text = ((r.json().get("lrc") or {}).get("lyric") or "").strip()
+    except requests.RequestException as exc:
+        raise ProviderUnavailable("netease") from exc
+    except (ValueError, AttributeError) as exc:
+        log.debug("netease: unreadable lyrics response (%s)", exc)
+        return None
+
+    lines = [line for line in text.splitlines() if not _NETEASE_CREDIT_RE.match(line.strip())]
+    text = "\n".join(lines).strip()
+    log.debug("netease: song %s (%r, %ss), %d characters", song_id, meta["album"], _int_duration(meta["duration"]), len(text))
+    if not text:
+        return None
+    if _LRC_TIMESTAMP_RE.search(text):
+        return {"lyrics": None, "synced": text, "meta": meta}
+    return {"lyrics": text, "synced": None, "meta": meta}
+
+
 def _parse_genius_html(html):
     if BeautifulSoup is None:
         return None
@@ -512,9 +617,10 @@ def _provider_genius(artist, title, album, _duration):
 PROVIDERS = {
     "lrclib": _provider_lrclib,
     "musixmatch": _provider_musixmatch,
+    "netease": _provider_netease,
     "genius": _provider_genius,
 }
-DEFAULT_PROVIDER_ORDER = "lrclib,musixmatch,genius"
+DEFAULT_PROVIDER_ORDER = "lrclib,musixmatch,netease,genius"
 PLAIN_ONLY_PROVIDERS = {"genius"}
 
 
