@@ -1,9 +1,5 @@
 flowchart TD
-    A([A track starts]) --> B{Lyrics in your tags?}
-    B -- yes --> C[Shown right away]
-    B -- no --> D["Searching…"]
-    C --> E[Web search]
-    D --> E
-    E -- synced version --> F[Karaoke takes over]
+    A([A track starts]) --> E[Web search]
+    E -- synced version --> F[Karaoke]
     E -- plain text only --> G[Your tags' text if any, else the web's]
     E -- nothing --> H["Your tags' text if any, else “No lyrics found”"]
