@@ -96,7 +96,7 @@ When opening a PR, follow `.github/pull_request_template.md`: fill in the proble
 - `services/lyrics.py` — web lyrics fallback (LRCLIB, Musixmatch, NetEase, Genius, tried in `LYRICS_PROVIDERS` order; synced-capable providers first). Results live in a process-local in-memory cache (single gunicorn worker + threads means all requests share it); hits are cached longer (`TTL_HIT`) than misses (`TTL_MISS`). Cannot be persisted — `library.db` is read-only.
 - `services/ratelimit.py` — dependency-free `RateLimiter` (per-IP sliding window) and `Cooldown` (once per interval), used to fuse the outbound lyrics searches. Idle entries are swept on every call so the maps stay bounded.
 - `services/tags.py` — framework-free tag writer (mutagen), shared by the web app and the CLI scripts: lyrics (plain text only) and cover art (stored as handed, never re-encoded).
-- `services/artwork.py` — image dimensions from header bytes alone (JPEG/PNG/GIF/BMP/WebP), no dependencies. Lyrion shows the artwork embedded in the tags and ignores `folder.jpg`, which is what `scripts/embed_covers.py` reconciles. **See the `covers` skill.**
+- `services/artwork.py` — image dimensions and format from header bytes alone (JPEG/PNG/GIF/BMP/WebP), no dependencies. Lyrion shows the artwork embedded in the tags and ignores `folder.jpg`, which is what `scripts/embed_covers.py` reconciles — by byte comparison, so the folder's file wins even when smaller. **See the `covers` skill.**
 
 ### Frontend
 
@@ -108,7 +108,7 @@ The UI is fully bilingual. `i18n.py` is the single source of truth for UI string
 
 ### Scripts (`scripts/`)
 
-Run outside the web app with `requirements-cli.txt` (no Flask/Lyrion). They operate directly on audio files; Lyrion picks up changes on its next scan. `embed_lyrics.py` embeds web lyrics into file tags; `embed_covers.py` embeds an album folder's cover file into its tracks' tags, which is the only way to change what Lyrion displays (it shows the embedded artwork and ignores `folder.jpg`); `embed_lyrics_cron.sh` and `embed_covers_cron.sh` are cron wrappers that only revisit what changed since the last successful pass; `generate_screenshots.py` regenerates the images under `docs/screenshots/` — the README header and the demo gallery — with mocked Lyrion/DB layers and headless Chromium.
+Run outside the web app with `requirements-cli.txt` (no Flask/Lyrion). They operate directly on audio files; Lyrion picks up changes on its next scan. `embed_lyrics.py` embeds web lyrics into file tags; `embed_covers.py` mirrors an album folder's cover file into its tracks' tags, which is the only way to change what Lyrion displays (it shows the embedded artwork and ignores `folder.jpg`); `embed_lyrics_cron.sh` and `embed_covers_cron.sh` are cron wrappers that only revisit what changed since the last successful pass; `generate_screenshots.py` regenerates the images under `docs/screenshots/` — the README header and the demo gallery — with mocked Lyrion/DB layers and headless Chromium.
 
 ## Code style & comments
 

@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
-"""Embed each album folder's cover file into the tags of its tracks.
+"""Mirror each album folder's cover file into the tags of its tracks.
 
 Lyrion displays the artwork embedded in the files and ignores a folder's cover
-file entirely, so an album whose folder.jpg is sharper than its own tags shows
-the worse of the two. This walks album folders and, wherever the file beats the
-tags, writes it into every track of that album. Lyrion picks the change up on
-its next scan.
+file entirely, so the two drift apart silently. This makes the folder's file the
+single source of truth: wherever a track's embedded artwork differs from it,
+byte for byte, the file is written in. Lyrion picks the change up on its next
+scan.
 
 Usage:
     python scripts/embed_covers.py /path/to/music [--dry-run] [--name folder.jpg]
@@ -21,9 +21,10 @@ Nothing is written with --dry-run. Either way the run reports how much the
 audio files grow: embedding a cover rewrites every track, so a 2 MB sleeve
 across a twelve-track album adds 24 MB that then has to resync and back up.
 
-Only a bigger cover is embedded, measured on the shortest side — the side that
-decides how sharp a sleeve looks on screen. An album whose tags carry no
-artwork at all is always filled in.
+The comparison is on bytes, not on dimensions, so replacing a folder.jpg with a
+*smaller* one propagates too — which is the point: the folder decides. Only
+tracks that actually differ are rewritten, so an interrupted run resumes
+cheaply.
 """
 
 import argparse
@@ -74,10 +75,11 @@ def label(folder):
 
 
 def read_folder_cover(folder, name):
-    """Return (bytes, shortest side) for the folder's cover file, or None.
+    """Return (bytes, dimensions) for the folder's cover file, or None.
 
     The name is matched without regard to case, so a Folder.jpg written by a
-    Windows tagger is found too.
+    Windows tagger is found too. A file that doesn't read as an image is
+    refused rather than embedded as artwork.
     """
     try:
         entries = {n.lower(): n for n in os.listdir(folder)}
@@ -91,27 +93,17 @@ def read_folder_cover(folder, name):
             data = handle.read()
     except OSError:
         return None
-    side = artwork.smallest_side(data)
-    return (data, side) if side else None
+    dims = artwork.image_size(data)
+    return (data, dims) if dims else None
 
 
-def embedded_side(files):
-    """Shortest side of the artwork already in the album's tags, 0 if none.
-
-    Three tracks are enough to tell what an album carries; the write still
-    covers every one of them.
-    """
-    for path in files[:3]:
-        data = tags.read_cover(path)
-        if data:
-            side = artwork.smallest_side(data)
-            if side:
-                return side
-    return 0
+def stale(files, data):
+    """The tracks whose embedded artwork is not exactly `data`."""
+    return [path for path in files if tags.read_cover(path) != data]
 
 
-def process(folder, files, data, side, current):
-    """Write `data` into every track, returning the failures as text lines."""
+def process(folder, files, data, dims):
+    """Write `data` into every track given, returning the failures as text."""
     failures = []
     for path in files:
         try:
@@ -124,7 +116,7 @@ def process(folder, files, data, side, current):
         for line in failures[:3]:
             print(f"              {line}")
     else:
-        print(f"[written]   {rel}  {current or 'none'} -> {side}px on {len(files)} tracks")
+        print(f"[written]   {rel}  {dims[1]}x{dims[2]} into {len(files)} tracks")
     return failures
 
 
@@ -165,21 +157,21 @@ def main(argv=None):
                 print(f"[skip:none] {rel}")
             continue
 
-        data, side = cover
-        current = embedded_side(files)
-        if current >= side:
+        data, dims = cover
+        outdated = stale(files, data)
+        if not outdated:
             counts["up_to_date"] += 1
             if args.verbose:
-                print(f"[skip:has]  {rel}  (tags {current}px, file {side}px)")
+                print(f"[skip:same] {rel}")
             continue
 
-        added += len(data) * len(files)
+        added += len(data) * len(outdated)
         if args.dry_run:
             counts["written"] += 1
-            print(f"[would]     {rel}  {current or 'none'} -> {side}px on {len(files)} tracks")
+            print(f"[would]     {rel}  {dims[1]}x{dims[2]} into {len(outdated)} of {len(files)} tracks")
             continue
 
-        counts["failed" if process(folder, files, data, side, current) else "written"] += 1
+        counts["failed" if process(folder, outdated, data, dims) else "written"] += 1
 
     print(
         f"\nDone{dry}: {counts['scanned']} albums scanned, {counts['written']} re-tagged, "
