@@ -10,7 +10,7 @@ services:
       # Optional, all documented on docs/configuration.md:
       # - TZ=Europe/Paris
       # - PLAY_COUNTS_SOURCE=auto
-      # - LYRICS_PROVIDERS=lrclib,musixmatch,genius
+      # - LYRICS_PROVIDERS=lrclib,musixmatch,netease,genius
       # - MUSIXMATCH_TOKEN=
       # - LRCLIB_TIMEOUT=15
       # - LOG_LEVEL=INFO

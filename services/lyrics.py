@@ -26,9 +26,10 @@ except ImportError:  # Genius scraping is skipped if bs4 isn't installed.
 LRCLIB_SITE = "https://lrclib.net"
 LRCLIB_BASE = f"{LRCLIB_SITE}/api"
 MXM_BASE = "https://apic-desktop.musixmatch.com/ws/1.1"
+NETEASE_BASE = "https://music.163.com/api"
 USER_AGENT = "lyrion-custom-data (https://github.com/werdeil)"
 # A browser-like UA avoids being blocked when scraping Genius / talking to the
-# Musixmatch desktop endpoint.
+# Musixmatch desktop endpoint or NetEase.
 BROWSER_UA = (
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
     "(KHTML, like Gecko) Chrome/120.0 Safari/537.36"
@@ -433,6 +434,130 @@ def _provider_musixmatch(artist, title, album, duration):
     return None
 
 
+_NETEASE_HEADERS = {"User-Agent": BROWSER_UA, "Referer": "https://music.163.com/"}
+_LRC_TIMESTAMP_RE = re.compile(r"^\[\d+:\d{2}", re.MULTILINE)
+# NetEase prepends the song credits as timed lines, in Chinese whatever the song's language.
+_NETEASE_CREDIT_RE = re.compile(
+    r"^\[[\d:.]+\]\s*(?:作词|作詞|作曲|编曲|編曲|制作人|製作人|监制|混音|母带|录音|和声|出品|词|曲)\s*[:：]"
+)
+
+
+def _netease_song_meta(song):
+    artists = [a.get("name") for a in song.get("ar") or [] if isinstance(a, dict)]
+    album = song.get("al") if isinstance(song.get("al"), dict) else {}
+    millis = song.get("dt")
+    return {
+        "artists": [a for a in artists if a],
+        "title": song.get("name"),
+        "album": album.get("name"),
+        "duration": millis / 1000 if isinstance(millis, (int, float)) and millis > 0 else None,
+    }
+
+
+def _netease_pick(songs, artist, title, duration):
+    """Return (id, meta) of the search hit that is this recording, nearest in length, or None.
+
+    The search is free-text and always answers with its nearest songs, so each
+    hit must pass _matches_request against one of its credited artists.
+    """
+    matches = []
+    for song in songs:
+        if not isinstance(song, dict) or not song.get("id"):
+            continue
+        meta = _netease_song_meta(song)
+        credited = next(
+            (a for a in meta["artists"] if _matches_request(dict(meta, artist=a), artist, title, duration)), None
+        )
+        if credited:
+            matches.append({
+                "id": song["id"], "artist": credited, "title": meta["title"],
+                "album": meta["album"], "duration": meta["duration"],
+            })
+    if not matches:
+        return None
+    best = _by_length(matches, _float_duration(duration))[0]
+    return best.pop("id"), best
+
+
+def _netease_search(artist, title):
+    """Return NetEase's song hits for `artist title`, or None when it gave no list.
+
+    Raises ProviderUnavailable when NetEase can't be reached.
+    """
+    try:
+        r = requests.get(
+            f"{NETEASE_BASE}/cloudsearch/pc",
+            params={"s": f"{artist} {title}", "type": 1, "limit": 10, "offset": 0},
+            headers=_NETEASE_HEADERS,
+            timeout=6,
+        )
+        if r.status_code != 200:
+            log.info("netease: search returned HTTP %s", r.status_code)
+            return None
+        payload = r.json()
+    except requests.RequestException as exc:
+        raise ProviderUnavailable("netease") from exc
+    except ValueError as exc:
+        log.debug("netease: unreadable search response (%s)", exc)
+        return None
+    result = payload.get("result") if isinstance(payload, dict) else None
+    # A blocked search still answers 200, with an error code or an encrypted result string.
+    if not isinstance(result, dict):
+        log.info("netease: search answered without a song list (code %s)",
+                 payload.get("code") if isinstance(payload, dict) else None)
+        return None
+    return result.get("songs") or []
+
+
+def _netease_lyric(song_id):
+    """Return a NetEase song's LRC with its credit lines dropped, or "" when it has none.
+
+    Raises ProviderUnavailable when NetEase can't be reached.
+    """
+    try:
+        r = requests.get(
+            f"{NETEASE_BASE}/song/lyric",
+            params={"id": song_id, "lv": 1, "kv": 1, "tv": -1},
+            headers=_NETEASE_HEADERS,
+            timeout=6,
+        )
+        if r.status_code != 200:
+            log.info("netease: lyrics of song %s returned HTTP %s", song_id, r.status_code)
+            return ""
+        text = ((r.json().get("lrc") or {}).get("lyric") or "").strip()
+    except requests.RequestException as exc:
+        raise ProviderUnavailable("netease") from exc
+    except (ValueError, AttributeError) as exc:
+        log.debug("netease: unreadable lyrics response (%s)", exc)
+        return ""
+    lines = [line for line in text.splitlines() if not _NETEASE_CREDIT_RE.match(line.strip())]
+    return "\n".join(lines).strip()
+
+
+def _provider_netease(artist, title, _album, duration):
+    """Ask NetEase Cloud Music for a track's LRC.
+
+    Searches `artist title`, keeps the hit that verifies against the request and
+    fetches its lyrics; an LRC without timestamps is returned as plain text.
+    Raises ProviderUnavailable when NetEase can't be reached.
+    """
+    songs = _netease_search(artist, title)
+    picked = _netease_pick(songs or [], artist, title, duration)
+    if not picked:
+        if songs:
+            log.info("netease: %d search results, none is %r by %r", len(songs), title, artist)
+        return None
+    song_id, meta = picked
+
+    text = _netease_lyric(song_id)
+    log.debug("netease: song %s (%r, %ss), %d characters", song_id, meta["album"], _int_duration(meta["duration"]), len(text))
+    if not text:
+        return None
+    if _LRC_TIMESTAMP_RE.search(text):
+        return {"lyrics": None, "synced": text, "meta": meta}
+    return {"lyrics": text, "synced": None, "meta": meta}
+
+
 def _parse_genius_html(html):
     if BeautifulSoup is None:
         return None
@@ -512,9 +637,10 @@ def _provider_genius(artist, title, album, _duration):
 PROVIDERS = {
     "lrclib": _provider_lrclib,
     "musixmatch": _provider_musixmatch,
+    "netease": _provider_netease,
     "genius": _provider_genius,
 }
-DEFAULT_PROVIDER_ORDER = "lrclib,musixmatch,genius"
+DEFAULT_PROVIDER_ORDER = "lrclib,musixmatch,netease,genius"
 PLAIN_ONLY_PROVIDERS = {"genius"}
 
 
@@ -532,7 +658,7 @@ def _enabled_providers():
 # notes ("(Remastered 2011)", "[Live]") and everything from a "feat." onwards.
 _PAREN_RE = re.compile(r"[\(\[\{].*?[\)\]\}]")
 _FEAT_RE = re.compile(r"\b(feat|ft|featuring)\b.*", re.IGNORECASE)
-_NONALNUM_RE = re.compile(r"[^a-z0-9]+")
+_NONALNUM_RE = re.compile(r"[\W_]+")
 # A library and a catalogue routinely disagree on a leading article and the
 # plural it carries ("Les Fatals Picards" tagged as "Fatal Picards").
 _ARTICLE_RE = re.compile(r"^(?:the|an?|le|la|les|l|un|une|des|el|los|las|il|der|die|das)\b['\s]+", re.IGNORECASE)
