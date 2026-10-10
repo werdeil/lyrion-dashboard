@@ -214,6 +214,21 @@ class LrclibDurationMatchTest(unittest.TestCase):
             self._fetch(fake)
         self.assertIn("returned 2 candidate(s), 1 of this length, 0 of those synced", captured.output[0])
 
+    def test_a_synced_get_hit_of_another_length_still_runs_the_search(self):
+        fake = _Lrclib(
+            get=_record(1, synced="[01:55.54] la", duration=419),
+            searches=[[_record(2, synced="[00:12.00] la")]],
+        )
+        result = self._fetch(fake)
+        self.assertEqual(result["synced"], "[00:12.00] la")
+        self.assertTrue(fake.search_calls)
+
+    def test_a_synced_get_hit_of_another_length_keeps_its_words_when_the_search_misses(self):
+        fake = _Lrclib(get=_record(1, synced="[01:55.54] la", plain="from get", duration=419))
+        result = self._fetch(fake)
+        self.assertIsNone(result["synced"])
+        self.assertEqual(result["lyrics"], "from get")
+
     def test_dropping_the_timings_logs_both_lengths_and_the_record(self):
         fake = _Lrclib(get=None, searches=[[_record(22439347, synced="[01:55.54] la", duration=419)]])
         with self.assertLogs("services.lyrics", level="INFO") as captured:

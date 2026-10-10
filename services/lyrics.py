@@ -2,7 +2,7 @@
 
 Results live in a process-local in-memory cache, since `library.db` is read-only;
 gunicorn's single threaded worker shares it across requests. Providers are tried
-in `LYRICS_PROVIDERS` order and the first that returns anything wins.
+in `LYRICS_PROVIDERS` order: the first synced result wins, else the first plain one.
 """
 
 import logging
@@ -238,8 +238,8 @@ def _provider_lrclib(artist, title, album, duration):
     """Ask LRCLIB for a track, preferring a synced record of that very recording.
 
     Tries the exact `get`, then `search`, which forgives album and duration
-    mismatches. LRCLIB stores lyrics per upload, so a plain-only `get` hit is only
-    a fallback while the search looks for a synced one. A synced candidate must
+    mismatches. LRCLIB stores lyrics per upload, so a `get` hit with no synced
+    record of this length is only a fallback while the search looks for one. A synced candidate must
     match the track's duration; one that doesn't still serves as plain text.
     Raises ProviderUnavailable when LRCLIB can't be reached at all.
     """
@@ -265,7 +265,7 @@ def _provider_lrclib(artist, title, album, duration):
         payload = None
 
     others = []
-    if payload is None or not payload.get("syncedLyrics"):
+    if payload is None or not _lrclib_version(payload, seconds)["synced"]:
         payload, others = _lrclib_search(artist, title, album, seconds, payload)
 
     if not payload:
@@ -515,6 +515,7 @@ PROVIDERS = {
     "genius": _provider_genius,
 }
 DEFAULT_PROVIDER_ORDER = "lrclib,musixmatch,genius"
+PLAIN_ONLY_PROVIDERS = {"genius"}
 
 
 def _enabled_providers():
@@ -576,15 +577,26 @@ def _matches_request(meta, artist, title, duration):
     return _duration_close(meta, _float_duration(duration))
 
 
+def _log_rejected(name, meta, artist, title, duration):
+    log.info(
+        "lyrics: %s answered with %r by %r (%ss), not %r by %r (%ss) - rejected",
+        name, meta.get("title"), meta.get("artist"), _int_duration(meta.get("duration")),
+        title, artist, _int_duration(duration),
+    )
+
+
 def _search_providers(artist, title, album, duration, verify):
     """Try each enabled provider in order and return the first usable result.
 
+    A plain-only result is held while the later providers able to sync are asked
+    for a synced one, unless `verify` is set: the batch CLI only stores plain text.
     Same shape as fetch_lyrics' return value, without any caching: "unavailable"
     means not one provider answered, which the caller must not confuse with a
     search that ran and came up empty.
     """
     rejected = False
     unreachable = 0
+    plain = None
     providers = _enabled_providers()
     if not providers:
         # An empty list is how an operator turns the web search off, so this is
@@ -592,6 +604,8 @@ def _search_providers(artist, title, album, duration, verify):
         log.info("lyrics: web search disabled, LYRICS_PROVIDERS=%r resolves to no provider",
                  os.getenv("LYRICS_PROVIDERS"))
     for name, provider in providers:
+        if plain and name in PLAIN_ONLY_PROVIDERS:
+            continue
         started = time.monotonic()
         try:
             found = provider(artist, title, album, duration)
@@ -607,12 +621,7 @@ def _search_providers(artist, title, album, duration, verify):
             log.info("lyrics: %s has no match (%d ms)", name, _elapsed_ms(started))
             continue
         if verify and not _matches_request(found.get("meta"), artist, title, duration):
-            meta = found.get("meta") or {}
-            log.info(
-                "lyrics: %s answered with %r by %r (%ss), not %r by %r (%ss) - rejected",
-                name, meta.get("title"), meta.get("artist"), _int_duration(meta.get("duration")),
-                title, artist, _int_duration(duration),
-            )
+            _log_rejected(name, found.get("meta") or {}, artist, title, duration)
             rejected = True
             continue
         log.debug(
@@ -622,8 +631,14 @@ def _search_providers(artist, title, album, duration, verify):
         result = {"lyrics": found.get("lyrics"), "synced": found.get("synced"), "source": name}
         if found.get("versions"):
             result["versions"] = found["versions"]
-        return result
+        if result["synced"] or verify:
+            return result
+        if plain is None:
+            log.info("lyrics: %s has plain lyrics only, asking the next providers for synced ones", name)
+            plain = result
 
+    if plain:
+        return plain
     if unreachable and unreachable == len(providers):
         return {"lyrics": None, "synced": None, "source": "unavailable"}
     return {"lyrics": None, "synced": None, "source": "rejected" if rejected else "none"}
@@ -632,7 +647,8 @@ def _search_providers(artist, title, album, duration, verify):
 def fetch_lyrics(track_id, artist, title, album=None, duration=None, force=False, verify=False):
     """Resolve lyrics for the current track from the web, with caching.
 
-    Tries each enabled provider in order and keeps the first non-empty result.
+    Tries each enabled provider in order and keeps the first synced result, else
+    the first plain one.
     Returns a dict {"lyrics": str|None, "synced": str|None, "source": str}.
     `source` is the winning provider name (kept across cache hits), "none" when
     nothing was found, "rejected"

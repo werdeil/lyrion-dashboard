@@ -36,7 +36,7 @@ Each provider is a function `(artist, title, album, duration) -> result | None`.
 
 Providers live in `services/lyrics.py`: `_provider_lrclib`, `_provider_musixmatch`, `_provider_genius`, registered in the `PROVIDERS` map. Order comes from the `LYRICS_PROVIDERS` env var (`_enabled_providers`); **synced-capable providers first** (LRCLIB, Musixmatch) because display always prefers synced (karaoke) over plain — Genius is plain-only, so it comes last. Unknown names in the env list are silently ignored, so an operator can disable a flaky provider by dropping it.
 
-**A provider that can return either form must prefer the synced one, inside itself.** LRCLIB stores lyrics per upload: the record `/get` matches on the exact artist/title/album/duration signature may be plain-only while another upload of the same track carries an LRC, so `_provider_lrclib` keeps a plain-only hit as a fallback and still runs `/search`, scanning the candidates for one with `syncedLyrics` instead of taking `results[0]`. The chain above it can't fix this: `_search_providers` returns the first provider with *anything*, so a plain-only answer ends the search (`tests/test_lyrics_lrclib.py`).
+**A provider that can return either form must prefer the synced one, inside itself.** LRCLIB stores lyrics per upload: the record `/get` matches on the exact artist/title/album/duration signature may be plain-only while another upload of the same track carries an LRC, so `_provider_lrclib` keeps a `/get` hit with no synced record of this length — plain-only, or an LRC whose length `_duration_close` refuses — as a fallback and still runs `/search`, scanning the candidates for one with `syncedLyrics` instead of taking `results[0]`. The chain above it only settles across providers: `_search_providers` holds the first plain-only answer and keeps asking the later providers for a synced one, skipping those in `PLAIN_ONLY_PROVIDERS` (Genius), whose answer could only be plain again; the held answer stands when none syncs, and a later outage does not cost it (`tests/test_lyrics_lrclib.py`, `tests/test_lyrics_chain.py`). With `verify` the first plain answer ends the chain, since the CLI stores plain text only.
 
 `_lrclib_search` returns that winner **and the set it came from**, ranked by `_by_length`: the length-matching synced uploads, then the length-matching plain ones behind them (or those alone when nothing is synced). The `/get` hit joins the tail when the search that found the LRC never returned it — it matched the exact artist/title/album/duration signature, so it is the one plain reading that is certainly this recording's. The `get` hit normally comes back from `/search` too, under the very signature that found it, so it is dropped from the others by `id` — the one duplicate with an exact criterion. Nothing is de-duplicated on the text: two uploads of a song differ by a mistranscribed line or a missing verse, which is precisely what someone comparing them is looking for, so any similarity threshold would remove the signal along with the noise.
 
@@ -54,7 +54,7 @@ The search's `INFO` line counts one set narrowing three times — candidates ret
 
 `fetch_lyrics(track_id, artist, title, album, duration, force, verify)`:
 
-- Tries each enabled provider in order, keeps the **first** non-empty result.
+- Tries each enabled provider in order, keeps the **first synced** result, else the first plain one (see above).
 - Returns `{"lyrics", "synced", "source"}`, plus `versions` when the provider offered several. `source` is the winning provider name (preserved across cache hits so the UI can show the origin), `"none"` when nothing was found, or `"rejected"` when a candidate came back but failed verification.
 - **Caching:** an `OrderedDict` LRU behind a lock, bounded to `CACHE_MAX_ENTRIES`, with hits kept `TTL_HIT` (24h) and misses `TTL_MISS` (1h) — a track with no lyrics online isn't re-queried on every click, but a transient failure recovers sooner. The cache key is `track_id|artist|title|verify`, **not** track_id alone: streamed "flow"/mix sources reuse one playlist track_id while the song changes underneath, which would otherwise serve the first song's lyrics for all of them.
 
@@ -83,7 +83,7 @@ Runs outside the web app with `requirements-cli.txt` (no Flask/Lyrion). Walks fi
 
 ## Checklist
 
-1. New provider → `(artist, title, album, duration)` → result dict; register in `PROVIDERS`; swallow its own errors; put synced-capable ones before plain-only.
+1. New provider → `(artist, title, album, duration)` → result dict; register in `PROVIDERS`; swallow its own errors; put synced-capable ones before plain-only, and list a plain-only one in `PLAIN_ONLY_PROVIDERS`.
 2. Preserve the cache-key shape and TTL split; don't key on track_id alone.
 3. Tag writes store plain text only (run through `lrc_to_plain`).
 4. Keep `services/tags.py` free of Flask/Lyrion imports (the CLI reuses it).

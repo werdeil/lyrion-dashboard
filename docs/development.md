@@ -46,3 +46,11 @@ The test suite, the linters and the security scanners are the same ones CI runs;
 ```bash
 python -m unittest discover
 ```
+
+## Diagrams
+
+The diagrams in these pages are PNG images, since the GitHub mobile app does not render Mermaid. Each one is drawn from the `.mmd` file of the same name in `docs/diagrams/`: edit the source, then redraw the image.
+
+```bash
+npx --yes @mermaid-js/mermaid-cli -i docs/diagrams/lyrics.en.mmd -o docs/diagrams/lyrics.en.png -s 2 -b white
+```

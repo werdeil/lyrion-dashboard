@@ -69,6 +69,7 @@ Un APK signé est aussi attaché à chaque [release GitHub](https://github.com/w
 - [Configuration](docs/configuration.fr.md) — variables d'environnement.
 - [Docker](docs/docker.fr.md) — tags d'image, mise à jour, droits sur les fichiers.
 - [Développement](docs/development.fr.md) — exécution depuis les sources, image `dev`, construction locale de l'image.
+- [Paroles](docs/lyrics.fr.md) — d'où viennent les paroles affichées, et comment la recherche web choisit une version.
 - [Logs](docs/logs.fr.md) — ce que l'application écrit à chaque niveau, et comment lire une recherche de paroles restée vide.
 - [Endpoints](docs/endpoints.fr.md) — les routes HTTP, et le widget Homepage alimenté par `/stats.json`.
 - [Scripts](docs/scripts.fr.md) — intégration des paroles et des pochettes dans les tags, wrappers cron, régénération de ces captures.
