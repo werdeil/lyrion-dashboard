@@ -17,8 +17,8 @@ import services.lyrics as L  # pylint: disable=wrong-import-position
 
 
 def _song(song_id, name, artists, millis, album="Absolution"):
-    return {"id": song_id, "name": name, "artists": [{"name": a} for a in artists],
-            "album": {"name": album}, "duration": millis}
+    return {"id": song_id, "name": name, "ar": [{"name": a} for a in artists],
+            "al": {"name": album}, "dt": millis}
 
 
 class FakeResponse:
@@ -78,10 +78,16 @@ class NeteaseTest(unittest.TestCase):
 
     def test_no_lyrics_collected(self):
         with patch.object(L.requests, "get", side_effect=[
-            FakeResponse({"result": {"songs": [_song(7, "Space Debris", ["Muse"], 247000)]}}),
+            FakeResponse({"result": {"songs": [_song(7, "Space Debris", ["Muse"], 247000)]}, "code": 200}),
             FakeResponse({"nolyric": True, "code": 200}),
         ]):
             self.assertIsNone(L._provider_netease("Muse", "Space Debris", None, "247"))
+
+    def test_blocked_search_finds_nothing(self):
+        for payload in ({"result": "35b1748964af8a7c", "code": 200}, {"code": -462, "message": "blocked"}):
+            with patch.object(L.requests, "get", return_value=FakeResponse(payload)) as get:
+                self.assertIsNone(L._provider_netease("Muse", "Space Debris", None, "247"))
+            self.assertEqual(get.call_count, 1)
 
     def test_unreachable_raises(self):
         with patch.object(L.requests, "get", side_effect=requests.ConnectionError("down")):

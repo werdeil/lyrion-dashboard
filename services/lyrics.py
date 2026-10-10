@@ -443,14 +443,13 @@ _NETEASE_CREDIT_RE = re.compile(
 
 
 def _netease_song_meta(song):
-    """Read a search hit into a verification meta, whichever field names the endpoint used."""
-    artists = [a.get("name") for a in song.get("artists") or song.get("ar") or [] if isinstance(a, dict)]
-    album = song.get("album") or song.get("al") or {}
-    millis = song.get("duration") or song.get("dt")
+    artists = [a.get("name") for a in song.get("ar") or [] if isinstance(a, dict)]
+    album = song.get("al") if isinstance(song.get("al"), dict) else {}
+    millis = song.get("dt")
     return {
         "artists": [a for a in artists if a],
         "title": song.get("name"),
-        "album": album.get("name") if isinstance(album, dict) else None,
+        "album": album.get("name"),
         "duration": millis / 1000 if isinstance(millis, (int, float)) and millis > 0 else None,
     }
 
@@ -489,7 +488,7 @@ def _provider_netease(artist, title, _album, duration):
     """
     try:
         r = requests.get(
-            f"{NETEASE_BASE}/search/get/web",
+            f"{NETEASE_BASE}/cloudsearch/pc",
             params={"s": f"{artist} {title}", "type": 1, "limit": 10, "offset": 0},
             headers=_NETEASE_HEADERS,
             timeout=6,
@@ -497,7 +496,13 @@ def _provider_netease(artist, title, _album, duration):
         if r.status_code != 200:
             log.info("netease: search returned HTTP %s", r.status_code)
             return None
-        songs = (r.json().get("result") or {}).get("songs") or []
+        payload = r.json()
+        result = payload.get("result")
+        # A blocked search still answers 200, with an error code or an encrypted result string.
+        if not isinstance(result, dict):
+            log.info("netease: search answered without a song list (code %s)", payload.get("code"))
+            return None
+        songs = result.get("songs") or []
     except requests.RequestException as exc:
         raise ProviderUnavailable("netease") from exc
     except (ValueError, AttributeError) as exc:
