@@ -643,7 +643,7 @@ def _enabled_providers():
 # notes ("(Remastered 2011)", "[Live]") and everything from a "feat." onwards.
 _PAREN_RE = re.compile(r"[\(\[\{].*?[\)\]\}]")
 _FEAT_RE = re.compile(r"\b(feat|ft|featuring)\b.*", re.IGNORECASE)
-_NONALNUM_RE = re.compile(r"[^a-z0-9]+")
+_NONALNUM_RE = re.compile(r"[\W_]+")
 # A library and a catalogue routinely disagree on a leading article and the
 # plural it carries ("Les Fatals Picards" tagged as "Fatal Picards").
 _ARTICLE_RE = re.compile(r"^(?:the|an?|le|la|les|l|un|une|des|el|los|las|il|der|die|das)\b['\s]+", re.IGNORECASE)

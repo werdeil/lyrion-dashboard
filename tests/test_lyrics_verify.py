@@ -31,6 +31,10 @@ class NormalizeTest(unittest.TestCase):
     def test_strips_feat_credits(self):
         self.assertEqual(L._normalize("Muse feat. Someone"), L._normalize("Muse"))
 
+    def test_keeps_names_in_other_scripts(self):
+        self.assertEqual(L._normalize("李荣浩"), "李荣浩")
+        self.assertEqual(L._normalize("Мумий Тролль!"), "мумии тролль")
+
     def test_empty_and_none(self):
         self.assertEqual(L._normalize(None), "")
         self.assertEqual(L._normalize(""), "")
@@ -71,6 +75,11 @@ class MatchesRequestTest(unittest.TestCase):
 
     def test_artist_mismatch(self):
         self.assertFalse(L._matches_request(self._meta(artist="Radiohead"), "Muse", "Space Debris", "247"))
+
+    def test_title_in_another_script_is_compared(self):
+        meta = {"artist": "李荣浩", "title": "山川", "duration": None}
+        self.assertFalse(L._matches_request(meta, "李荣浩", "山", None))
+        self.assertTrue(L._matches_request(dict(meta, title="山"), "李荣浩", "山", None))
 
     def test_no_meta_is_reject(self):
         self.assertFalse(L._matches_request(None, "Muse", "Space Debris", "247"))
