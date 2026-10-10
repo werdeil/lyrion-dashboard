@@ -44,7 +44,7 @@ scripts/embed_lyrics_cron.sh /path/to/music [MARKER] [-- OPTIONS]
 
 ## Embed cover art into files (`scripts/embed_covers.py`)
 
-Walks album folders and writes each folder's cover file into the *artwork* tag of its tracks, wherever that file is sharper than what the tags already carry. Lyrion displays the embedded artwork and ignores `folder.jpg` entirely, so an album with a 1500 px sleeve on disk and a 300 px one in its tags keeps showing the small one until this runs.
+Walks album folders and mirrors each folder's cover file into the *artwork* tag of its tracks. Lyrion displays the embedded artwork and ignores `folder.jpg` entirely, so the two drift apart silently: an album with a 1500 px sleeve on disk and a 300 px one in its tags keeps showing the small one until this runs. The folder's file is the single source of truth — put the cover you want there and this makes the tags match.
 
 ```bash
 python scripts/embed_covers.py /path/to/music [options]
@@ -58,7 +58,7 @@ python scripts/embed_covers.py "/path/to/music/A*" /path/to/music/B*
 | <code>&#8209;&#8209;dry&#8209;run</code> | Prints which albums would be re-tagged, without writing anything. |
 | <code>&#8209;&#8209;verbose</code> | Logs every album, including skipped ones. |
 
-Covers are compared on their **shortest side**, the one that decides how sharp a sleeve looks on screen: only a bigger file is embedded, and an album whose tags carry no artwork at all is always filled in. The image is stored as it is, never re-encoded. Embedding rewrites every track of the album, so the run reports how much the audio files grow — a 2 MB sleeve across a twelve-track album adds 24 MB that then has to resync and back up.
+The comparison is **on bytes, not on dimensions**: any track whose embedded artwork is not exactly the folder's file gets rewritten, so replacing a cover with a *smaller* one propagates too. Only the tracks that actually differ are touched, which makes an interrupted run cheap to resume and a second pass a no-op. The image is stored as it is, never re-encoded; a file that doesn't read as an image is refused rather than embedded. Embedding rewrites every track it touches, so the run reports how much the audio files grow — a 2 MB sleeve across a twelve-track album adds 24 MB that then has to resync and back up.
 
 ### Cron: only re-check changed folders (`scripts/embed_covers_cron.sh`)
 

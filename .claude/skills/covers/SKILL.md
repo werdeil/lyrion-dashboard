@@ -31,12 +31,11 @@ That is what `embed_covers.py` fixes: it copies the folder's file into the tags 
 from services import artwork
 
 artwork.image_size(data)      # ("jpeg", 1400, 1400)
-artwork.smallest_side(data)   # 1400
 ```
 
 `None` is deliberately ambiguous: it means *not known from these bytes*, covering both "not an image" and "the header hasn't arrived yet". A caller streaming a file can keep reading and ask again. Don't tighten that contract — a JPEG carrying a large colour profile can push its SOF marker hundreds of kilobytes in, so a fixed-size sniff is not enough.
 
-Covers are compared on the **shortest side** (`smallest_side`), because that is what decides how sharp a square sleeve looks once displayed. Comparing area instead would rank a wide, short image above a square one that displays better.
+Dimensions are read for reporting and for refusing a file that is not an image at all — **not** to decide whether to embed. That decision is a byte comparison, see below.
 
 ## Writing: never re-encode
 
@@ -45,6 +44,14 @@ Covers are compared on the **shortest side** (`smallest_side`), because that is 
 **Never re-encode an image to make it fit.** Every write in this codebase is a byte copy, which is why the tag and the folder file can be compared byte for byte afterwards — the cheapest possible verification that a batch did what it claimed.
 
 Embedding **rewrites the whole audio file**: artwork rarely fits the padding a smaller cover left behind. That is why `embed_covers.py` reports how much the files grow, and why the cron wrapper exists at all — re-tagging an album the day it arrives is free, because a new album is synced and backed up in full anyway; re-tagging it six months later means resyncing a file everyone thought was stable.
+
+## The rule: the folder decides
+
+`embed_covers.py` compares each track's embedded bytes against the folder's file and rewrites the ones that differ. Nothing else enters the decision — not dimensions, not file size, not which looks better.
+
+That makes the folder's file the single source of truth, and it is what lets a cover be **replaced by a smaller one**: capping an absurd 7000 px sleeve at 2000 px is a legitimate edit, and a rule of "only if bigger" would silently refuse it while leaving the huge image in every track. The protection it offered against a bad cover was accidental, never designed; review happens before the file lands in the folder.
+
+Two properties follow, and both matter when a cron runs this nightly: only the tracks that actually differ are touched, so an interrupted run resumes cheaply; and a second pass writes nothing, so the job is idempotent.
 
 ## The batch job
 
@@ -55,14 +62,14 @@ python scripts/embed_covers.py "/path/to/music/A*"      # globs, even quoted
 
 An album folder is any folder holding music files, which leaves `Scans/` and `Artwork/` subfolders alone. Files starting with a dot are skipped: macOS leaves AppleDouble stubs (`._track.mp3`) that carry the extension but none of the content, and reading one instead of the real track makes a fully tagged album look empty.
 
-Only the first few tracks are read to decide what an album carries; the write then covers **every** track, since players pick artwork per file.
+Every track is read, since players pick artwork per file and a half-applied album must be finishable.
 
 `embed_covers_cron.sh` mirrors `embed_lyrics_cron.sh` — marker stamped at the start, advanced only on success, untouched by `--dry-run` — with one difference: `find -cnewer` lists changed *files*, and it is their **folders** that get passed on. A replaced `folder.jpg` therefore queues its album exactly like a new track does.
 
 ## Rules
 
 - Read dimensions through `services/artwork.py`; never add an imaging dependency for a job the header already answers.
-- Never re-encode, never resize, never write a cover smaller than the one already in the tags.
-- Compare on the shortest side, not on area or on file size.
+- Never re-encode, never resize: the bytes in the folder are the bytes that go into the tags.
+- Decide on bytes, never on dimensions — the folder's file wins even when it is smaller.
 - Writes go to every track of the album, not just the first.
 - Lyrion is never contacted: the files are the interface, and Lyrion re-scans on its own.
