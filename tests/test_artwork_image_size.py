@@ -10,7 +10,7 @@ import struct
 import unittest
 import zlib
 
-from services.artwork import image_size, smallest_side
+from services.artwork import image_size
 
 
 def jpeg(width, height, marker=0xC0, before=b""):
@@ -88,15 +88,6 @@ class NotAnImageTest(unittest.TestCase):
 
     def test_text(self):
         self.assertIsNone(image_size(b"not an image at all"))
-
-
-class SmallestSideTest(unittest.TestCase):
-    def test_returns_the_shorter_side(self):
-        self.assertEqual(smallest_side(jpeg(1000, 750)), 750)
-        self.assertEqual(smallest_side(jpeg(600, 900)), 600)
-
-    def test_zero_when_unknown(self):
-        self.assertEqual(smallest_side(b"garbage"), 0)
 
 
 if __name__ == "__main__":

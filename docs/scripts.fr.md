@@ -44,7 +44,7 @@ scripts/embed_lyrics_cron.sh /chemin/vers/musique [MARQUEUR] [-- OPTIONS]
 
 ## Intégrer les pochettes dans les fichiers (`scripts/embed_covers.py`)
 
-Parcourt les dossiers d'albums et écrit le fichier de pochette de chaque dossier dans le tag *artwork* de ses morceaux, partout où ce fichier est plus net que ce que portent déjà les tags. Lyrion affiche la pochette embarquée et ignore totalement `folder.jpg` : un album avec une pochette de 1500 px sur le disque et une de 300 px dans ses tags continue donc d'afficher la petite tant que ce script n'est pas passé.
+Parcourt les dossiers d'albums et recopie le fichier de pochette de chaque dossier dans le tag *artwork* de ses morceaux. Lyrion affiche la pochette embarquée et ignore totalement `folder.jpg` : les deux divergent donc en silence, et un album avec une pochette de 1500 px sur le disque et une de 300 px dans ses tags continue d'afficher la petite tant que ce script n'est pas passé. Le fichier du dossier fait seul autorité — déposez-y la pochette voulue, le script aligne les tags.
 
 ```bash
 python scripts/embed_covers.py /chemin/vers/musique [options]
@@ -58,7 +58,7 @@ python scripts/embed_covers.py "/chemin/vers/musique/A*" /chemin/vers/musique/B*
 | <code>&#8209;&#8209;dry&#8209;run</code> | Affiche quels albums seraient re-tagués, sans rien écrire. |
 | <code>&#8209;&#8209;verbose</code> | Journalise chaque album, y compris ceux ignorés. |
 
-Les pochettes sont comparées sur leur **petit côté**, celui qui décide de la netteté à l'écran : seul un fichier plus grand est intégré, et un album dont les tags ne portent aucune pochette est toujours complété. L'image est stockée telle quelle, jamais ré-encodée. L'intégration réécrit chaque morceau de l'album, aussi la passe indique-t-elle de combien grossissent les fichiers audio — une pochette de 2 Mo sur un album de douze titres ajoute 24 Mo, qu'il faudra ensuite resynchroniser et sauvegarder.
+La comparaison porte **sur les octets, pas sur les dimensions** : tout morceau dont la pochette embarquée n'est pas exactement le fichier du dossier est réécrit, si bien qu'une pochette remplacée par une *plus petite* se propage aussi. Seuls les morceaux qui diffèrent réellement sont touchés, ce qui rend une passe interrompue peu coûteuse à reprendre et une seconde passe sans effet. L'image est stockée telle quelle, jamais ré-encodée ; un fichier qui ne se lit pas comme une image est refusé plutôt qu'intégré. L'intégration réécrit chaque morceau touché, aussi la passe indique-t-elle de combien grossissent les fichiers audio — une pochette de 2 Mo sur un album de douze titres ajoute 24 Mo, qu'il faudra ensuite resynchroniser et sauvegarder.
 
 ### Cron : ne re-vérifier que les dossiers modifiés (`scripts/embed_covers_cron.sh`)
 

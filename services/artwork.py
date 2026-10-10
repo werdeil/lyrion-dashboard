@@ -92,12 +92,3 @@ def image_size(data):
         if size:
             return size
     return None
-
-
-def smallest_side(data):
-    """Return the shorter side of an image in pixels, or 0 when unknown.
-
-    Covers are compared on it.
-    """
-    dims = image_size(data)
-    return min(dims[1], dims[2]) if dims else 0
