@@ -479,11 +479,9 @@ def _netease_pick(songs, artist, title, duration):
     return best.pop("id"), best
 
 
-def _provider_netease(artist, title, _album, duration):
-    """Ask NetEase Cloud Music for a track's LRC.
+def _netease_search(artist, title):
+    """Return NetEase's song hits for `artist title`, or None when it gave no list.
 
-    Searches `artist title`, keeps the hit that verifies against the request and
-    fetches its lyrics; an LRC without timestamps is returned as plain text.
     Raises ProviderUnavailable when NetEase can't be reached.
     """
     try:
@@ -497,25 +495,25 @@ def _provider_netease(artist, title, _album, duration):
             log.info("netease: search returned HTTP %s", r.status_code)
             return None
         payload = r.json()
-        result = payload.get("result")
-        # A blocked search still answers 200, with an error code or an encrypted result string.
-        if not isinstance(result, dict):
-            log.info("netease: search answered without a song list (code %s)", payload.get("code"))
-            return None
-        songs = result.get("songs") or []
     except requests.RequestException as exc:
         raise ProviderUnavailable("netease") from exc
-    except (ValueError, AttributeError) as exc:
+    except ValueError as exc:
         log.debug("netease: unreadable search response (%s)", exc)
         return None
-
-    picked = _netease_pick(songs, artist, title, duration)
-    if not picked:
-        if songs:
-            log.info("netease: %d search results, none is %r by %r", len(songs), title, artist)
+    result = payload.get("result") if isinstance(payload, dict) else None
+    # A blocked search still answers 200, with an error code or an encrypted result string.
+    if not isinstance(result, dict):
+        log.info("netease: search answered without a song list (code %s)",
+                 payload.get("code") if isinstance(payload, dict) else None)
         return None
-    song_id, meta = picked
+    return result.get("songs") or []
 
+
+def _netease_lyric(song_id):
+    """Return a NetEase song's LRC with its credit lines dropped, or "" when it has none.
+
+    Raises ProviderUnavailable when NetEase can't be reached.
+    """
     try:
         r = requests.get(
             f"{NETEASE_BASE}/song/lyric",
@@ -525,16 +523,33 @@ def _provider_netease(artist, title, _album, duration):
         )
         if r.status_code != 200:
             log.info("netease: lyrics of song %s returned HTTP %s", song_id, r.status_code)
-            return None
+            return ""
         text = ((r.json().get("lrc") or {}).get("lyric") or "").strip()
     except requests.RequestException as exc:
         raise ProviderUnavailable("netease") from exc
     except (ValueError, AttributeError) as exc:
         log.debug("netease: unreadable lyrics response (%s)", exc)
-        return None
-
+        return ""
     lines = [line for line in text.splitlines() if not _NETEASE_CREDIT_RE.match(line.strip())]
-    text = "\n".join(lines).strip()
+    return "\n".join(lines).strip()
+
+
+def _provider_netease(artist, title, _album, duration):
+    """Ask NetEase Cloud Music for a track's LRC.
+
+    Searches `artist title`, keeps the hit that verifies against the request and
+    fetches its lyrics; an LRC without timestamps is returned as plain text.
+    Raises ProviderUnavailable when NetEase can't be reached.
+    """
+    songs = _netease_search(artist, title)
+    picked = _netease_pick(songs or [], artist, title, duration)
+    if not picked:
+        if songs:
+            log.info("netease: %d search results, none is %r by %r", len(songs), title, artist)
+        return None
+    song_id, meta = picked
+
+    text = _netease_lyric(song_id)
     log.debug("netease: song %s (%r, %ss), %d characters", song_id, meta["album"], _int_duration(meta["duration"]), len(text))
     if not text:
         return None
