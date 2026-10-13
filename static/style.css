@@ -214,8 +214,8 @@ hr {
 }
 
 .stat-level-1 { --level-color: var(--accent-color); }
-.stat-level-2 { --level-color: color-mix(in srgb, var(--accent-color) 68%, var(--surface)); }
-.stat-level-3 { --level-color: color-mix(in srgb, var(--accent-color) 30%, var(--surface)); }
+.stat-level-2 { --level-color: color-mix(in srgb, var(--accent-color) 70%, var(--surface)); }
+.stat-level-3 { --level-color: color-mix(in srgb, var(--accent-color) 45%, var(--surface)); }
 .stat-level-4 { --level-color: #141414; }
 
 .stat-bar {
