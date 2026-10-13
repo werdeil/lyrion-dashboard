@@ -132,7 +132,6 @@
 
             {# Group order is by how fast the numbers move: history changes with every
                play, completion with the library, the library block only on a scan. #}
-            {# The accent (stat-value) marks a group's total; a group without one accents nothing. #}
             <div class="stat-group">
                 <div class="stat-group-title">
                     <span class="stat-group-title-label">{{ icons.history_icon(16) }} {{ t.history }}</span>
@@ -162,23 +161,25 @@
                     <span class="stat-group-title-label">{{ icons.tracks_icon(16) }} {{ t.tracks }}</span>
                     <span class="stat-group-total" data-stat="songs_total">{{ stats.songs_total }}</span>
                 </div>
-                <div class="stat-row">
-                    <span class="stat-label">{{ t.total }}</span>
-                    <span class="stat-value" data-stat="songs_total">{{ stats.songs_total }}</span>
+                <div class="stat-bar" aria-hidden="true">
+                    <span class="stat-bar-seg stat-level-1" data-stat-bar="songs_played_5_plus_pct" data-pct="{{ stats.songs_played_5_plus_pct }}"></span>
+                    <span class="stat-bar-seg stat-level-2" data-stat-bar="songs_played_2_4_pct" data-pct="{{ stats.songs_played_2_4_pct }}"></span>
+                    <span class="stat-bar-seg stat-level-3" data-stat-bar="songs_played_once_pct" data-pct="{{ stats.songs_played_once_pct }}"></span>
+                    <span class="stat-bar-seg stat-level-4" data-stat-bar="songs_unplayed_apc_pct" data-pct="{{ stats.songs_unplayed_apc_pct }}"></span>
                 </div>
-                <div class="stat-row sub">
+                <div class="stat-row sub stat-level-1">
                     <span class="stat-label">{{ t.played_5_plus }}</span>
                     <span data-stat="songs_played_5_plus" data-stat-pct="songs_played_5_plus_pct">{{ stats.songs_played_5_plus }} <small>({{ stats.songs_played_5_plus_pct }}%)</small></span>
                 </div>
-                <div class="stat-row sub">
+                <div class="stat-row sub stat-level-2">
                     <span class="stat-label">{{ t.played_2_4 }}</span>
                     <span data-stat="songs_played_2_4" data-stat-pct="songs_played_2_4_pct">{{ stats.songs_played_2_4 }} <small>({{ stats.songs_played_2_4_pct }}%)</small></span>
                 </div>
-                <div class="stat-row sub">
+                <div class="stat-row sub stat-level-3">
                     <span class="stat-label">{{ t.played_once }}</span>
                     <span data-stat="songs_played_once" data-stat-pct="songs_played_once_pct">{{ stats.songs_played_once }} <small>({{ stats.songs_played_once_pct }}%)</small></span>
                 </div>
-                <div class="stat-row sub">
+                <div class="stat-row sub stat-level-4">
                     <span class="stat-label">{{ t.unplayed }}</span>
                     <span data-stat="songs_unplayed_apc" data-stat-pct="songs_unplayed_apc_pct">{{ stats.songs_unplayed_apc }} <small>({{ stats.songs_unplayed_apc_pct }}%)</small></span>
                 </div>
@@ -189,19 +190,20 @@
                     <span class="stat-group-title-label">{{ icons.albums_icon(16) }} {{ t.albums }}</span>
                     <span class="stat-group-total" data-stat="albums_total">{{ stats.albums_total }}</span>
                 </div>
-                <div class="stat-row">
-                    <span class="stat-label">{{ t.total }}</span>
-                    <span class="stat-value" data-stat="albums_total">{{ stats.albums_total }}</span>
+                <div class="stat-bar" aria-hidden="true">
+                    <span class="stat-bar-seg stat-level-1" data-stat-bar="albums_played_pct" data-pct="{{ stats.albums_played_pct }}"></span>
+                    <span class="stat-bar-seg stat-level-3" data-stat-bar="albums_not_fully_pct" data-pct="{{ stats.albums_not_fully_pct }}"></span>
+                    <span class="stat-bar-seg stat-level-4" data-stat-bar="albums_never_pct" data-pct="{{ stats.albums_never_pct }}"></span>
                 </div>
-                <div class="stat-row sub">
+                <div class="stat-row sub stat-level-1">
                     <span class="stat-label">{{ t.fully_played }}</span>
                     <span data-stat="albums_played" data-stat-pct="albums_played_pct">{{ stats.albums_played }} <small>({{ stats.albums_played_pct }}%)</small></span>
                 </div>
-                <div class="stat-row sub">
+                <div class="stat-row sub stat-level-3">
                     <span class="stat-label">{{ t.partially_played }}</span>
                     <span data-stat="albums_not_fully" data-stat-pct="albums_not_fully_pct">{{ stats.albums_not_fully }} <small>({{ stats.albums_not_fully_pct }}%)</small></span>
                 </div>
-                <div class="stat-row sub">
+                <div class="stat-row sub stat-level-4">
                     <span class="stat-label">{{ t.never_played }}</span>
                     <span data-stat="albums_never" data-stat-pct="albums_never_pct">{{ stats.albums_never }} <small>({{ stats.albums_never_pct }}%)</small></span>
                 </div>
@@ -212,19 +214,20 @@
                     <span class="stat-group-title-label">{{ icons.album_artists_icon(16) }} {{ t.album_artists }}</span>
                     <span class="stat-group-total" data-stat="artists_total">{{ stats.artists_total }}</span>
                 </div>
-                <div class="stat-row">
-                    <span class="stat-label">{{ t.total }}</span>
-                    <span class="stat-value" data-stat="artists_total">{{ stats.artists_total }}</span>
+                <div class="stat-bar" aria-hidden="true">
+                    <span class="stat-bar-seg stat-level-1" data-stat-bar="artists_played_pct" data-pct="{{ stats.artists_played_pct }}"></span>
+                    <span class="stat-bar-seg stat-level-3" data-stat-bar="artists_partial_pct" data-pct="{{ stats.artists_partial_pct }}"></span>
+                    <span class="stat-bar-seg stat-level-4" data-stat-bar="artists_unplayed_pct" data-pct="{{ stats.artists_unplayed_pct }}"></span>
                 </div>
-                <div class="stat-row sub">
+                <div class="stat-row sub stat-level-1">
                     <span class="stat-label">{{ t.fully_played }}</span>
                     <span data-stat="artists_played" data-stat-pct="artists_played_pct">{{ stats.artists_played }} <small>({{ stats.artists_played_pct }}%)</small></span>
                 </div>
-                <div class="stat-row sub">
+                <div class="stat-row sub stat-level-3">
                     <span class="stat-label">{{ t.partially_played }}</span>
                     <span data-stat="artists_partial" data-stat-pct="artists_partial_pct">{{ stats.artists_partial }} <small>({{ stats.artists_partial_pct }}%)</small></span>
                 </div>
-                <div class="stat-row sub">
+                <div class="stat-row sub stat-level-4">
                     <span class="stat-label">{{ t.never_played }}</span>
                     <span data-stat="artists_unplayed" data-stat-pct="artists_unplayed_pct">{{ stats.artists_unplayed }} <small>({{ stats.artists_unplayed_pct }}%)</small></span>
                 </div>
@@ -235,19 +238,20 @@
                     <span class="stat-group-title-label">{{ icons.track_artists_icon(16) }} {{ t.track_artists }}</span>
                     <span class="stat-group-total" data-stat="track_artists_total">{{ stats.track_artists_total }}</span>
                 </div>
-                <div class="stat-row">
-                    <span class="stat-label">{{ t.total }}</span>
-                    <span class="stat-value" data-stat="track_artists_total">{{ stats.track_artists_total }}</span>
+                <div class="stat-bar" aria-hidden="true">
+                    <span class="stat-bar-seg stat-level-1" data-stat-bar="track_artists_fully_played_pct" data-pct="{{ stats.track_artists_fully_played_pct }}"></span>
+                    <span class="stat-bar-seg stat-level-3" data-stat-bar="track_artists_partially_played_pct" data-pct="{{ stats.track_artists_partially_played_pct }}"></span>
+                    <span class="stat-bar-seg stat-level-4" data-stat-bar="track_artists_unplayed_pct" data-pct="{{ stats.track_artists_unplayed_pct }}"></span>
                 </div>
-                <div class="stat-row sub">
+                <div class="stat-row sub stat-level-1">
                     <span class="stat-label">{{ t.fully_played }}</span>
                     <span data-stat="track_artists_fully_played" data-stat-pct="track_artists_fully_played_pct">{{ stats.track_artists_fully_played }} <small>({{ stats.track_artists_fully_played_pct }}%)</small></span>
                 </div>
-                <div class="stat-row sub">
+                <div class="stat-row sub stat-level-3">
                     <span class="stat-label">{{ t.partially_played }}</span>
                     <span data-stat="track_artists_partially_played" data-stat-pct="track_artists_partially_played_pct">{{ stats.track_artists_partially_played }} <small>({{ stats.track_artists_partially_played_pct }}%)</small></span>
                 </div>
-                <div class="stat-row sub">
+                <div class="stat-row sub stat-level-4">
                     <span class="stat-label">{{ t.never_played }}</span>
                     <span data-stat="track_artists_unplayed" data-stat-pct="track_artists_unplayed_pct">{{ stats.track_artists_unplayed }} <small>({{ stats.track_artists_unplayed_pct }}%)</small></span>
                 </div>

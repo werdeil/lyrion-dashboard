@@ -1820,7 +1820,21 @@ function renderStats(stats) {
             el.textContent = value;
         }
     });
+    document.querySelectorAll('[data-stat-bar]').forEach(function(seg) {
+        var pct = stats[seg.dataset.statBar];
+        if (pct !== undefined) { seg.dataset.pct = pct; }
+    });
+    paintStatBars();
     dimZeroSubRows();
+}
+
+// The CSP refuses inline style attributes, so the widths arrive as data and land through the CSSOM.
+function paintStatBars() {
+    document.querySelectorAll('.stat-bar-seg').forEach(function(seg) {
+        var pct = parseFloat(seg.dataset.pct) || 0;
+        seg.style.flexGrow = pct;
+        seg.hidden = pct <= 0;
+    });
 }
 
 function dimZeroSubRows() {
@@ -1849,6 +1863,7 @@ document.addEventListener('visibilitychange', catchUp);
 window.addEventListener('focus', catchUp);
 window.addEventListener('pageshow', catchUp);
 
+paintStatBars();
 dimZeroSubRows();
 poll();
 setInterval(poll, POLL_INTERVAL_MS);
