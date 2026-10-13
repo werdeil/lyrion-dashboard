@@ -80,8 +80,9 @@ class NeteaseTest(unittest.TestCase):
         with patch.object(L.requests, "get", side_effect=[
             FakeResponse({"result": {"songs": [_song(7, "Space Debris", ["Muse"], 247000)]}, "code": 200}),
             FakeResponse({"nolyric": True, "code": 200}),
-        ]):
+        ]), self.assertLogs("services.lyrics", "INFO") as logs:
             self.assertIsNone(L._provider_netease("Muse", "Space Debris", None, "247"))
+        self.assertIn("song 7 ('Absolution', 247s) has no lyrics", logs.output[-1])
 
     def test_blocked_search_finds_nothing(self):
         for payload in ({"result": "35b1748964af8a7c", "code": 200}, {"code": -462, "message": "blocked"}):

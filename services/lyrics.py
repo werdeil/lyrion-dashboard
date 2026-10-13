@@ -552,6 +552,7 @@ def _provider_netease(artist, title, _album, duration):
     text = _netease_lyric(song_id)
     log.debug("netease: song %s (%r, %ss), %d characters", song_id, meta["album"], _int_duration(meta["duration"]), len(text))
     if not text:
+        log.info("netease: song %s (%r, %ss) has no lyrics", song_id, meta["album"], _int_duration(meta["duration"]))
         return None
     if _LRC_TIMESTAMP_RE.search(text):
         return {"lyrics": None, "synced": text, "meta": meta}
