@@ -51,15 +51,20 @@ PERSISTENT = [
     ("u2", "m2", 0, RECENT, 0),
     ("u3", "m3", 1, MONTHS_AGO, 0),
 ]
-# m9 is a track no longer in the library.
 APC_ROWS = [
     ("m1", 2, RECENT, 0, None),
     ("m2", 0, None, 1, RECENT),
     ("m3", 1, MONTHS_AGO, 0, None),
-    ("m9", 4, RECENT, 0, None),
+    ("removed-from-library", 4, RECENT, 0, None),
 ]
-# Three plays of one track this month, a stream unknown to the library, older plays.
-HISTORY = [RECENT, RECENT - 3600, RECENT - 7200, RECENT, MONTHS_AGO, LONG_AGO]
+HISTORY = [
+    ("m1", RECENT),
+    ("m1", RECENT - 3600),
+    ("m1", RECENT - 7200),
+    ("stream-not-in-library", RECENT),
+    ("m1", MONTHS_AGO),
+    ("m1", LONG_AGO),
+]
 
 
 class VelocityTest(unittest.TestCase):
@@ -78,11 +83,7 @@ class VelocityTest(unittest.TestCase):
         conn.commit()
         conn.close()
         conn = sqlite3.connect(self.history)
-        conn.executemany(
-            "INSERT INTO play_history (url, urlmd5, played) VALUES (?, ?, ?)",
-            [("u1" if i != 3 else "http://stream", "m1" if i != 3 else "s", played)
-             for i, played in enumerate(HISTORY)],
-        )
+        conn.executemany("INSERT INTO play_history (urlmd5, played) VALUES (?, ?)", HISTORY)
         conn.commit()
         conn.close()
 
