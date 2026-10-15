@@ -1913,9 +1913,11 @@ function renderCalendar(calendar) {
     var days = document.createDocumentFragment();
     var weeksLeft = Math.ceil((today - week) / (7 * 86400000)) + 1;
     var sinceLabel = CALENDAR_LABEL_WEEKS;
+    var weekTotals = [];
 
     for (; week <= today; week.setDate(week.getDate() + 7), weeksLeft--, sinceLabel++) {
         var label = document.createElement('span');
+        var weekTotal = { monday: new Date(week), plays: null };
         for (var k = 0; k < 7; k++) {
             var day = new Date(week.getFullYear(), week.getMonth(), week.getDate() + k);
             if ((day.getDate() === 1 || +day === +labelFrom) && day >= labelFrom && weeksLeft > 2 &&
@@ -1930,6 +1932,7 @@ function renderCalendar(calendar) {
                 if (day < start) {
                     cell.title = dayName.format(day) + ' · ' + I18N.calendar_before_history;
                 } else {
+                    weekTotal.plays = (weekTotal.plays || 0) + plays;
                     cell.classList.add('calendar-level-' + calendarLevel(plays, thresholds));
                     cell.title = dayName.format(day) + ' · ' + plays + ' ' +
                         (plays === 1 ? I18N.calendar_play : I18N.calendar_plays);
@@ -1938,10 +1941,28 @@ function renderCalendar(calendar) {
             days.appendChild(cell);
         }
         months.appendChild(label);
+        weekTotals.push(weekTotal);
     }
     box.querySelector('.calendar-months').replaceChildren(months);
     box.querySelector('.calendar-days').replaceChildren(days);
+    box.querySelector('.calendar-weeks').replaceChildren(calendarWeeks(weekTotals, dayName));
     box.querySelector('.calendar-max').textContent = busiest;
+}
+
+function calendarWeeks(weekTotals, dayName) {
+    var thresholds = calendarThresholds(weekTotals.map(function(w) { return w.plays || 0; }));
+    var cells = document.createDocumentFragment();
+    weekTotals.forEach(function(w) {
+        var cell = document.createElement('i');
+        cell.className = 'calendar-day';
+        if (w.plays !== null) {
+            cell.classList.add('calendar-level-' + calendarLevel(w.plays, thresholds));
+            cell.title = I18N.calendar_week_of + ' ' + dayName.format(w.monday) + ' · ' + w.plays + ' ' +
+                (w.plays === 1 ? I18N.calendar_play : I18N.calendar_plays);
+        }
+        cells.appendChild(cell);
+    });
+    return cells;
 }
 
 function dimZeroSubRows() {

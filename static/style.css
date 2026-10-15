@@ -252,6 +252,21 @@ hr {
     grid-template-rows: repeat(7, auto);
 }
 
+.calendar-weeks {
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(0, 1fr);
+    gap: 1px;
+}
+
+.stat-group:not(.collapsed) .calendar-weeks,
+.stat-group:not(.collapsed) .collapsed-only,
+.stat-group.collapsed .calendar-months,
+.stat-group.collapsed .calendar-days,
+.stat-group.collapsed .calendar-legend {
+    display: none;
+}
+
 .calendar-months {
     height: 1.2em;
     font-size: 0.65rem;
