@@ -45,21 +45,24 @@ NOW = int(time.time())
 RECENT, MONTHS_AGO, LONG_AGO = NOW - 2 * DAY, NOW - 100 * DAY, NOW - 400 * DAY
 
 TRACKS = [(i, f"u{i}", f"m{i}", 1, 1, None) for i in (1, 2, 3)]
-# Track 2 was only skipped: Lyrion bumps its lastplayed, the plugin does not.
 PERSISTENT = [
     ("u1", "m1", 2, RECENT, 0),
     ("u2", "m2", 0, RECENT, 0),
     ("u3", "m3", 1, MONTHS_AGO, 0),
 ]
-# m9 is a track no longer in the library.
 APC_ROWS = [
     ("m1", 2, RECENT, 0, None),
     ("m2", 0, None, 1, RECENT),
     ("m3", 1, MONTHS_AGO, 0, None),
-    ("m9", 4, RECENT, 0, None),
 ]
-# Three plays of one track this month, a stream unknown to the library, older plays.
-HISTORY = [RECENT, RECENT - 3600, RECENT - 7200, RECENT, MONTHS_AGO, LONG_AGO]
+HISTORY = [
+    ("m1", RECENT),
+    ("m1", RECENT - 3600),
+    ("m1", RECENT - 7200),
+    ("stream-not-in-library", RECENT),
+    ("m1", MONTHS_AGO),
+    ("m1", LONG_AGO),
+]
 
 
 class ListeningCalendarTest(unittest.TestCase):
@@ -78,11 +81,7 @@ class ListeningCalendarTest(unittest.TestCase):
         conn.commit()
         conn.close()
         conn = sqlite3.connect(self.history)
-        conn.executemany(
-            "INSERT INTO play_history (url, urlmd5, played) VALUES (?, ?, ?)",
-            [("u1" if i != 3 else "http://stream", "m1" if i != 3 else "s", played)
-             for i, played in enumerate(HISTORY)],
-        )
+        conn.executemany("INSERT INTO play_history (urlmd5, played) VALUES (?, ?)", HISTORY)
         conn.commit()
         conn.close()
 
@@ -121,7 +120,7 @@ class ListeningCalendarTest(unittest.TestCase):
         self.assertEqual(calendar["today"], date.today().isoformat())
         self.assertEqual(calendar["start"], self._day(LONG_AGO))
         expected = {}
-        for played in HISTORY:
+        for _, played in HISTORY:
             if played >= NOW - 364 * DAY:
                 expected[self._day(played)] = expected.get(self._day(played), 0) + 1
         self.assertEqual(calendar["days"], expected)

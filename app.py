@@ -17,7 +17,7 @@ def _log_startup(flask_app):
         "lyrion-dashboard %s starting (lyrion=%s, providers=%s, dev=%s, log_level=%s)",
         flask_app.config["VERSION"],
         flask_app.config["LYRION_HOST"] or "UNSET",
-        os.getenv("LYRICS_PROVIDERS", "lrclib,musixmatch,genius"),
+        os.getenv("LYRICS_PROVIDERS", "lrclib,musixmatch,netease,genius"),
         flask_app.config["DEV"],
         logging.getLevelName(logging.getLogger().level),
     )

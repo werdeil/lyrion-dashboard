@@ -72,6 +72,13 @@ class ProviderChainTest(unittest.TestCase):
         self._use(("lrclib", _answers(None)), ("genius", _answers(PLAIN)))
         self.assertEqual(L.fetch_lyrics(None, "Muse", "Space Debris")["source"], "genius")
 
+    def test_netease_is_still_asked_once_plain_lyrics_are_held(self):
+        synced_only = {"lyrics": None, "synced": "[00:01.00]la la la", "meta": META}
+        self._use(("lrclib", _answers(PLAIN)), ("musixmatch", _answers(None)), ("netease", _answers(synced_only)))
+        res = L.fetch_lyrics(None, "Muse", "Space Debris")
+        self.assertEqual(res["source"], "netease")
+        self.assertEqual(res["synced"], synced_only["synced"])
+
     def test_verify_keeps_the_first_plain_result(self):
         second = _answers(SYNCED)
         self._use(("lrclib", _answers(PLAIN)), ("musixmatch", second))
