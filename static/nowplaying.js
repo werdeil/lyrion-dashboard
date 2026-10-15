@@ -483,6 +483,7 @@ var SOURCE_LABELS = {
     library:    I18N.source_library,
     lrclib:     'LRCLIB',
     musixmatch: 'Musixmatch',
+    netease:    'NetEase',
     genius:     'Genius',
 };
 

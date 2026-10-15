@@ -35,7 +35,7 @@ Each target may be a directory (scanned recursively) or a single music file.
 Config is read from the repo-root .env automatically (if python-dotenv is
 installed), so the CLI honors the same settings as the web app without needing
 `source .env`. Provider order comes from LYRICS_PROVIDERS (defaults to
-lrclib,musixmatch,genius); LRCLIB_TIMEOUT (seconds, default 15) is honored too —
+lrclib,musixmatch,netease,genius); LRCLIB_TIMEOUT (seconds, default 15) is honored too —
 raise it for big batches when LRCLIB is slow under load.
 """
 
