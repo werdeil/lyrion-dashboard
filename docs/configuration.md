@@ -22,7 +22,7 @@ What each `LOG_LEVEL` actually prints is on the [Logs](logs.md) page.
 
 ## Where the databases live
 
-The dashboard reads two SQLite files Lyrion keeps side by side under one data directory: `cache/library.db` (the music library) and `prefs/persist.db` (ratings and play history). That directory is `/config` for Lyrion's own Docker image and `/var/lib/squeezeboxserver` for the Debian package. Under Docker, mount it read-only on `/lyrion`, where the image looks for it; otherwise `LYRION_DATA_DIR` names it directly.
+The dashboard reads two SQLite files Lyrion keeps side by side under one data directory: `cache/library.db` (the music library) and `prefs/persist.db` (ratings and play history), plus `prefs/apc_external.db`, the Alternative Play Count plugin's play-by-play history, when it exists. That directory is `/config` for Lyrion's own Docker image and `/var/lib/squeezeboxserver` for the Debian package. Under Docker, mount it read-only on `/lyrion`, where the image looks for it; otherwise `LYRION_DATA_DIR` names it directly.
 
 Lyrion lets its cache be relocated (to an SSD, a larger volume). Under Docker, mount it back into place in `docker-compose.yml` and nothing else changes:
 

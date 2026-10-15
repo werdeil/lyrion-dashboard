@@ -28,6 +28,7 @@ class DbPathsTest(unittest.TestCase):
         cfg = _reload_with(LYRION_DATA_DIR="/srv/lyrion")
         self.assertEqual(cfg.DB_PATH, "/srv/lyrion/cache/library.db")
         self.assertEqual(cfg.DB_PERSIST_PATH, "/srv/lyrion/prefs/persist.db")
+        self.assertEqual(cfg.APC_HISTORY_PATH, "/srv/lyrion/prefs/apc_external.db")
 
     def test_db_dir_overrides_only_the_library(self):
         cfg = _reload_with(LYRION_DATA_DIR="/srv/lyrion", DB_DIR="/mnt/ssd/cache")
@@ -38,6 +39,7 @@ class DbPathsTest(unittest.TestCase):
         cfg = _reload_with(LYRION_DATA_DIR="/srv/lyrion", DB_PERSIST_DIR="/etc/lyrion")
         self.assertEqual(cfg.DB_PATH, "/srv/lyrion/cache/library.db")
         self.assertEqual(cfg.DB_PERSIST_PATH, "/etc/lyrion/persist.db")
+        self.assertEqual(cfg.APC_HISTORY_PATH, "/etc/lyrion/apc_external.db")
 
     def test_overrides_alone_need_no_data_dir(self):
         cfg = _reload_with(DB_DIR="/mnt/ssd/cache", DB_PERSIST_DIR="/etc/lyrion")

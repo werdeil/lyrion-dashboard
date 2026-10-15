@@ -1,4 +1,5 @@
 import logging
+import os
 import time
 import sqlite3
 import threading
@@ -153,6 +154,39 @@ _stats_cache = {"value": None, "expires_at": 0}
 _stats_lock = threading.Lock()
 
 
+# Windows start at local midnight: SQLite's 'now' is UTC, so the localtime/utc
+# pair round-trips the boundary through the TZ environment.
+_WINDOWS = ("-30 days", "-1 year")
+
+_history_state = {"value": None}
+
+
+def _history_velocity():
+    path = current_app.config.get("APC_HISTORY_PATH")
+    result, state = None, "not found"
+    if path and os.path.isfile(path):
+        try:
+            conn = sqlite3.connect(f"file:{path}?mode=ro", uri=True)
+            try:
+                row = conn.execute("""
+                    SELECT
+                        (SELECT COUNT(*) FROM play_history
+                         WHERE played >= strftime('%s', 'now', 'localtime', 'start of day', ?, 'utc')),
+                        (SELECT COUNT(*) FROM play_history
+                         WHERE played >= strftime('%s', 'now', 'localtime', 'start of day', ?, 'utc'))
+                """, _WINDOWS).fetchone()
+            finally:
+                conn.close()
+            result, state = {"velocity_30d": row[0] or 0, "velocity_1year": row[1] or 0}, "read"
+        except sqlite3.Error as exc:
+            state = f"unreadable ({exc})"
+    if state != _history_state["value"]:
+        _history_state["value"] = state
+        log.info("Alternative Play Count play history %s: velocity counts %s", state,
+                 "plays" if result else "tracks by their last play")
+    return result
+
+
 def get_stats():
     """Library statistics, cached for STATS_TTL seconds.
 
@@ -288,8 +322,6 @@ def _compute_stats():
             "track_artists_non_played": (row["track_artists_unplayed"] or 0) + (row["track_artists_partially_played"] or 0),
         })
 
-        # The velocity windows start at local midnight: SQLite's 'now' is UTC, so the
-        # localtime/utc pair round-trips the boundary through the TZ environment.
         row = cur.execute("""
             SELECT
                 (SELECT COUNT(*) FROM genres) AS genres,
@@ -298,13 +330,13 @@ def _compute_stats():
                  WHERE t.audio = 1 AND tp.rating > 0)                         AS rated_songs,
                 (SELECT COUNT(DISTINCT id) FROM tracks
                  WHERE audio = 1 AND lyrics IS NOT NULL)                       AS songs_with_lyrics,
-                (SELECT COUNT(*) FROM persist.tracks_persistent
-                 WHERE lastplayed >= strftime('%s', 'now', 'localtime', 'start of day',
-                                              '-30 days', 'utc'))              AS velocity_30d,
-                (SELECT COUNT(*) FROM persist.tracks_persistent
-                 WHERE lastplayed >= strftime('%s', 'now', 'localtime', 'start of day',
-                                              '-1 year', 'utc'))               AS velocity_1year
-        """).fetchone()
+                (SELECT COUNT(*) FROM tracks t JOIN play_counts apc ON t.urlmd5 = apc.urlmd5
+                 WHERE t.audio = 1 AND apc.playcount > 0
+                   AND apc.lastplayed >= strftime('%s', 'now', 'localtime', 'start of day', ?, 'utc'))  AS velocity_30d,
+                (SELECT COUNT(*) FROM tracks t JOIN play_counts apc ON t.urlmd5 = apc.urlmd5
+                 WHERE t.audio = 1 AND apc.playcount > 0
+                   AND apc.lastplayed >= strftime('%s', 'now', 'localtime', 'start of day', ?, 'utc'))  AS velocity_1year
+        """, _WINDOWS).fetchone()
 
         stats.update({
             "genres":            row["genres"] or 0,
@@ -313,6 +345,8 @@ def _compute_stats():
             "velocity_30d":      row["velocity_30d"] or 0,
             "velocity_1year":    row["velocity_1year"] or 0,
         })
+        if apc_available:
+            stats.update(_history_velocity() or {})
 
         stats["albums_played_pct"]    = pct(stats["albums_played"],    stats["albums_total"])
         stats["albums_not_fully_pct"] = pct(stats["albums_not_fully"], stats["albums_total"])
