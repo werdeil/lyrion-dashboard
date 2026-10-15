@@ -115,6 +115,10 @@ Opening is a FLIP: `animateZoom` measures the card cover's box and the enlarged 
 
 The card shows a 512px thumbnail; the overlay paints that cached thumbnail first and swaps in the original artwork (the same `/cover/` URL without `?size=`) once it has loaded, so it never shows a blank frame.
 
+## Stats panel
+
+Each `.stat-group` folds on a click of its title; collapsed, it hides its `.stat-row`s but keeps its title total and its `.stat-bar`. The completion groups (tracks, albums, both artist counts) carry that bar: one `.stat-bar-seg` per sub row, sized by `flex-grow` from the row's percentage. The CSP refuses inline `style` attributes, so the template ships each percentage as `data-pct` and `paintStatBars` applies it through the CSSOM, on load and after every `/stats.json` poll; a zero segment is `hidden` so it leaves no gap. Each segment's `title` is copied from its legend row (`statBarTitle`), so hovering the bar of a collapsed group still gives the figures. A `stat-level-1`…`stat-level-4` class on both the segment and its row sets `--level-color`, the row's square marker doubling as the bar's legend: the accent for the most played, two lighter mixes toward `--surface`, and near-black for never played.
+
 ## Mosaic and recent-plays pile
 
 The empty-state background mosaic (`loadMosaic`/`layoutMosaic`/`stepMosaic`) and the recent-plays sleeve pile (`loadRecent`/`renderRecent`) are decorative, desktop-driven layouts. They pull cover ids from `/mosaic-covers.json` and `/recent-covers.json`.
