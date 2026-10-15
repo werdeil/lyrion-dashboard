@@ -215,8 +215,8 @@ hr {
 }
 
 .stat-level-1 { --level-color: var(--accent-color); }
-.stat-level-2 { --level-color: color-mix(in srgb, var(--accent-color) 70%, var(--surface)); }
-.stat-level-3 { --level-color: color-mix(in srgb, var(--accent-color) 45%, var(--surface)); }
+.stat-level-2 { --level-color: color-mix(in srgb, var(--accent-color) 68%, var(--surface)); }
+.stat-level-3 { --level-color: color-mix(in srgb, var(--accent-color) 40%, var(--surface)); }
 .stat-level-4 { --level-color: var(--nothing); }
 
 .stat-bar {
@@ -281,9 +281,9 @@ hr {
 }
 
 .calendar-level-0 { background: var(--nothing); }
-.calendar-level-1 { background: color-mix(in srgb, var(--accent-color) 30%, var(--surface)); }
-.calendar-level-2 { background: color-mix(in srgb, var(--accent-color) 52%, var(--surface)); }
-.calendar-level-3 { background: color-mix(in srgb, var(--accent-color) 76%, var(--surface)); }
+.calendar-level-1 { background: color-mix(in srgb, var(--accent-color) 15%, var(--surface)); }
+.calendar-level-2 { background: color-mix(in srgb, var(--accent-color) 40%, var(--surface)); }
+.calendar-level-3 { background: color-mix(in srgb, var(--accent-color) 68%, var(--surface)); }
 .calendar-level-4 { background: var(--accent-color); }
 
 .calendar-legend {
