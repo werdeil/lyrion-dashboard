@@ -1854,6 +1854,8 @@ function statBarTitle(seg) {
 var calendarShown = '';
 // A month is four or five week columns, too narrow for its name in the side panel.
 var CALENDAR_LABEL_WEEKS = 6;
+// The shortest span the strip draws, which caps the size of its days.
+var CALENDAR_MIN_WEEKS = 26;
 
 function parseDay(iso) {
     var parts = iso.split('-');
@@ -1883,7 +1885,8 @@ function calendarLevel(n, thresholds) {
     return 4;
 }
 
-// Weeks run Monday to Sunday, one column each, over the year ending on the server's today.
+// Weeks run Monday to Sunday, one column each, up to the server's today: from the
+// history's first day when it is younger than a year, so no column predates it.
 function renderCalendar(calendar) {
     var box = document.getElementById('listening-calendar');
     var key = JSON.stringify(calendar);
@@ -1897,8 +1900,11 @@ function renderCalendar(calendar) {
     var dayName = new Intl.DateTimeFormat(lang, { day: 'numeric', month: 'short', year: 'numeric' });
     var thresholds = calendarThresholds(calendar.days);
     var today = parseDay(calendar.today);
-    var first = new Date(today.getFullYear(), today.getMonth(), today.getDate() - 364);
     var start = calendar.start ? parseDay(calendar.start) : today;
+    var shortest = new Date(today.getFullYear(), today.getMonth(), today.getDate() - 7 * CALENDAR_MIN_WEEKS + 1);
+    var yearAgo = new Date(today.getFullYear(), today.getMonth(), today.getDate() - 364);
+    var first = new Date(Math.max(yearAgo, Math.min(start, shortest)));
+    var labelFrom = new Date(Math.max(first, start));
     var week = new Date(first.getFullYear(), first.getMonth(), first.getDate() - (first.getDay() + 6) % 7);
     var months = document.createDocumentFragment();
     var days = document.createDocumentFragment();
@@ -1909,7 +1915,8 @@ function renderCalendar(calendar) {
         var label = document.createElement('span');
         for (var k = 0; k < 7; k++) {
             var day = new Date(week.getFullYear(), week.getMonth(), week.getDate() + k);
-            if (day.getDate() === 1 && day >= first && weeksLeft > 2 && sinceLabel >= CALENDAR_LABEL_WEEKS) {
+            if ((day.getDate() === 1 || +day === +labelFrom) && day >= labelFrom && weeksLeft > 2 &&
+                    sinceLabel >= CALENDAR_LABEL_WEEKS) {
                 label.textContent = monthName.format(day).replace('.', '');
                 sinceLabel = 0;
             }
