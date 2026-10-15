@@ -28,6 +28,8 @@ class Config:
 
     DB_PATH = os.path.join(_db_dir("DB_DIR", "cache"), "library.db")
     DB_PERSIST_PATH = os.path.join(_db_dir("DB_PERSIST_DIR", "prefs"), "persist.db")
+    # Alternative Play Count keeps its play history in a file of its own, beside persist.db.
+    APC_HISTORY_PATH = os.path.join(_db_dir("DB_PERSIST_DIR", "prefs"), "apc_external.db")
 
     # "lyrion" forces Lyrion's own counters over the Alternative Play Count plugin.
     PLAY_COUNTS_SOURCE = os.getenv("PLAY_COUNTS_SOURCE", "auto").strip().lower()

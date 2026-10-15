@@ -38,7 +38,7 @@ De gauche à droite, cliquez pour la version pleine taille : la pochette agrandi
 
 - Un serveur Lyrion Music Server accessible
 - Docker et Docker Compose
-- Conseillé : le plugin [Alternative Play Count](https://github.com/AF-1/lms-alternativeplaycount) sur Lyrion. Sans lui, le tableau de bord lit les compteurs d'écoute de Lyrion : le nombre de sauts disparaît des statistiques et, comme Lyrion met aussi à jour la date de dernière écoute sur un saut, un album seulement zappé peut apparaître dans les dernières écoutes.
+- Conseillé : le plugin [Alternative Play Count](https://github.com/AF-1/lms-alternativeplaycount) sur Lyrion. Sans lui, le tableau de bord lit les compteurs d'écoute de Lyrion : le nombre de sauts disparaît des statistiques et, comme Lyrion met aussi à jour la date de dernière écoute sur un saut, un album seulement zappé peut apparaître dans les dernières écoutes. Avec l'historique d'écoute du plugin activé (son réglage par défaut), les chiffres sur 30 jours et 12 mois comptent des écoutes ; sinon, ils comptent les morceaux écoutés sur la période.
 
 ## Installation
 

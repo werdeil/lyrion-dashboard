@@ -46,13 +46,17 @@ Real listening data comes from the [Alternative Play Count](https://github.com/A
 
 The plugin is **recommended, not required**, so no query names that table. `get_db_conn` defines a TEMP view **`play_counts`** (`urlmd5`, `playcount`, `skipcount`, `lastplayed`) over whichever source `_use_apc` picks — it looks for the table in **both** schemas, since the plugin keeps it in `persist.db` so a library rescan cannot drop it, and the view's unqualified name then resolves to whichever holds it — the plugin's table, else `persist.tracks_persistent` with `skipcount` forced to 0 — and every query joins the view, aliased `apc`. `PLAY_COUNTS_SOURCE=lyrion` forces the fallback even when the plugin is installed, for a library whose history predates it. A TEMP view is writable on a read-only connection: it lives in the connection's temp schema, never in Lyrion's files. Use the view for anything about what was played; add a column to both definitions rather than referencing a source table directly.
 
+### The play history and the velocity
+
+The plugin also keeps a play-by-play history, on by default, in a file of its own: `apc_external.db`, beside `persist.db` (`APC_HISTORY_PATH`). Its `play_history` table has one row per genuine play (`urlmd5`, `played` in unix seconds, `client_id`, `rating`, `remote`), streams included. `_history_velocity` opens it read-only on a connection of its own (an `ATTACH` cannot happen inside `get_db_conn`'s transaction) and counts the plays in the velocity windows (`velocity_30d`, `velocity_1year`). Without that file, or with `PLAY_COUNTS_SOURCE=lyrion`, the velocity counts library tracks whose last genuine play falls in the window, through `play_counts` — a number of tracks, not of plays. Either way the windows start at local midnight, through the `TZ` environment. A history only starts when the plugin started recording it, so a window reaching further back undercounts.
+
 On the fallback two things degrade, and the code says so where it matters: skips do not exist at all, and `lastplayed` is bumped on a skip too, so `get_recent_album_covers` can surface an album that was only skipped past. `_compute_stats` reports which source it used as **`apc_available`** — the plugin's table *and* not overridden — and the template drops the "Skips" row when it is false.
 
 ## The stats cache (single-flight)
 
 `get_stats()` returns library statistics cached for `STATS_TTL` (60s) behind `_stats_lock`. The lock makes the recompute **single-flight**: when the cache expires, simultaneous clients wait for one computation instead of each firing their own set of full-library aggregations. It returns a **copy** so callers can't mutate the cached dict. Keep both properties if you touch it — the stats are four full-library scans and the page polls them from every open client.
 
-`_compute_stats()` runs **four queries** (albums+songs, album artists, track artists, misc) using CTEs to scan `tracks JOIN play_counts` once each, then derives percentages via the local `pct()` helper. Every count coalesces to 0 (`row[...] or 0`) so an empty library yields zeros, not `None`.
+`_compute_stats()` runs **four queries** on the library (plus one on the play history, above) (albums+songs, album artists, track artists, misc) using CTEs to scan `tracks JOIN play_counts` once each, then derives percentages via the local `pct()` helper. Every count coalesces to 0 (`row[...] or 0`) so an empty library yields zeros, not `None`.
 
 ## Adding or changing a statistic
 
