@@ -38,6 +38,7 @@ import math
 import os
 import sys
 import threading
+from datetime import date, timedelta
 from types import MappingProxyType
 from typing import Mapping, NamedTuple
 
@@ -101,7 +102,26 @@ def _stats():
     return s
 
 
+def _listening_calendar(today=date(2026, 10, 15), start=date(2025, 11, 12)):
+    # Deterministic, so the screenshots only change with the code.
+    days = {}
+    day = start
+    while day <= today:
+        noise = (math.sin(day.toordinal() * 12.9898) * 43758.5453) % 1
+        holiday = day.month == 8 and 3 <= day.day <= 19
+        if noise > (0.8 if holiday else 0.12):
+            weekend = day.weekday() >= 5
+            days[day.isoformat()] = 1 + int(noise * (3 if holiday else 22 if weekend else 11))
+        day += timedelta(days=1)
+    return {"today": today.isoformat(), "start": start.isoformat(), "days": days}
+
+
 FAKE_STATS = _stats()
+FAKE_STATS["listening_calendar"] = _listening_calendar()
+FAKE_STATS["velocity_1year"] = sum(FAKE_STATS["listening_calendar"]["days"].values())
+FAKE_STATS["velocity_30d"] = sum(
+    plays for day, plays in FAKE_STATS["listening_calendar"]["days"].items() if day >= "2026-09-16"
+)
 
 
 def _lrc(start, gap, lines, hold_after=None):

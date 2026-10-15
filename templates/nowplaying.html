@@ -136,6 +136,15 @@
                 <div class="stat-group-title">
                     <span class="stat-group-title-label">{{ icons.history_icon(16) }} {{ t.history }}</span>
                 </div>
+                <div class="listening-calendar" id="listening-calendar"{% if not stats.listening_calendar %} hidden{% endif %}>
+                    <div class="calendar-months" aria-hidden="true"></div>
+                    <div class="calendar-days"></div>
+                    <div class="calendar-legend" aria-hidden="true">
+                        {{ t.calendar_less }}
+                        <i class="calendar-day calendar-level-0"></i><i class="calendar-day calendar-level-1"></i><i class="calendar-day calendar-level-2"></i><i class="calendar-day calendar-level-3"></i><i class="calendar-day calendar-level-4"></i>
+                        {{ t.calendar_more }}
+                    </div>
+                </div>
                 <div class="stat-row">
                     <span class="stat-label">{{ t.played_last_30d }}</span>
                     <span data-stat="velocity_30d">{{ stats.velocity_30d }}</span>
@@ -280,6 +289,7 @@
     <!-- UI strings for the dynamic (JS-rendered) bits, resolved server-side
          from the browser language. Static markup is translated via Jinja above. -->
     <script id="i18n-data" type="application/json">{{ t|tojson }}</script>
+    <script id="calendar-data" type="application/json">{{ stats.listening_calendar|tojson }}</script>
     <script src="{{ url_for('static', filename='lib/vibrant.min.js') }}" defer></script>
     <script src="{{ url_for('static', filename='lib/fast-average-color.min.js') }}" defer></script>
     <script src="{{ url_for('static', filename='nowplaying.js') }}" defer></script>

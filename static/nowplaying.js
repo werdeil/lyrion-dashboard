@@ -1826,6 +1826,7 @@ function renderStats(stats) {
     });
     paintStatBars();
     dimZeroSubRows();
+    renderCalendar(stats.listening_calendar || null);
 }
 
 // The CSP refuses inline style attributes, so the widths arrive as data and land through the CSSOM.
@@ -1847,6 +1848,88 @@ function statBarTitle(seg) {
     var label = row.querySelector('.stat-label');
     var value = row.querySelector('[data-stat]');
     return (label ? label.textContent.trim() : '') + ' · ' + (value ? value.textContent.trim() : '');
+}
+
+var calendarShown = '';
+// A month is four or five week columns, too narrow for its name in the side panel.
+var CALENDAR_LABEL_WEEKS = 6;
+
+function parseDay(iso) {
+    var parts = iso.split('-');
+    return new Date(+parts[0], parts[1] - 1, +parts[2]);
+}
+
+function isoDay(date) {
+    var pad = function(n) { return (n < 10 ? '0' : '') + n; };
+    return date.getFullYear() + '-' + pad(date.getMonth() + 1) + '-' + pad(date.getDate());
+}
+
+// Quartiles of the days with plays, so the shades fit the library's own pace.
+function calendarThresholds(days) {
+    var counts = Object.keys(days).map(function(day) { return days[day]; })
+        .filter(function(n) { return n > 0; })
+        .sort(function(a, b) { return a - b; });
+    return [0.25, 0.5, 0.75].map(function(q) {
+        return counts.length ? counts[Math.floor(q * (counts.length - 1))] : 0;
+    });
+}
+
+function calendarLevel(n, thresholds) {
+    if (n === 0) { return 0; }
+    for (var i = 0; i < thresholds.length; i++) {
+        if (n <= thresholds[i]) { return i + 1; }
+    }
+    return 4;
+}
+
+// Weeks run Monday to Sunday, one column each, over the year ending on the server's today.
+function renderCalendar(calendar) {
+    var box = document.getElementById('listening-calendar');
+    var key = JSON.stringify(calendar);
+    if (!box || key === calendarShown) { return; }
+    calendarShown = key;
+    box.hidden = !calendar;
+    if (!calendar) { return; }
+
+    var lang = document.documentElement.lang || undefined;
+    var monthName = new Intl.DateTimeFormat(lang, { month: 'short' });
+    var dayName = new Intl.DateTimeFormat(lang, { day: 'numeric', month: 'short', year: 'numeric' });
+    var thresholds = calendarThresholds(calendar.days);
+    var today = parseDay(calendar.today);
+    var first = new Date(today.getFullYear(), today.getMonth(), today.getDate() - 364);
+    var start = calendar.start ? parseDay(calendar.start) : today;
+    var week = new Date(first.getFullYear(), first.getMonth(), first.getDate() - (first.getDay() + 6) % 7);
+    var months = document.createDocumentFragment();
+    var days = document.createDocumentFragment();
+    var weeksLeft = Math.ceil((today - week) / (7 * 86400000)) + 1;
+    var sinceLabel = CALENDAR_LABEL_WEEKS;
+
+    for (; week <= today; week.setDate(week.getDate() + 7), weeksLeft--, sinceLabel++) {
+        var label = document.createElement('span');
+        for (var k = 0; k < 7; k++) {
+            var day = new Date(week.getFullYear(), week.getMonth(), week.getDate() + k);
+            if (day.getDate() === 1 && day >= first && weeksLeft > 2 && sinceLabel >= CALENDAR_LABEL_WEEKS) {
+                label.textContent = monthName.format(day).replace('.', '');
+                sinceLabel = 0;
+            }
+            var cell = document.createElement('i');
+            cell.className = 'calendar-day';
+            if (day >= first && day <= today) {
+                var plays = calendar.days[isoDay(day)] || 0;
+                if (day < start) {
+                    cell.title = dayName.format(day) + ' · ' + I18N.calendar_before_history;
+                } else {
+                    cell.classList.add('calendar-level-' + calendarLevel(plays, thresholds));
+                    cell.title = dayName.format(day) + ' · ' + plays + ' ' +
+                        (plays === 1 ? I18N.calendar_play : I18N.calendar_plays);
+                }
+            }
+            days.appendChild(cell);
+        }
+        months.appendChild(label);
+    }
+    box.querySelector('.calendar-months').replaceChildren(months);
+    box.querySelector('.calendar-days').replaceChildren(days);
 }
 
 function dimZeroSubRows() {
@@ -1877,6 +1960,7 @@ window.addEventListener('pageshow', catchUp);
 
 paintStatBars();
 dimZeroSubRows();
+renderCalendar(JSON.parse(document.getElementById('calendar-data').textContent));
 poll();
 setInterval(poll, POLL_INTERVAL_MS);
 setInterval(pollStats, 60000);
