@@ -1820,7 +1820,33 @@ function renderStats(stats) {
             el.textContent = value;
         }
     });
+    document.querySelectorAll('[data-stat-bar]').forEach(function(seg) {
+        var pct = stats[seg.dataset.statBar];
+        if (pct !== undefined) { seg.dataset.pct = pct; }
+    });
+    paintStatBars();
     dimZeroSubRows();
+}
+
+// The CSP refuses inline style attributes, so the widths arrive as data and land through the CSSOM.
+function paintStatBars() {
+    document.querySelectorAll('.stat-bar-seg').forEach(function(seg) {
+        var pct = parseFloat(seg.dataset.pct) || 0;
+        seg.style.flexGrow = pct;
+        seg.hidden = pct <= 0;
+        seg.title = statBarTitle(seg);
+    });
+}
+
+// A segment's tooltip is its own legend row, which carries the label and the figures.
+function statBarTitle(seg) {
+    var level = Array.prototype.find.call(seg.classList, function(c) { return c.indexOf('stat-level-') === 0; });
+    var group = seg.closest('.stat-group');
+    var row = level && group ? group.querySelector('.stat-row.' + level) : null;
+    if (!row) { return ''; }
+    var label = row.querySelector('.stat-label');
+    var value = row.querySelector('[data-stat]');
+    return (label ? label.textContent.trim() : '') + ' · ' + (value ? value.textContent.trim() : '');
 }
 
 function dimZeroSubRows() {
@@ -1849,6 +1875,7 @@ document.addEventListener('visibilitychange', catchUp);
 window.addEventListener('focus', catchUp);
 window.addEventListener('pageshow', catchUp);
 
+paintStatBars();
 dimZeroSubRows();
 poll();
 setInterval(poll, POLL_INTERVAL_MS);
