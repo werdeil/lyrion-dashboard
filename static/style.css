@@ -300,6 +300,14 @@ hr {
     width: 8px;
 }
 
+.calendar-bound {
+    margin-right: 4px;
+}
+
+.calendar-bound:last-child {
+    margin-right: 0;
+}
+
 .stat-row {
     display: flex;
     justify-content: space-between;

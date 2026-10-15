@@ -1902,6 +1902,7 @@ function renderCalendar(calendar) {
     var dayName = new Intl.DateTimeFormat(lang, { day: 'numeric', month: 'short', year: 'numeric' });
     var thresholds = calendarThresholds(calendar.days);
     var busiest = Object.keys(calendar.days).reduce(function(max, day) { return Math.max(max, calendar.days[day]); }, 0);
+    var bounds = [0].concat(thresholds, busiest);
     var today = parseDay(calendar.today);
     var start = calendar.start ? parseDay(calendar.start) : today;
     var shortest = new Date(today.getFullYear(), today.getMonth(), today.getDate() - 7 * CALENDAR_MIN_WEEKS + 1);
@@ -1946,7 +1947,7 @@ function renderCalendar(calendar) {
     box.querySelector('.calendar-months').replaceChildren(months);
     box.querySelector('.calendar-days').replaceChildren(days);
     box.querySelector('.calendar-weeks').replaceChildren(calendarWeeks(weekTotals, dayName));
-    box.querySelector('.calendar-max').textContent = busiest;
+    box.querySelectorAll('.calendar-bound').forEach(function(el, i) { el.textContent = bounds[i]; });
 }
 
 function calendarWeeks(weekTotals, dayName) {

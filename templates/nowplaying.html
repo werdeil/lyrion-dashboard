@@ -142,9 +142,7 @@
                     <div class="calendar-days"></div>
                     <div class="calendar-weeks"></div>
                     <div class="calendar-legend" aria-hidden="true">
-                        0
-                        <i class="calendar-day calendar-level-0"></i><i class="calendar-day calendar-level-1"></i><i class="calendar-day calendar-level-2"></i><i class="calendar-day calendar-level-3"></i><i class="calendar-day calendar-level-4"></i>
-                        <span class="calendar-max"></span>
+                        {% for level in range(5) %}<i class="calendar-day calendar-level-{{ level }}"></i><span class="calendar-bound"></span>{% endfor %}
                     </div>
                 </div>
                 <div class="stat-row">
