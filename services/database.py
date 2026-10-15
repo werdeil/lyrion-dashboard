@@ -203,7 +203,7 @@ def _read_play_history(conn):
     return {
         "velocity_30d": row[0] or 0,
         "velocity_1year": row[1] or 0,
-        "listening_calendar": {"today": row[2], "start": row[3], "days": {day: plays for day, plays in days}},
+        "listening_calendar": {"today": row[2], "start": row[3], "days": dict(days)},
     }
 
 
