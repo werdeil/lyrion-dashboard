@@ -832,6 +832,12 @@ body.in-app .np-pull {
     cursor: pointer;
 }
 
+/* Alone, retry is the whole pill: a circle, the row's inner height across. */
+.np-retry:has(+ .np-lyrics-source[hidden]) {
+    width: 23px;
+    padding: 0;
+}
+
 /* Only a divider when both segments show; alone, either is the whole pill. */
 .np-retry:not([hidden]) + .np-lyrics-source {
     border-radius: 0;
