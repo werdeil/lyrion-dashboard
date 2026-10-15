@@ -118,7 +118,10 @@ def _listening_calendar(today=date(2026, 10, 15), start=date(2025, 11, 12)):
 
 FAKE_STATS = _stats()
 FAKE_STATS["listening_calendar"] = _listening_calendar()
-FAKE_STATS["velocity_1year"] = sum(FAKE_STATS["listening_calendar"]["days"].values())
+# The demo history starts in November: the year's figure adds a floor for the weeks before it.
+FAKE_STATS["velocity_1year"] = sum(FAKE_STATS["listening_calendar"]["days"].values()) + 184
+FAKE_STATS["velocity_1year_partial"] = True
+FAKE_STATS["velocity_30d_partial"] = False
 FAKE_STATS["velocity_30d"] = sum(
     plays for day, plays in FAKE_STATS["listening_calendar"]["days"].items() if day >= "2026-09-16"
 )

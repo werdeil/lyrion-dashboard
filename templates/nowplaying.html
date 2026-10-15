@@ -147,11 +147,11 @@
                 </div>
                 <div class="stat-row">
                     <span class="stat-label">{{ t.played_last_30d }}</span>
-                    <span data-stat="velocity_30d">{{ stats.velocity_30d }}</span>
+                    <span data-stat="velocity_30d" data-stat-partial="velocity_30d_partial"{% if stats.velocity_30d_partial %} title="{{ t.velocity_partial }}"{% endif %}>{% if stats.velocity_30d_partial %}≥ {% endif %}{{ stats.velocity_30d }}</span>
                 </div>
                 <div class="stat-row">
                     <span class="stat-label">{{ t.played_last_year }}</span>
-                    <span data-stat="velocity_1year">{{ stats.velocity_1year }}</span>
+                    <span data-stat="velocity_1year" data-stat-partial="velocity_1year_partial"{% if stats.velocity_1year_partial %} title="{{ t.velocity_partial }}"{% endif %}>{% if stats.velocity_1year_partial %}≥ {% endif %}{{ stats.velocity_1year }}</span>
                 </div>
                 <div class="stat-row">
                     <span class="stat-label">{{ t.total_plays }}</span>

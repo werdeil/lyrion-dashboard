@@ -1818,7 +1818,9 @@ function renderStats(stats) {
             small.textContent = '(' + stats[pctKey] + '%)';
             el.appendChild(small);
         } else {
-            el.textContent = value;
+            var partial = el.dataset.statPartial ? stats[el.dataset.statPartial] : false;
+            el.textContent = (partial ? '≥ ' : '') + value;
+            if (el.dataset.statPartial) { el.title = partial ? I18N.velocity_partial : ''; }
         }
     });
     document.querySelectorAll('[data-stat-bar]').forEach(function(seg) {

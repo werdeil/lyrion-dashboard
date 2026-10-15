@@ -38,7 +38,7 @@ Left to right, click any of them for the full-size image: the enlarged cover, th
 
 - An accessible Lyrion Music Server
 - Docker and Docker Compose
-- Recommended: the [Alternative Play Count](https://github.com/AF-1/lms-alternativeplaycount) plugin on Lyrion. Without it the dashboard reads Lyrion's own play counters instead: the skip count disappears from the statistics, and since Lyrion bumps a track's last-played time on a skip too, an album that was only skipped past can surface in the recent plays. With the plugin's play history on (its default), the 30-day and 12-month figures count plays; otherwise they count the tracks played in the period.
+- Recommended: the [Alternative Play Count](https://github.com/AF-1/lms-alternativeplaycount) plugin on Lyrion. Without it the dashboard reads Lyrion's own play counters instead: the skip count disappears from the statistics, and since Lyrion bumps a track's last-played time on a skip too, an album that was only skipped past can surface in the recent plays. With the plugin's play history on (its default), the 30-day and 12-month figures count plays — shown as a minimum, marked ≥, while the history is younger than the period, since the plugin only records it from its March 2026 release on; otherwise they count the tracks played in the period.
 
 ## Installation
 

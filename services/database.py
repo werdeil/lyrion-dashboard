@@ -191,7 +191,8 @@ def _read_play_history(conn):
             (SELECT COUNT(*) FROM play_history
              WHERE played >= strftime('%s', 'now', 'localtime', 'start of day', ?, 'utc')),
             date('now', 'localtime'),
-            date(MIN(played), 'unixepoch', 'localtime')
+            date(MIN(played), 'unixepoch', 'localtime'),
+            MIN(played)
         FROM play_history
     """, _WINDOWS).fetchone()
     days = conn.execute("""
@@ -204,7 +205,25 @@ def _read_play_history(conn):
         "velocity_30d": row[0] or 0,
         "velocity_1year": row[1] or 0,
         "listening_calendar": {"today": row[2], "start": row[3], "days": dict(days)},
+        "first_play": row[4],
     }
+
+
+def _add_plays_before_history(cur, stats, first_play):
+    windows = cur.execute("""
+        SELECT CAST(strftime('%s', 'now', 'localtime', 'start of day', ?, 'utc') AS INTEGER),
+               CAST(strftime('%s', 'now', 'localtime', 'start of day', ?, 'utc') AS INTEGER)
+    """, _WINDOWS).fetchone()
+    for key, window_start in zip(("velocity_30d", "velocity_1year"), windows):
+        if first_play is not None and first_play <= window_start:
+            continue
+        # A track last played before the history began was played at least once: a floor, not a count.
+        stats[key] += cur.execute("""
+            SELECT COUNT(*) FROM tracks t JOIN play_counts apc ON t.urlmd5 = apc.urlmd5
+            WHERE t.audio = 1 AND apc.playcount > 0 AND apc.lastplayed >= ?
+              AND (? IS NULL OR apc.lastplayed < ?)
+        """, (window_start, first_play, first_play)).fetchone()[0]
+        stats[key + "_partial"] = True
 
 
 def get_stats():
@@ -366,8 +385,12 @@ def _compute_stats():
             "velocity_1year":    row["velocity_1year"] or 0,
         })
         stats["listening_calendar"] = None
-        if apc_available:
-            stats.update(_play_history() or {})
+        stats["velocity_30d_partial"] = stats["velocity_1year_partial"] = False
+        history = _play_history() if apc_available else None
+        if history:
+            first_play = history.pop("first_play")
+            stats.update(history)
+            _add_plays_before_history(cur, stats, first_play)
 
         stats["albums_played_pct"]    = pct(stats["albums_played"],    stats["albums_total"])
         stats["albums_not_fully_pct"] = pct(stats["albums_not_fully"], stats["albums_total"])
