@@ -942,7 +942,14 @@ body.in-app .np-pull {
     color: var(--text-error);
 }
 
-.np-retry:hover:not(:disabled),
+/* A tap leaves :hover on until the next one elsewhere, so only a real pointer gets it. */
+@media (hover: hover) {
+    .np-retry:hover:not(:disabled) {
+        color: var(--accent-color);
+        border-color: color-mix(in srgb, var(--accent-color) 45%, transparent);
+    }
+}
+
 .np-retry:focus-visible {
     color: var(--accent-color);
     border-color: color-mix(in srgb, var(--accent-color) 45%, transparent);
