@@ -17,7 +17,7 @@
 - **Dernières écoutes** -- Sur grand écran, les albums récemment écoutés s'empilent comme des pochettes de disque sous la cover, le plus récent au-dessus. Construit à partir de l'historique d'écoute, une pochette par album ; avec le plugin Alternative Play Count installé, les sauts sont exclus.
 - **Paroles synchronisées** -- Les paroles avec timestamps LRC défilent ligne par ligne au rythme de la lecture, façon karaoké.
 - **Recherche web de paroles** -- LRCLIB, Musixmatch, NetEase Cloud Music et Genius sont interrogés pour chaque morceau joué : ils complètent les paroles absentes de la bibliothèque et convertissent son texte simple en version synchronisée quand elle existe. La ligne de provenance sous les paroles bascule ensuite entre tout ce qui a été trouvé pour le morceau — le texte de votre bibliothèque et chaque version renvoyée par les fournisseurs — pour confronter des tags erronés, ou une prise dont les paroles ne collent pas à l'enregistrement, aux autres versions. Son dernier arrêt masque les paroles quand aucune ne convient ; c'est retenu sur l'appareil jusqu'à ce qu'une autre version du morceau apparaisse. Donnez une valeur vide à `LYRICS_PROVIDERS` pour que l'application n'appelle plus rien.
-- **Statistiques de la bibliothèque** -- Albums, artistes, morceaux joués/non joués et profondeur des réécoutes, genres, notes, paroles, vélocité d'écoute sur 30 jours.
+- **Statistiques de la bibliothèque** -- Albums, artistes, morceaux joués/non joués et profondeur des réécoutes, genres, notes, paroles, vélocité d'écoute sur 30 jours, et un calendrier d'écoute sur 12 mois quand le plugin Alternative Play Count tient son historique d'écoute.
 - **Serveur de fichiers** -- Sert les fichiers depuis un répertoire configurable.
 - **Application Android** -- Une fine surcouche WebView (même principe que [lms-material-app](https://github.com/CDrummond/lms-material-app)) avec découverte automatique du serveur LMS, publiée sur [F-Droid](https://f-droid.org/packages/com.werdeil.lyriondashboard/), voir [`android/`](android/README.md) (en anglais).
 
@@ -38,7 +38,7 @@ De gauche à droite, cliquez pour la version pleine taille : la pochette agrandi
 
 - Un serveur Lyrion Music Server accessible
 - Docker et Docker Compose
-- Conseillé : le plugin [Alternative Play Count](https://github.com/AF-1/lms-alternativeplaycount) sur Lyrion. Sans lui, le tableau de bord lit les compteurs d'écoute de Lyrion : le nombre de sauts disparaît des statistiques et, comme Lyrion met aussi à jour la date de dernière écoute sur un saut, un album seulement zappé peut apparaître dans les dernières écoutes. Avec l'historique d'écoute du plugin activé (son réglage par défaut), les chiffres sur 30 jours et 12 mois comptent des écoutes ; sinon, ils comptent les morceaux écoutés sur la période.
+- Conseillé : le plugin [Alternative Play Count](https://github.com/AF-1/lms-alternativeplaycount) sur Lyrion. Sans lui, le tableau de bord lit les compteurs d'écoute de Lyrion : le nombre de sauts disparaît des statistiques et, comme Lyrion met aussi à jour la date de dernière écoute sur un saut, un album seulement zappé peut apparaître dans les dernières écoutes. Avec l'historique d'écoute du plugin activé (son réglage par défaut), les chiffres sur 30 jours et 12 mois comptent des écoutes — un minimum, marqué ≥, tant que l'historique est plus jeune que la période, puisque le plugin ne l'enregistre que depuis sa version de mars 2026 ; sinon, ils comptent les morceaux écoutés sur la période.
 
 ## Installation
 

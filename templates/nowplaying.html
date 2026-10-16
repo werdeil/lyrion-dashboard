@@ -135,14 +135,23 @@
             <div class="stat-group">
                 <div class="stat-group-title">
                     <span class="stat-group-title-label">{{ icons.history_icon(16) }} {{ t.history }}</span>
+                    <span class="stat-group-total collapsed-only" title="{{ t.played_last_year }}"><span data-stat="velocity_1year" data-stat-partial="velocity_1year_partial"{% if stats.velocity_1year_partial %} title="{{ t.velocity_partial }}"{% endif %}>{% if stats.velocity_1year_partial %}≥ {% endif %}{{ stats.velocity_1year }}</span></span>
+                </div>
+                <div class="listening-calendar" id="listening-calendar"{% if not stats.listening_calendar %} hidden{% endif %}>
+                    <div class="calendar-months" aria-hidden="true"></div>
+                    <div class="calendar-days"></div>
+                    <div class="calendar-weeks"></div>
+                    <div class="calendar-legend" aria-hidden="true">
+                        {% for level in range(5) %}<i class="calendar-day calendar-level-{{ level }}"></i><span class="calendar-bound"></span>{% endfor %}
+                    </div>
                 </div>
                 <div class="stat-row">
                     <span class="stat-label">{{ t.played_last_30d }}</span>
-                    <span data-stat="velocity_30d">{{ stats.velocity_30d }}</span>
+                    <span data-stat="velocity_30d" data-stat-partial="velocity_30d_partial"{% if stats.velocity_30d_partial %} title="{{ t.velocity_partial }}"{% endif %}>{% if stats.velocity_30d_partial %}≥ {% endif %}{{ stats.velocity_30d }}</span>
                 </div>
                 <div class="stat-row">
                     <span class="stat-label">{{ t.played_last_year }}</span>
-                    <span data-stat="velocity_1year">{{ stats.velocity_1year }}</span>
+                    <span data-stat="velocity_1year" data-stat-partial="velocity_1year_partial"{% if stats.velocity_1year_partial %} title="{{ t.velocity_partial }}"{% endif %}>{% if stats.velocity_1year_partial %}≥ {% endif %}{{ stats.velocity_1year }}</span>
                 </div>
                 <div class="stat-row">
                     <span class="stat-label">{{ t.total_plays }}</span>
@@ -280,6 +289,7 @@
     <!-- UI strings for the dynamic (JS-rendered) bits, resolved server-side
          from the browser language. Static markup is translated via Jinja above. -->
     <script id="i18n-data" type="application/json">{{ t|tojson }}</script>
+    <script id="calendar-data" type="application/json">{{ stats.listening_calendar|tojson }}</script>
     <script src="{{ url_for('static', filename='lib/vibrant.min.js') }}" defer></script>
     <script src="{{ url_for('static', filename='lib/fast-average-color.min.js') }}" defer></script>
     <script src="{{ url_for('static', filename='nowplaying.js') }}" defer></script>

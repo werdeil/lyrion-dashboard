@@ -33,6 +33,7 @@
     --border-color: #3a3a3a;   /* hairlines: rules, cover edge */
     --page-pad: 16px;          /* body gutter, subtracted by the viewport-fitting calc */
     --surface: #303030;        /* raised neutral fills: progress track, cards */
+    --nothing: #141414;        /* a play level or a day with no plays at all */
     --text-error: #ffb7c0;
     transition: --tint-color 900ms ease, --accent-color 900ms ease;
 }
@@ -214,9 +215,9 @@ hr {
 }
 
 .stat-level-1 { --level-color: var(--accent-color); }
-.stat-level-2 { --level-color: color-mix(in srgb, var(--accent-color) 70%, var(--surface)); }
-.stat-level-3 { --level-color: color-mix(in srgb, var(--accent-color) 45%, var(--surface)); }
-.stat-level-4 { --level-color: #141414; }
+.stat-level-2 { --level-color: color-mix(in srgb, var(--accent-color) 68%, var(--surface)); }
+.stat-level-3 { --level-color: color-mix(in srgb, var(--accent-color) 40%, var(--surface)); }
+.stat-level-4 { --level-color: var(--nothing); }
 
 .stat-bar {
     display: flex;
@@ -230,6 +231,81 @@ hr {
 .stat-bar-seg {
     flex: 0 0 0;
     background: var(--level-color);
+}
+
+.listening-calendar {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    margin: 8px 0 10px;
+}
+
+.calendar-months,
+.calendar-days {
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(0, 1fr);
+    gap: 1px;
+}
+
+.calendar-days {
+    grid-template-rows: repeat(7, auto);
+}
+
+.calendar-weeks {
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(0, 1fr);
+    gap: 1px;
+}
+
+.stat-group:not(.collapsed) .calendar-weeks,
+.stat-group:not(.collapsed) .collapsed-only,
+.stat-group.collapsed .calendar-months,
+.stat-group.collapsed .calendar-days,
+.stat-group.collapsed .calendar-legend {
+    display: none;
+}
+
+.calendar-months {
+    height: 1.2em;
+    font-size: 0.65rem;
+    color: var(--text-faint);
+    white-space: nowrap;
+}
+
+.calendar-day {
+    display: block;
+    aspect-ratio: 1;
+    border-radius: 1px;
+}
+
+.calendar-level-0 { background: var(--nothing); }
+.calendar-level-1 { background: color-mix(in srgb, var(--accent-color) 15%, var(--surface)); }
+.calendar-level-2 { background: color-mix(in srgb, var(--accent-color) 40%, var(--surface)); }
+.calendar-level-3 { background: color-mix(in srgb, var(--accent-color) 68%, var(--surface)); }
+.calendar-level-4 { background: var(--accent-color); }
+
+.calendar-legend {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 3px;
+    margin-top: 3px;
+    font-size: 0.65rem;
+    color: var(--text-faint);
+}
+
+.calendar-legend .calendar-day {
+    width: 8px;
+}
+
+.calendar-bound {
+    margin-right: 4px;
+}
+
+.calendar-bound:last-child {
+    margin-right: 0;
 }
 
 .stat-row {
