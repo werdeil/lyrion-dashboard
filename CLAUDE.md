@@ -42,8 +42,8 @@ python -m unittest tests.test_now_playing_route.NowPlayingKnownTest.test_no_know
 # Syntax check (also part of python-ci.yml)
 python -m compileall .
 
-# Lint (pylint) — install both requirements files + playwright so imports resolve
-pip install -r requirements.txt -r requirements-cli.txt playwright pylint
+# Lint (pylint) — install the requirements + playwright so imports resolve
+pip install -r requirements.txt playwright pylint
 pylint app.py config.py i18n.py logsetup.py routes services scripts tests
 
 # Security (security job) — accepted findings carry an inline `# nosec`; new ones fail
@@ -53,10 +53,10 @@ bandit -r . -x ./tests
 
 # Frontend/shell lint — web-ci.yml
 npx --yes eslint@9 static/*.js
-shellcheck scripts/*.sh
+shellcheck .claude/hooks/*.sh
 ```
 
-Pylint config (`.pylintrc`) intentionally disables the docstring-required checks and `broad-exception-caught`, caps line length at 130, and allows `fetch_lyrics`' 7-arg signature. Match those norms rather than fighting them.
+Pylint config (`.pylintrc`) intentionally disables the docstring-required checks and `broad-exception-caught`, caps line length at 130, and allows `fetch_lyrics`' 6-arg signature. Match those norms rather than fighting them.
 
 In Claude Code on the web, `.claude/hooks/session-start.sh` installs these into a project `.venv` at session start (put first on `PATH`), so tests, pylint, pip-audit and bandit run without manual setup. Locally it's a no-op — manage your own venv.
 
@@ -95,8 +95,6 @@ When opening a PR, follow `.github/pull_request_template.md`: fill in the proble
 - `services/database.py` — read-only SQLite access. Opens Lyrion's `library.db` in RO mode and `ATTACH`es `persist.db` (also RO) per request via a context manager. The app never writes to these DBs — they belong to Lyrion. Stats are cached single-flight for `STATS_TTL`. **See the `database` skill.**
 - `services/lyrics.py` — web lyrics fallback (LRCLIB, Musixmatch, NetEase, Genius, tried in `LYRICS_PROVIDERS` order; synced-capable providers first). Results live in a process-local in-memory cache (single gunicorn worker + threads means all requests share it); hits are cached longer (`TTL_HIT`) than misses (`TTL_MISS`). Cannot be persisted — `library.db` is read-only.
 - `services/ratelimit.py` — dependency-free `RateLimiter` (per-IP sliding window) and `Cooldown` (once per interval), used to fuse the outbound lyrics searches. Idle entries are swept on every call so the maps stay bounded.
-- `services/tags.py` — framework-free tag writer (mutagen), shared by the web app and the CLI scripts: lyrics (plain text only) and cover art (stored as handed, never re-encoded).
-- `services/artwork.py` — image dimensions and format from header bytes alone (JPEG/PNG/GIF/BMP/WebP), no dependencies. Lyrion shows the artwork embedded in the tags and ignores `folder.jpg`, which is what `scripts/embed_covers.py` reconciles — by byte comparison, so the folder's file wins even when smaller. **See the `covers` skill.**
 
 ### Frontend
 
@@ -108,7 +106,7 @@ The UI is fully bilingual. `i18n.py` is the single source of truth for UI string
 
 ### Scripts (`scripts/`)
 
-Run outside the web app with `requirements-cli.txt` (no Flask/Lyrion). They operate directly on audio files; Lyrion picks up changes on its next scan. `embed_lyrics.py` embeds web lyrics into file tags; `embed_covers.py` mirrors an album folder's cover file into its tracks' tags, which is the only way to change what Lyrion displays (it shows the embedded artwork and ignores `folder.jpg`); `embed_lyrics_cron.sh` and `embed_covers_cron.sh` are cron wrappers that only revisit what changed since the last successful pass; `generate_screenshots.py` regenerates the images under `docs/screenshots/` — the README header and the demo gallery — with mocked Lyrion/DB layers and headless Chromium.
+`generate_screenshots.py` regenerates the images under `docs/screenshots/` — the README header and the demo gallery — with mocked Lyrion/DB layers and headless Chromium. It needs `requirements.txt` plus playwright.
 
 ## Code style & comments
 
@@ -129,7 +127,7 @@ Rules for the comments that do survive:
 - **Never narrate the obvious** — what the next line does, section banners, restating a name. If the code says it, the comment is noise: delete it.
 - **Re-read every comment in the diff before committing** — for each one you added, cut it unless it names a constraint, an external quirk, an accepted risk or a public contract. They get written while the reasoning is still warm, which is precisely when a motivation comment feels indispensable; the pass a few minutes later is what catches it. In Claude Code, `.claude/hooks/review-comments.sh` enforces the pass: it refuses a `git commit` once, listing the comment lines it adds, and lets the same commit through when it is run again with those comments unchanged.
 
-**Broad `except Exception` is intentional** around web providers and tag writers, where any single failure must not break the chain; `.pylintrc` disables `broad-exception-caught` for this reason. Don't narrow those without cause, and don't add new broad catches where a specific one belongs.
+**Broad `except Exception` is intentional** around web providers, where any single failure must not break the chain; `.pylintrc` disables `broad-exception-caught` for this reason. Don't narrow those without cause, and don't add new broad catches where a specific one belongs.
 
 ## Testing conventions
 
@@ -151,8 +149,7 @@ Project skills live in `.claude/skills/` (tracked in git, shared with contributo
 - **`i18n`** — adding/translating UI strings and keeping the READMEs in sync.
 - **`testing`** — the `unittest`/`mock.patch` conventions (standalone files, env-before-import, where to patch, testing caches/clock).
 - **`frontend`** — the vanilla JS/CSS page (accent tint, karaoke sync, polling, i18n wiring, the Android bridge, the ESLint gate).
-- **`lyrics`** — the web fallback providers, cache/verification, and embedding lyrics into audio file tags.
-- **`covers`** — album artwork: measuring an image from its header, and embedding a folder's cover into the tags.
+- **`lyrics`** — the web fallback providers, their match rule, and the cache.
 - **`release`** — cutting a version (the `VERSION`/gradle mirrors, the manual Release → publish → `android.yml` chain).
 - **`android`** — the WebView wrapper (shell-only principle, signing split, static F-Droid versioning, discovery, the JS↔native bridge).
 
