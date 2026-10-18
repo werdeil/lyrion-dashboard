@@ -47,12 +47,14 @@ def album_folders(patterns):
     Returns them through a generator, so the walk and the work interleave.
     Patterns the shell already expanded arrive as plain paths; literal ones
     (quoted, or left untouched because the shell found no match) are expanded
-    here. Folders without music are skipped, which leaves artwork-only
+    here, unless they name an existing path: `Album [Live]` is a folder, not a
+    character class. Folders without music are skipped, which leaves artwork-only
     subfolders (Scans/, Artwork/) alone.
     """
     seen = set()
     for pattern in patterns:
-        matches = sorted(glob.glob(pattern)) if glob.has_magic(pattern) else [pattern]
+        literal = os.path.exists(pattern) or not glob.has_magic(pattern)
+        matches = [pattern] if literal else sorted(glob.glob(pattern))
         if not matches:
             print(f"warning: no match for pattern: {pattern}", file=sys.stderr)
         for match in matches:
