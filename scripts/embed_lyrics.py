@@ -70,13 +70,14 @@ def resolve_targets(patterns):
 
     Patterns the shell already expanded arrive as plain paths; literal
     patterns (quoted, or left untouched because the shell found no match) are
-    expanded here so `A*` works either way. Returns (paths, missing) where
+    expanded here so `A*` works either way, unless they name an existing path
+    (`Album [Live]` is a folder, not a character class). Returns (paths, missing) where
     `missing` is the wildcard patterns that matched nothing — reported, not
     fatal, so a partial batch still runs.
     """
     paths, missing, seen = [], [], set()
     for pattern in patterns:
-        if glob.has_magic(pattern):
+        if glob.has_magic(pattern) and not os.path.exists(pattern):
             matches = sorted(glob.glob(pattern))
             if not matches:
                 missing.append(pattern)
