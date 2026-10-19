@@ -137,7 +137,7 @@ hr {
 }
 
 .stats-panel {
-    width: 320px;
+    width: clamp(320px, 25vw, 400px);
     flex-shrink: 0;
     background: color-mix(in srgb, var(--tint-color) 10%, rgba(48, 48, 48, 0.62));
     border-radius: 10px;
