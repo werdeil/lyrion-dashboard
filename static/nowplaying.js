@@ -1854,6 +1854,9 @@ function statBarTitle(seg) {
 }
 
 var calendarShown = '';
+var calendarData = null;
+// The smallest day the expanded strip draws; it shows as many recent weeks as fit at that size.
+var CALENDAR_MIN_DAY_PX = 10;
 // A month is four or five week columns, too narrow for its name in the side panel.
 var CALENDAR_LABEL_WEEKS = 6;
 // The shortest span the strip draws, which caps the size of its days.
@@ -1891,10 +1894,13 @@ function calendarLevel(n, thresholds) {
 // history's first day when it is younger than a year, so no column predates it.
 function renderCalendar(calendar) {
     var box = document.getElementById('listening-calendar');
-    var key = JSON.stringify(calendar);
-    if (!box || key === calendarShown) { return; }
-    calendarShown = key;
+    if (!box) { return; }
+    calendarData = calendar;
     box.hidden = !calendar;
+    var columns = calendar ? Math.max(1, Math.floor((box.clientWidth + 1) / (CALENDAR_MIN_DAY_PX + 1))) : 0;
+    var key = JSON.stringify(calendar) + '|' + columns;
+    if (key === calendarShown) { return; }
+    calendarShown = key;
     if (!calendar) { return; }
 
     var lang = document.documentElement.lang || undefined;
@@ -1908,24 +1914,13 @@ function renderCalendar(calendar) {
     var shortest = new Date(today.getFullYear(), today.getMonth(), today.getDate() - 7 * CALENDAR_MIN_WEEKS + 1);
     var yearAgo = new Date(today.getFullYear(), today.getMonth(), today.getDate() - 364);
     var first = new Date(Math.max(yearAgo, Math.min(start, shortest)));
-    var labelFrom = new Date(Math.max(first, start));
     var week = new Date(first.getFullYear(), first.getMonth(), first.getDate() - (first.getDay() + 6) % 7);
-    var months = document.createDocumentFragment();
-    var days = document.createDocumentFragment();
-    var weeksLeft = Math.ceil((today - week) / (7 * 86400000)) + 1;
-    var sinceLabel = CALENDAR_LABEL_WEEKS;
-    var weekTotals = [];
+    var weeks = [];
 
-    for (; week <= today; week.setDate(week.getDate() + 7), weeksLeft--, sinceLabel++) {
-        var label = document.createElement('span');
-        var weekTotal = { monday: new Date(week), plays: null };
+    for (; week <= today; week.setDate(week.getDate() + 7)) {
+        var weekTotal = { monday: new Date(week), plays: null, cells: [], days: [] };
         for (var k = 0; k < 7; k++) {
             var day = new Date(week.getFullYear(), week.getMonth(), week.getDate() + k);
-            if ((day.getDate() === 1 || +day === +labelFrom) && day >= labelFrom && weeksLeft > 2 &&
-                    sinceLabel >= CALENDAR_LABEL_WEEKS) {
-                label.textContent = monthName.format(day).replace('.', '');
-                sinceLabel = 0;
-            }
             var cell = document.createElement('i');
             cell.className = 'calendar-day';
             if (day >= first && day <= today) {
@@ -1939,16 +1934,37 @@ function renderCalendar(calendar) {
                         (plays === 1 ? I18N.calendar_play : I18N.calendar_plays);
                 }
             }
-            days.appendChild(cell);
+            weekTotal.cells.push(cell);
+            weekTotal.days.push(day);
         }
-        months.appendChild(label);
-        weekTotals.push(weekTotal);
+        weeks.push(weekTotal);
     }
+
+    var shown = weeks.slice(-columns);
+    var labelFrom = new Date(Math.max(first, start, shown[0].monday));
+    var months = document.createDocumentFragment();
+    var days = document.createDocumentFragment();
+    var sinceLabel = CALENDAR_LABEL_WEEKS;
+    shown.forEach(function(w, i) {
+        var label = document.createElement('span');
+        w.days.forEach(function(day) {
+            if ((day.getDate() === 1 || +day === +labelFrom) && day >= labelFrom && shown.length - i > 2 &&
+                    sinceLabel >= CALENDAR_LABEL_WEEKS) {
+                label.textContent = monthName.format(day).replace('.', '');
+                sinceLabel = -1;
+            }
+        });
+        sinceLabel++;
+        months.appendChild(label);
+        w.cells.forEach(function(cell) { days.appendChild(cell); });
+    });
     box.querySelector('.calendar-months').replaceChildren(months);
     box.querySelector('.calendar-days').replaceChildren(days);
-    box.querySelector('.calendar-weeks').replaceChildren(calendarWeeks(weekTotals, dayName));
+    box.querySelector('.calendar-weeks').replaceChildren(calendarWeeks(weeks, dayName));
     box.querySelectorAll('.calendar-bound').forEach(function(el, i) { el.textContent = bounds[i]; });
 }
+
+window.addEventListener('resize', function() { renderCalendar(calendarData); });
 
 function calendarWeeks(weekTotals, dayName) {
     var thresholds = calendarThresholds(weekTotals.map(function(w) { return w.plays || 0; }));
