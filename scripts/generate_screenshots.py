@@ -381,6 +381,11 @@ MOSAIC_READY_JS = """
 PLAYING_JS = "() => !document.getElementById('now-playing').classList.contains('is-empty')"
 OPEN_ZOOM_JS = "() => document.getElementById('np-cover-button').click()"
 
+FOLD_ALBUM_ARTISTS_JS = (
+    "() => document.querySelector('[data-stat=\"artists_total\"]')"
+    ".closest('.stat-group').querySelector('.stat-group-title').click()"
+)
+
 ANDROID_BRIDGE_JS = (
     "window.LyrionApp = { openMenu: function () {}, openSettings: function () {} };"
 )
@@ -513,15 +518,15 @@ def frame_phone(browser, screenshot_png):
 
 
 SHOTS = {
-    "dashboard-en.png": Shot("rose"),
-    "dashboard-fr.png": Shot("rose", locale="fr-FR"),
+    "dashboard-en.png": Shot("rose", action=FOLD_ALBUM_ARTISTS_JS, settle=300),
+    "dashboard-fr.png": Shot("rose", locale="fr-FR", action=FOLD_ALBUM_ARTISTS_JS, settle=300),
     "dashboard-mobile.png": Shot("teal", locale="fr-FR", viewport=PHONE, dpr=2),
     "dashboard-app.png": Shot("ember", viewport=PHONE, dpr=2, android=True, frame=True),
     # Demo gallery: one feature per capture, cropped to what it shows.
     "demo-cover-zoom.png": Shot("rose", action=OPEN_ZOOM_JS, settle=600),
     "demo-lyrics.png": Shot("teal", locale="fr-FR", dpr=2, element=".np-lyrics-block"),
     "demo-recent.png": Shot("rose", dpr=2, element=".np-side"),
-    "demo-stats.png": Shot("ember", dpr=2, element=".stats-panel"),
+    "demo-stats.png": Shot("ember", dpr=2, action=FOLD_ALBUM_ARTISTS_JS, settle=300, element=".stats-panel"),
     "demo-empty.png": Shot("idle", ready=MOSAIC_READY_JS),
 }
 
