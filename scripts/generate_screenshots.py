@@ -38,6 +38,7 @@ import math
 import os
 import sys
 import threading
+from datetime import date, timedelta
 from types import MappingProxyType
 from typing import Mapping, NamedTuple
 
@@ -101,7 +102,29 @@ def _stats():
     return s
 
 
+def _listening_calendar(today=date(2026, 10, 15), start=date(2025, 11, 12)):
+    # Deterministic, so the screenshots only change with the code.
+    days = {}
+    day = start
+    while day <= today:
+        noise = (math.sin(day.toordinal() * 12.9898) * 43758.5453) % 1
+        holiday = day.month == 8 and 3 <= day.day <= 19
+        if noise > (0.8 if holiday else 0.12):
+            weekend = day.weekday() >= 5
+            days[day.isoformat()] = 1 + int(noise * (3 if holiday else 22 if weekend else 11))
+        day += timedelta(days=1)
+    return {"today": today.isoformat(), "start": start.isoformat(), "days": days}
+
+
 FAKE_STATS = _stats()
+FAKE_STATS["listening_calendar"] = _listening_calendar()
+# The demo history starts in November: the year's figure adds a floor for the weeks before it.
+FAKE_STATS["velocity_1year"] = sum(FAKE_STATS["listening_calendar"]["days"].values()) + 184
+FAKE_STATS["velocity_1year_partial"] = True
+FAKE_STATS["velocity_30d_partial"] = False
+FAKE_STATS["velocity_30d"] = sum(
+    plays for day, plays in FAKE_STATS["listening_calendar"]["days"].items() if day >= "2026-09-16"
+)
 
 
 def _lrc(start, gap, lines, hold_after=None):
@@ -358,6 +381,11 @@ MOSAIC_READY_JS = """
 PLAYING_JS = "() => !document.getElementById('now-playing').classList.contains('is-empty')"
 OPEN_ZOOM_JS = "() => document.getElementById('np-cover-button').click()"
 
+FOLD_ALBUM_ARTISTS_JS = (
+    "() => document.querySelector('[data-stat=\"artists_total\"]')"
+    ".closest('.stat-group').querySelector('.stat-group-title').click()"
+)
+
 ANDROID_BRIDGE_JS = (
     "window.LyrionApp = { openMenu: function () {}, openSettings: function () {} };"
 )
@@ -490,15 +518,15 @@ def frame_phone(browser, screenshot_png):
 
 
 SHOTS = {
-    "dashboard-en.png": Shot("rose"),
-    "dashboard-fr.png": Shot("rose", locale="fr-FR"),
+    "dashboard-en.png": Shot("rose", action=FOLD_ALBUM_ARTISTS_JS, settle=300),
+    "dashboard-fr.png": Shot("rose", locale="fr-FR", action=FOLD_ALBUM_ARTISTS_JS, settle=300),
     "dashboard-mobile.png": Shot("teal", locale="fr-FR", viewport=PHONE, dpr=2),
     "dashboard-app.png": Shot("ember", viewport=PHONE, dpr=2, android=True, frame=True),
     # Demo gallery: one feature per capture, cropped to what it shows.
     "demo-cover-zoom.png": Shot("rose", action=OPEN_ZOOM_JS, settle=600),
     "demo-lyrics.png": Shot("teal", locale="fr-FR", dpr=2, element=".np-lyrics-block"),
     "demo-recent.png": Shot("rose", dpr=2, element=".np-side"),
-    "demo-stats.png": Shot("ember", dpr=2, element=".stats-panel"),
+    "demo-stats.png": Shot("ember", dpr=2, action=FOLD_ALBUM_ARTISTS_JS, settle=300, element=".stats-panel"),
     "demo-empty.png": Shot("idle", ready=MOSAIC_READY_JS),
 }
 
