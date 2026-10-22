@@ -1,8 +1,7 @@
-"""Tests for the lyrics result verification used by the batch CLI.
+"""Tests for the match rule fuzzy providers check their own answer with.
 
-The batch tool writes lyrics permanently into tags, so it must reject a
-provider's result when the matched track doesn't line up with the file. These
-cover the normalisation, the match rule, and fetch_lyrics' verify wiring.
+Musixmatch and NetEase always answer with their nearest song, so each hit must
+line up with the requested track. These cover the normalisation and the rule.
 
 White-box tests: they reach into services.lyrics' private helpers on purpose.
 """
@@ -102,39 +101,6 @@ class MatchesRequestTest(unittest.TestCase):
     def test_qualifier_and_feat_still_match(self):
         meta = self._meta(title="Space Debris (Live)", artist="Muse feat. X", duration=246)
         self.assertTrue(L._matches_request(meta, "Muse", "Space Debris", "247"))
-
-
-class FetchLyricsVerifyTest(unittest.TestCase):
-    def setUp(self):
-        L._cache.clear()
-        self._orig = L._enabled_providers
-
-    def tearDown(self):
-        L._enabled_providers = self._orig
-        L._cache.clear()
-
-    def _stub_provider(self, meta):
-        def provider(_artist, _title, _album, _duration):
-            return {"lyrics": "la la la", "synced": None, "meta": meta}
-        L._enabled_providers = lambda: [("fake", provider)]
-
-    def test_verify_accepts_matching_candidate(self):
-        self._stub_provider({"artist": "Muse", "title": "Space Debris", "album": None, "duration": 247})
-        res = L.fetch_lyrics(None, "Muse", "Space Debris", duration="247", verify=True)
-        self.assertEqual(res["source"], "fake")
-        self.assertEqual(res["lyrics"], "la la la")
-
-    def test_verify_rejects_mismatching_candidate(self):
-        self._stub_provider({"artist": "Someone Else", "title": "Wrong", "album": None, "duration": 999})
-        res = L.fetch_lyrics(None, "Muse", "Space Debris", duration="247", verify=True)
-        self.assertEqual(res["source"], "rejected")
-        self.assertIsNone(res["lyrics"])
-
-    def test_lenient_accepts_mismatching_candidate(self):
-        self._stub_provider({"artist": "Someone Else", "title": "Wrong", "album": None, "duration": 999})
-        res = L.fetch_lyrics(None, "Muse", "Space Debris", duration="247", verify=False)
-        self.assertEqual(res["source"], "fake")
-        self.assertEqual(res["lyrics"], "la la la")
 
 
 if __name__ == "__main__":

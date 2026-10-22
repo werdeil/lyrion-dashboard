@@ -20,12 +20,12 @@ fi
 
 "$VENV/bin/python" -m pip install --upgrade pip
 
-# App deps (requirements.txt) run the tests; the CLI deps (requirements-cli.txt)
-# plus playwright let pylint resolve every import in the linted tree; pylint,
-# pip-audit and bandit are the lint/security gates themselves. Matches the
-# commands documented in CLAUDE.md, so `python -m unittest discover`, pylint,
-# pip-audit and bandit all work without further setup.
-"$VENV/bin/pip" install -r requirements.txt -r requirements-cli.txt playwright pylint pip-audit bandit
+# App deps (requirements.txt) run the tests; playwright lets pylint resolve
+# every import in the linted tree; pylint, pip-audit and bandit are the
+# lint/security gates themselves. Matches the commands documented in CLAUDE.md,
+# so `python -m unittest discover`, pylint, pip-audit and bandit all work
+# without further setup.
+"$VENV/bin/pip" install -r requirements.txt playwright pylint pip-audit bandit
 
 # Put the venv first on PATH for the rest of the session, so `python`, `pylint`,
 # `pip-audit` and `bandit` resolve to the versions installed above.

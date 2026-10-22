@@ -1,10 +1,6 @@
 lyrics:
   - changed-files:
-      - any-glob-to-any-file: ["services/lyrics.py", "scripts/embed_lyrics*"]
-
-covers:
-  - changed-files:
-      - any-glob-to-any-file: ["services/artwork.py", "scripts/embed_covers*"]
+      - any-glob-to-any-file: ["services/lyrics.py"]
 
 lyrion:
   - changed-files:
