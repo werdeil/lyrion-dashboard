@@ -176,6 +176,7 @@ function rememberHidden(hide) {
 
 var LYRION_ARROW_PATH = 'M19 19H5V5h7V3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2v-7h-2v7zM14 3v2h3.59l-9.83 9.83 1.41 1.41L19 6.41V10h2V3h-7z';
 var CHEVRON_PATH = 'M7 10l5 5 5-5z';
+var PAUSE_PATH = 'M6 19h4V5H6v14zm8-14v14h4V5h-4z';
 function makeIcon(pathD, cls) {
     var ns = 'http://www.w3.org/2000/svg';
     var svg = document.createElementNS(ns, 'svg');
@@ -206,6 +207,16 @@ document.addEventListener('keydown', function (e) {
 // Rebuilt only when the players or the active one change, so the menu keeps its state.
 var lastSwitchKey = null;
 
+function appendSwitchName(item, player) {
+    item.appendChild(document.createTextNode(player.name || ''));
+    if (!player.paused) { return; }
+    item.appendChild(makeIcon(PAUSE_PATH, 'np-switch-paused'));
+    var label = document.createElement('span');
+    label.className = 'visually-hidden';
+    label.textContent = ' (' + I18N.paused + ')';
+    item.appendChild(label);
+}
+
 function renderPlayerSwitch(data) {
     if (!el.playerSwitch) { return; }
     var players = data.players || [];
@@ -225,7 +236,7 @@ function renderPlayerSwitch(data) {
     el.playerSwitch.hidden = false;
 
     var activeId = data.player_id;
-    var key = players.map(function (p) { return p.id; }).join(',') + '|' + activeId;
+    var key = players.map(function (p) { return p.id + (p.paused ? '~' : ''); }).join(',') + '|' + activeId;
     if (key === lastSwitchKey) { return; }
     lastSwitchKey = key;
     el.playerSwitch.textContent = '';
@@ -253,13 +264,13 @@ function renderPlayerSwitch(data) {
             item = document.createElement('a');
             setMaterialLink(item, p.id);
             item.title = I18N.open_lyrion;
-            item.appendChild(document.createTextNode(p.name || ''));
+            appendSwitchName(item, p);
             item.appendChild(makeIcon(LYRION_ARROW_PATH, 'np-switch-arrow'));
             item.addEventListener('click', closeSwitchMenu);
         } else {
             item = document.createElement('button');
             item.type = 'button';
-            item.appendChild(document.createTextNode(p.name || ''));
+            appendSwitchName(item, p);
             item.addEventListener('click', function () {
                 closeSwitchMenu();
                 setSelectedPlayer(p.id);
@@ -1251,6 +1262,7 @@ window.addEventListener('resize', function() {
 function render(data) {
     if (!data || !data.track_id) {
         nowPlaying.classList.add('is-empty');
+        nowPlaying.classList.remove('is-paused');
         loadMosaic();
         startMosaic();
         // The listens that just ended reorder the pile, so the next playback refetches it.
@@ -1277,6 +1289,7 @@ function render(data) {
     }
 
     nowPlaying.classList.remove('is-empty');
+    nowPlaying.classList.toggle('is-paused', !!data.paused);
     mosaicLoaded = false;
     stopMosaic();
 

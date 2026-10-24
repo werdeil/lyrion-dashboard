@@ -44,7 +44,7 @@ Nothing is hardcoded in the JS that the server already knows:
 
 ## The polling loop
 
-`poll()` fetches `/now-playing.json` every `POLL_INTERVAL_MS` (2000ms) and calls `render(data)`. Two efficiency contracts to preserve when editing:
+`poll()` fetches `/now-playing.json` every `POLL_INTERVAL_MS` (2000ms) and calls `render(data)`. A paused track renders like a playing one, with `playing` false freezing the progress bar and the karaoke (they only extrapolate while it is true) and `paused` setting `.is-paused` on the card: the cover dims under a pause badge (`.np-paused`, CSS-only, no `hidden`), the bar fades, and the switcher marks paused players with a glyph plus a visually-hidden label. Only a stop, or a pause past the server's timeout, empties the card. Two efficiency contracts to preserve when editing:
 
 - The page sends `?known=<track key>` (the `id|title|artist|album` it already shows); the server omits `lyrics` when it matches, so a steady-state poll skips the DB. Keep the key format in sync with the route.
 - `?player=<id>` pins the switcher's pick (persisted in `localStorage`); a malformed id is dropped server-side.

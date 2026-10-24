@@ -3,8 +3,9 @@
 Resolving which players are playing costs 1+N upstream requests; the result is
 cached for NOW_PLAYING_TTL seconds shared across clients, the cached playback
 position is aged so the karaoke stays accurate, a client can pin one player via
-selected_id when several play at once, and the automatic path stays on the
-player shown last while it keeps playing.
+selected_id when several are active, the automatic path stays on the player
+shown last while it plays or is paused, and a pause outlasting PAUSE_TIMEOUT
+counts as a stop.
 
 White-box tests: they stub services.lyrion's query helpers on purpose.
 """
@@ -29,6 +30,7 @@ class NowPlayingCacheTest(unittest.TestCase):
         self.players_calls = 0
         self.status_calls = []
         self.playing = {"p1": False, "p2": True}
+        self.paused = set()
 
         def fake_players():
             self.players_calls += 1
@@ -37,10 +39,13 @@ class NowPlayingCacheTest(unittest.TestCase):
 
         def fake_now(player_id):
             self.status_calls.append(player_id)
-            if self.playing.get(player_id):
-                return {"playing": True, "mode": "play", "time": 10.0,
+            if player_id in self.paused:
+                return {"playing": False, "paused": True, "mode": "pause", "time": 10.0,
                         "duration": 200, "track_id": 42, "title": "Song"}
-            return {"playing": False, "mode": "stop"}
+            if self.playing.get(player_id):
+                return {"playing": True, "paused": False, "mode": "play", "time": 10.0,
+                        "duration": 200, "track_id": 42, "title": "Song"}
+            return {"playing": False, "paused": False, "mode": "stop"}
 
         L.get_players = fake_players
         L.get_now_playing = fake_now
@@ -55,6 +60,11 @@ class NowPlayingCacheTest(unittest.TestCase):
         L._now_cache.update(players=[], fetched_at=0, expires_at=0)
         L._last_player.update(id=None, name=None)
         L._logged_states.update(states=None)
+        L._paused_since.clear()
+
+    def _refresh(self, selected_id=None):
+        L._now_cache["expires_at"] = 0
+        return L.get_active_now_playing(selected_id=selected_id)
 
     def test_result_is_cached_within_ttl(self):
         first = L.get_active_now_playing()
@@ -148,6 +158,60 @@ class NowPlayingCacheTest(unittest.TestCase):
         result = L.get_active_now_playing()
         self.assertFalse(result["playing"])
         self.assertEqual(result["players"], [])
+
+    def test_paused_player_stays_on_screen(self):
+        self.paused.add("p2")
+        result = L.get_active_now_playing()
+        self.assertEqual(result["player_id"], "p2")
+        self.assertFalse(result["playing"])
+        self.assertTrue(result["paused"])
+        self.assertEqual(result["players"], [{"id": "p2", "name": "Cuisine", "paused": True}])
+
+    def test_paused_position_is_not_aged(self):
+        self.paused.add("p2")
+        L.get_active_now_playing()
+        L._now_cache["fetched_at"] -= 1.5
+        self.assertEqual(L.get_active_now_playing()["time"], 10.0)
+
+    def test_auto_prefers_a_playing_player_over_a_paused_one(self):
+        self.playing["p1"] = True
+        self.paused.add("p1")  # p1 paused, p2 playing, nothing shown yet
+        self.assertEqual(L.get_active_now_playing()["player_id"], "p2")
+
+    def test_auto_stays_on_the_shown_player_when_it_pauses(self):
+        self.playing["p1"] = True
+        L.get_active_now_playing()  # locks onto p1
+        self.paused.add("p1")  # p1 pauses while p2 keeps playing
+        result = self._refresh()
+        self.assertEqual(result["player_id"], "p1")
+        self.assertTrue(result["paused"])
+
+    def test_selection_holds_while_the_pinned_player_is_paused(self):
+        self.playing["p1"] = True
+        self.paused.add("p1")
+        result = L.get_active_now_playing(selected_id="p1")
+        self.assertEqual(result["player_id"], "p1")
+        self.assertTrue(result["selection_active"])
+
+    def test_a_long_pause_counts_as_a_stop(self):
+        self.playing["p2"] = False
+        self.paused.add("p2")
+        self.assertTrue(L.get_active_now_playing()["paused"])
+        L._paused_since["p2"] -= L.PAUSE_TIMEOUT
+        result = self._refresh()
+        self.assertFalse(result["paused"])
+        self.assertEqual(result["players"], [])
+        self.assertIsNone(L._last_player["id"])
+
+    def test_resuming_resets_the_pause_timer(self):
+        self.paused.add("p2")
+        L.get_active_now_playing()
+        L._paused_since["p2"] -= L.PAUSE_TIMEOUT
+        self.paused.discard("p2")
+        self.assertTrue(self._refresh()["playing"])
+        self.assertNotIn("p2", L._paused_since)
+        self.paused.add("p2")  # paused again: a fresh timeout
+        self.assertTrue(self._refresh()["paused"])
 
 
 if __name__ == "__main__":

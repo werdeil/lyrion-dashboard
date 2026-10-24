@@ -46,6 +46,9 @@
                             <img id="np-cover-img" alt="{{ t.cover_alt }}"
                                  data-fallback="{{ url_for('static', filename='no-cover.svg') }}">
                         </button>
+                        <span class="np-paused" role="img" aria-label="{{ t.paused }}" title="{{ t.paused }}">
+                            {{ icons.pause_icon(26) }}
+                        </span>
                     </div>
                     {# Recent-plays sleeve pile, filled by nowplaying.js from /recent-covers.json (desktop only). #}
                     <div class="np-recent" id="np-recent" hidden>

@@ -396,6 +396,33 @@ hr {
     border-radius: 10px;
     display: block;
     border: 1px solid var(--border-color);
+    transition: filter 0.3s ease;
+}
+
+.np-paused {
+    display: none;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 56px;
+    height: 56px;
+    margin: -28px 0 0 -28px;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.55);
+    color: #fff;
+    pointer-events: none;
+}
+
+.now-playing.is-paused .np-paused { display: flex; }
+
+.now-playing.is-paused .np-cover img { filter: brightness(0.6) saturate(0.6); }
+
+.now-playing.is-paused .np-progress-bar { opacity: 0.5; }
+
+@media (prefers-reduced-motion: reduce) {
+    .np-cover img { transition: none; }
 }
 
 /* Turned on by the wide-layout media query further down. */
@@ -749,6 +776,14 @@ body.in-app .np-pull {
 .np-switch-item.is-current {
     color: var(--accent-color);
     font-weight: bold;
+}
+
+.np-switch-paused {
+    margin-left: 0.4em;
+    width: 0.95em;
+    height: 0.95em;
+    fill: currentColor;
+    opacity: 0.6;
 }
 
 .np-switch-arrow {

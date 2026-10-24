@@ -59,9 +59,11 @@ Covers are proxied through this app rather than pointed straight at `LYRION_HOST
 
 ## Caching and shared state
 
-`get_active_now_playing()` is the entry point routes should call for now-playing state. It caches the snapshot of all playing players for `NOW_PLAYING_TTL` (2s) behind `_now_lock`, so Lyrion sees one enumeration per TTL regardless of how many clients poll. It also ages the cached playback position by wall-clock time so the progress bar and karaoke highlight stay accurate across shared reads. If you add server calls that clients poll, follow this pattern rather than hitting Lyrion per request.
+`get_active_now_playing()` is the entry point routes should call for now-playing state. It caches the snapshot of all active players for `NOW_PLAYING_TTL` (2s) behind `_now_lock`, so Lyrion sees one enumeration per TTL regardless of how many clients poll. It also ages the cached playback position of a playing player by wall-clock time so the progress bar and karaoke highlight stay accurate across shared reads. If you add server calls that clients poll, follow this pattern rather than hitting Lyrion per request.
 
-`_last_player` keeps the auto-selected player stable across polls; only mutate it under `_now_lock` (see `_auto_select`).
+Active means playing or paused. `status` reports `mode` as `play`, `pause` or `stop`; `get_now_playing` sets `paused` only for `pause` on a powered-on player (`power` 0 counts as stopped). A paused player stays on screen with `playing` False and its position frozen, until it has been paused for `PAUSE_TIMEOUT` (15 min): `_paused_since` records when each pause was first seen, and past the timeout the player is left out as if stopped, so the page falls back to its mosaic. Resuming clears the entry, so the next pause starts a fresh timeout. The timer lives in the process, so a restart starts it over.
+
+`_last_player` keeps the auto-selected player stable across polls, paused or not, so a pause never moves the display to another player; a fresh pick prefers a playing player over a paused one. Only mutate it under `_now_lock` (see `_auto_select`).
 
 ## TLS: verify=False only for the local host
 
