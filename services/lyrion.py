@@ -1,4 +1,5 @@
 import logging
+import os
 import threading
 import time
 
@@ -171,12 +172,16 @@ def get_now_playing(player_id):
     }
 
 
-# Snapshot of every currently-playing player, shared across clients so Lyrion
+# Snapshot of every playing or paused player, shared across clients so Lyrion
 # sees one enumeration (1 + N status calls) per TTL rather than per poll per client.
 NOW_PLAYING_TTL = 2
+# Lyrion reports no pause start, so the hold counts from the first enumeration that sees it.
+PAUSE_TIMEOUT = int(os.getenv("PAUSE_TIMEOUT", "900"))
 
 _now_cache = {"players": [], "fetched_at": 0, "expires_at": 0}
 _now_lock = threading.Lock()
+# player_id -> when it was first seen paused; only touched under _now_lock.
+_paused_since = {}
 # Player shown last on the automatic path, so it stays put instead of flipping.
 _last_player = {"id": None, "name": None}
 # Player states of the last enumeration written to the log.
@@ -186,12 +191,14 @@ _logged_states = {"states": None}
 def get_active_now_playing(selected_id=None):
     """Now-playing state of the player to display, cached for NOW_PLAYING_TTL.
 
-    When several players play at once the page can pin one via `selected_id`
-    (an id it kept from an earlier `players` list); that player wins while it
-    is still playing, otherwise we fall back to automatic selection and set
-    `selection_active` False so the page drops its now-stale pick. The response
-    always carries `players` — [{id, name}] for every player currently playing —
-    so the page can offer (and populate) its switcher.
+    A paused player stays on display (`playing` False, `mode` "pause") for
+    PAUSE_TIMEOUT seconds, then counts as stopped. When several players are
+    active the page can pin one via `selected_id` (an id it kept from an earlier
+    `players` list); that player wins while it is still playing or paused,
+    otherwise we fall back to automatic selection and set `selection_active`
+    False so the page drops its now-stale pick. The response always carries
+    `players` — [{id, name}] for every active player — so the page can offer
+    (and populate) its switcher.
 
     The cached playback position is aged by the wall time since the snapshot.
     """
@@ -200,24 +207,24 @@ def get_active_now_playing(selected_id=None):
         # expires_at starts at 0, so the first call fetches; an empty list is a
         # valid cached result kept for the TTL.
         if _now_cache["expires_at"] <= now_ts:
-            _now_cache["players"] = _query_playing_players()
+            _now_cache["players"] = _query_active_players()
             _now_cache["fetched_at"] = time.time()
             _now_cache["expires_at"] = _now_cache["fetched_at"] + NOW_PLAYING_TTL
-        playing = _now_cache["players"]
+        active = _now_cache["players"]
         age = time.time() - _now_cache["fetched_at"]
 
-        players = [{"id": p["player_id"], "name": p["player_name"]} for p in playing]
+        players = [{"id": p["player_id"], "name": p["player_name"]} for p in active]
 
         chosen = None
         selection_active = False
         if selected_id:
             chosen = next(
-                (p for p in playing if p["player_id"] == selected_id), None
+                (p for p in active if p["player_id"] == selected_id), None
             )
             selection_active = chosen is not None
         if chosen is None:
             # Under the lock: _auto_select mutates the shared _last_player.
-            chosen = _auto_select(playing)
+            chosen = _auto_select(active)
 
         if chosen is None:
             return {
@@ -236,40 +243,38 @@ def get_active_now_playing(selected_id=None):
     return result
 
 
-def _auto_select(playing):
-    """Pick a player among those playing: the one shown last if still playing,
-    else the first in Lyrion's order. Records it in _last_player (cleared when
-    nothing plays). Only reached on the automatic path, so an explicit
-    per-client pick never pollutes the auto-pick other clients rely on.
+def _auto_select(active):
+    """Pick a player among the active ones: the one shown last if still playing,
+    else the first playing in Lyrion's order, else the one shown last if paused,
+    else the first paused. Records it in _last_player (cleared when nothing is
+    active). Only reached on the automatic path, so an explicit per-client pick
+    never pollutes the auto-pick other clients rely on.
     """
-    if not playing:
+    if not active:
         _last_player["id"] = None
         _last_player["name"] = None
         return None
 
-    chosen = None
-    if _last_player["id"]:
-        chosen = next(
-            (p for p in playing if p["player_id"] == _last_player["id"]), None
-        )
-    if chosen is None:
-        chosen = playing[0]
+    def pick(candidates):
+        last = next((p for p in candidates if p["player_id"] == _last_player["id"]), None)
+        return last or (candidates[0] if candidates else None)
 
+    chosen = pick([p for p in active if p.get("playing")]) or pick(active)
     _last_player["id"] = chosen["player_id"]
     _last_player["name"] = chosen["player_name"]
     return chosen
 
 
-def _query_playing_players():
-    """Enumerate players and return those currently playing, in Lyrion's order.
+def _query_active_players():
+    """Enumerate players and return those playing or paused, in Lyrion's order.
 
     Lyrion has no call returning every player's transport state, so each gets a
     `status` query; entries are get_now_playing payloads plus player_id/player_name.
     A disconnected player is left out: after an ungraceful drop its cached `mode`
-    can still say "play".
+    can still say "play". A player paused for longer than PAUSE_TIMEOUT is left out too.
     """
     started = time.monotonic()
-    playing, states = [], []
+    active, states, paused = [], [], set()
     for player in get_players():
         name = player.get("name")
         if not player.get("connected", 1):
@@ -279,15 +284,24 @@ def _query_playing_players():
         if not player_id:
             continue
         now = get_now_playing(player_id)
-        if now.get("playing") and now.get("track_id"):
+        mode = now.get("mode")
+        if mode == "pause" and now.get("track_id"):
+            paused.add(player_id)
+            since = _paused_since.setdefault(player_id, started)
+            if started - since >= PAUSE_TIMEOUT:
+                states.append(f"{name}=pause:expired")
+                continue
+        if mode in ("play", "pause") and now.get("track_id"):
             now["player_id"] = player_id
             now["player_name"] = name
-            playing.append(now)
-            states.append(f"{name}=play:{now['track_id']}")
+            active.append(now)
+            states.append(f"{name}={mode}:{now['track_id']}")
         else:
-            states.append(f"{name}={now.get('mode') or '?'}")
+            states.append(f"{name}={mode or '?'}")
+    for player_id in set(_paused_since) - paused:
+        del _paused_since[player_id]
     _log_players(states, int((time.monotonic() - started) * 1000))
-    return playing
+    return active
 
 
 def _log_players(states, elapsed):

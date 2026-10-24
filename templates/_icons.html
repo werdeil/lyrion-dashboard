@@ -100,3 +100,10 @@
     <path class="volume-mute" d="m16 9 6 6m0-6-6 6"/>
 {% endcall %}
 {%- endmacro %}
+
+{% macro pause_icon(size=20) -%}
+{% call _frame(size) %}
+    <rect x="6" y="5" width="4" height="14" rx="1"/>
+    <rect x="14" y="5" width="4" height="14" rx="1"/>
+{% endcall %}
+{%- endmacro %}
