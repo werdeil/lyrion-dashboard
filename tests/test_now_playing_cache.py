@@ -22,7 +22,7 @@ os.environ.setdefault("DB_PERSIST_DIR", tempfile.mkdtemp())
 import services.lyrion as L  # pylint: disable=wrong-import-position
 
 
-class NowPlayingCacheTest(unittest.TestCase):
+class _PlayersFixture(unittest.TestCase):
     def setUp(self):
         self._reset_state()
         self._orig_players = L.get_players
@@ -66,6 +66,8 @@ class NowPlayingCacheTest(unittest.TestCase):
         L._now_cache["expires_at"] = 0
         return L.get_active_now_playing(selected_id=selected_id)
 
+
+class NowPlayingCacheTest(_PlayersFixture):
     def test_result_is_cached_within_ttl(self):
         first = L.get_active_now_playing()
         second = L.get_active_now_playing()
@@ -159,6 +161,9 @@ class NowPlayingCacheTest(unittest.TestCase):
         self.assertFalse(result["playing"])
         self.assertEqual(result["players"], [])
 
+
+
+class PausedPlayerTest(_PlayersFixture):
     def test_paused_player_stays_on_screen(self):
         self.paused.add("p2")
         result = L.get_active_now_playing()
