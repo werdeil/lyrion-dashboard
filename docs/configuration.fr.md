@@ -13,6 +13,7 @@ Toute la configuration vient de variables d'environnement, lues une fois au dém
 | `LYRICS_PROVIDERS` | Fournisseurs de paroles web, essayés dans l'ordre (`lrclib`, `musixmatch`, `netease`, `genius`) ; vide désactive complètement la recherche web | `lrclib,musixmatch,netease,genius` |
 | `MUSIXMATCH_TOKEN` | Jeton Musixmatch fixe (sinon récupéré automatiquement) | -- |
 | `LRCLIB_TIMEOUT` | Délai d'expiration des requêtes LRCLIB, en secondes | `15` |
+| `PAUSE_TIMEOUT` | Durée, en secondes, pendant laquelle une piste en pause reste affichée avant que le dashboard revienne à son état vide ; `0` traite une pause comme un arrêt | `900` |
 | `LYRICS_VERIFY_DURATION_TOLERANCE` | Écart max (secondes) toléré par `--verify` dans `embed_lyrics.py` | `3` |
 | `TZ` | Fuseau horaire utilisé pour aligner les fenêtres d'écoutes récentes sur minuit local (ex: `Europe/Paris`) | `UTC` |
 | `LOG_LEVEL` | Verbosité des logs applicatifs (`DEBUG`, `INFO`, `WARNING`, `ERROR`, `CRITICAL`), modifiable aussi à chaud — voir [Logs](logs.fr.md) | `INFO` (`DEBUG` si `DEV=1`) |

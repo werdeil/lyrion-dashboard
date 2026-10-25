@@ -49,6 +49,8 @@ Nothing is hardcoded in the JS that the server already knows:
 - The page sends `?known=<track key>` (the `id|title|artist|album` it already shows); the server omits `lyrics` when it matches, so a steady-state poll skips the DB. Keep the key format in sync with the route.
 - `?player=<id>` pins the switcher's pick (persisted in `localStorage`); a malformed id is dropped server-side.
 
+A paused track (`paused` true) renders like a playing one with `progress.playing` false, so the bar and the karaoke freeze; `.is-paused` on the card dims the cover and shows the `.np-paused` badge over it. The empty state only comes once the server drops the pause after `PAUSE_TIMEOUT`.
+
 `catchUp()` re-syncs after the tab was backgrounded. Stats poll separately (`pollStats`).
 
 `paintProgress` runs on its own 250ms interval, extrapolating the position between network polls (and driving `syncLyrics` while there are lyrics). Both progress bars are animated with `transform: scaleX()`, never `width`: a `width` transition invalidates layout and paint on every frame of its 0.4s run, so the tick repainted the card continuously; scaleX is compositor-only and costs nothing.

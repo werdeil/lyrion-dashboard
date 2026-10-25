@@ -398,6 +398,46 @@ hr {
     border: 1px solid var(--border-color);
 }
 
+.np-cover img,
+.np-paused {
+    transition: filter 0.3s ease, opacity 0.3s ease, visibility 0.3s;
+}
+
+.np-paused {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+}
+
+.np-paused svg {
+    padding: 14px;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.5);
+    box-sizing: content-box;
+}
+
+.now-playing.is-paused .np-cover img {
+    filter: grayscale(0.6) brightness(0.65);
+}
+
+.now-playing.is-paused .np-paused {
+    opacity: 1;
+    visibility: visible;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .np-cover img,
+    .np-paused {
+        transition: none;
+    }
+}
+
 /* Turned on by the wide-layout media query further down. */
 .np-recent {
     display: none;
