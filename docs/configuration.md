@@ -13,7 +13,7 @@ All configuration comes from environment variables, read once at start-up. Under
 | `LYRICS_PROVIDERS` | Web lyrics providers, tried in order (`lrclib`, `musixmatch`, `netease`, `genius`); empty disables the web search entirely | `lrclib,musixmatch,netease,genius` |
 | `MUSIXMATCH_TOKEN` | Fixed Musixmatch token (otherwise fetched automatically) | -- |
 | `LRCLIB_TIMEOUT` | LRCLIB request timeout, in seconds | `15` |
-| `PAUSE_TIMEOUT` | How long, in seconds, a paused track stays on screen before the dashboard returns to its empty state; `0` treats a pause like a stop | `900` |
+| `PAUSE_TIMEOUT` | How long, in seconds, a paused track stays on screen before the dashboard returns to its empty state; `0` treats a pause like a stop | `300` |
 | `LYRICS_VERIFY_DURATION_TOLERANCE` | Max drift (seconds) tolerated by `--verify` in `embed_lyrics.py` | `3` |
 | `TZ` | Timezone used to align the listening-velocity windows on local midnight (e.g. `Europe/Paris`) | `UTC` |
 | `LOG_LEVEL` | Verbosity of the application logs (`DEBUG`, `INFO`, `WARNING`, `ERROR`, `CRITICAL`), also switchable at runtime — see [Logs](logs.md) | `INFO` (`DEBUG` when `DEV=1`) |

@@ -179,7 +179,7 @@ def get_now_playing(player_id):
 # sees one enumeration (1 + N status calls) per TTL rather than per poll per client.
 NOW_PLAYING_TTL = 2
 # Lyrion reports no pause start, so the hold counts from the first enumeration that sees it.
-PAUSE_TIMEOUT = int(os.getenv("PAUSE_TIMEOUT", "900"))
+PAUSE_TIMEOUT = int(os.getenv("PAUSE_TIMEOUT", "300"))
 
 _now_cache = {"players": [], "fetched_at": 0, "expires_at": 0}
 _now_lock = threading.Lock()

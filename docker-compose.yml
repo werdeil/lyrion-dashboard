@@ -13,7 +13,7 @@ services:
       # - LYRICS_PROVIDERS=lrclib,musixmatch,netease,genius
       # - MUSIXMATCH_TOKEN=
       # - LRCLIB_TIMEOUT=15
-      # - PAUSE_TIMEOUT=900
+      # - PAUSE_TIMEOUT=300
       # - LOG_LEVEL=INFO
     volumes:
       - /var/lib/squeezeboxserver:/lyrion:ro
