@@ -1251,6 +1251,7 @@ window.addEventListener('resize', function() {
 function render(data) {
     if (!data || !data.track_id) {
         nowPlaying.classList.add('is-empty');
+        nowPlaying.classList.remove('is-paused');
         loadMosaic();
         startMosaic();
         // The listens that just ended reorder the pile, so the next playback refetches it.
@@ -1277,6 +1278,7 @@ function render(data) {
     }
 
     nowPlaying.classList.remove('is-empty');
+    nowPlaying.classList.toggle('is-paused', !!data.paused);
     mosaicLoaded = false;
     stopMosaic();
 

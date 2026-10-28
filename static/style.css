@@ -1350,6 +1350,31 @@ body.in-app .page-header {
     transition: transform 0.4s linear;
 }
 
+.now-playing.is-paused .np-progress-bar,
+.now-playing.is-paused ~ .cover-zoom .cover-zoom-progress-bar {
+    animation: np-breathe 2.4s ease-in-out infinite;
+}
+
+@keyframes np-breathe {
+    50% { opacity: 0.3; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .now-playing.is-paused .np-progress-bar,
+    .now-playing.is-paused ~ .cover-zoom .cover-zoom-progress-bar {
+        animation: none;
+        opacity: 0.5;
+    }
+}
+
+.np-paused-status {
+    display: none;
+}
+
+.now-playing.is-paused .np-paused-status {
+    display: block;
+}
+
 .cover-zoom-title {
     margin: 0;
     font-size: var(--fs-xl);

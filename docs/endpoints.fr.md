@@ -8,7 +8,7 @@
 | GET | `/health` | Vérification de l'état du service |
 | GET, POST | `/log-level` | Lit le niveau de log courant ; `POST ?level=debug` le change sans redémarrage |
 | GET | `/stats.json` | Statistiques de la bibliothèque (JSON) |
-| GET | `/now-playing.json` | État live de la piste du lecteur en cours de lecture, détecté automatiquement (JSON) |
+| GET | `/now-playing.json` | État live de la piste du lecteur en cours de lecture (ou brièvement en pause), détecté automatiquement (JSON) |
 | GET | `/cover/{coverid}.jpg` | Relaie une pochette depuis Lyrion, en same-origin |
 | GET | `/cover/remote.jpg` | Relaie la pochette de la piste distante/streamée en cours de lecture |
 | GET | `/mosaic-covers.json` | Ids de pochettes pour la mosaïque de l'état vide, les plus récemment écoutés d'abord (JSON) |

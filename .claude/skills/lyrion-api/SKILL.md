@@ -59,9 +59,11 @@ Covers are proxied through this app rather than pointed straight at `LYRION_HOST
 
 ## Caching and shared state
 
-`get_active_now_playing()` is the entry point routes should call for now-playing state. It caches the snapshot of all playing players for `NOW_PLAYING_TTL` (2s) behind `_now_lock`, so Lyrion sees one enumeration per TTL regardless of how many clients poll. It also ages the cached playback position by wall-clock time so the progress bar and karaoke highlight stay accurate across shared reads. If you add server calls that clients poll, follow this pattern rather than hitting Lyrion per request.
+`get_active_now_playing()` is the entry point routes should call for now-playing state. It caches the snapshot of all playing or paused players for `NOW_PLAYING_TTL` (2s) behind `_now_lock`, so Lyrion sees one enumeration per TTL regardless of how many clients poll. It also ages the cached playback position of a playing player by wall-clock time so the progress bar and karaoke highlight stay accurate across shared reads. If you add server calls that clients poll, follow this pattern rather than hitting Lyrion per request.
 
-`_last_player` keeps the auto-selected player stable across polls; only mutate it under `_now_lock` (see `_auto_select`).
+`_last_player` keeps the auto-selected player stable across polls; only mutate it under `_now_lock` (see `_auto_select`). A playing player always beats a paused one on the automatic path, while a pinned `selected_id` holds through a pause.
+
+`status` reports `mode` as `play`, `pause` or `stop`; `get_now_playing` sets `paused` only for `pause` on a powered-on player (`power` 0 counts as stopped), and each `players` entry carries it too. A paused player (`playing` False, position not aged) stays in the snapshot for `PAUSE_TIMEOUT` seconds (default 300, `0` for a pause that counts as a stop). Lyrion reports no pause start, so `_paused_since` records the first enumeration that saw it, and forgets it once the player is no longer paused.
 
 ## TLS: verify=False only for the local host
 
