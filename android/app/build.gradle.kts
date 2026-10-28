@@ -23,8 +23,8 @@ android {
         // be committed. Bump both for every release (versionCode packs the
         // semver as X*10000 + Y*100 + Z); CI fails the release if the tag
         // doesn't match versionName.
-        versionCode = 301
-        versionName = "0.3.1"
+        versionCode = 400
+        versionName = "0.4.0"
     }
 
     // AGP embeds a signed dependency graph ("Dependency metadata" signing

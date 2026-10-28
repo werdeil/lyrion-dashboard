@@ -160,24 +160,20 @@ _WINDOWS = ("-30 days", "-1 year")
 
 _history_state = {"value": None}
 
+CALENDAR_DAYS = 365
 
-def _history_velocity():
+
+def _play_history():
     path = current_app.config.get("APC_HISTORY_PATH")
     result, state = None, "not found"
     if path and os.path.isfile(path):
         try:
             conn = sqlite3.connect(f"file:{path}?mode=ro", uri=True)
             try:
-                row = conn.execute("""
-                    SELECT
-                        (SELECT COUNT(*) FROM play_history
-                         WHERE played >= strftime('%s', 'now', 'localtime', 'start of day', ?, 'utc')),
-                        (SELECT COUNT(*) FROM play_history
-                         WHERE played >= strftime('%s', 'now', 'localtime', 'start of day', ?, 'utc'))
-                """, _WINDOWS).fetchone()
+                result = _read_play_history(conn)
             finally:
                 conn.close()
-            result, state = {"velocity_30d": row[0] or 0, "velocity_1year": row[1] or 0}, "read"
+            state = "read"
         except sqlite3.Error as exc:
             state = f"unreadable ({exc})"
     if state != _history_state["value"]:
@@ -185,6 +181,49 @@ def _history_velocity():
         log.info("Alternative Play Count play history %s: velocity counts %s", state,
                  "plays" if result else "tracks by their last play")
     return result
+
+
+def _read_play_history(conn):
+    row = conn.execute("""
+        SELECT
+            (SELECT COUNT(*) FROM play_history
+             WHERE played >= strftime('%s', 'now', 'localtime', 'start of day', ?, 'utc')),
+            (SELECT COUNT(*) FROM play_history
+             WHERE played >= strftime('%s', 'now', 'localtime', 'start of day', ?, 'utc')),
+            date('now', 'localtime'),
+            date(MIN(played), 'unixepoch', 'localtime'),
+            MIN(played)
+        FROM play_history
+    """, _WINDOWS).fetchone()
+    days = conn.execute("""
+        SELECT date(played, 'unixepoch', 'localtime') AS day, COUNT(*) AS plays
+        FROM play_history
+        WHERE played >= strftime('%s', 'now', 'localtime', 'start of day', ?, 'utc')
+        GROUP BY day
+    """, (f"-{CALENDAR_DAYS - 1} days",)).fetchall()
+    return {
+        "velocity_30d": row[0] or 0,
+        "velocity_1year": row[1] or 0,
+        "listening_calendar": {"today": row[2], "start": row[3], "days": dict(days)},
+        "first_play": row[4],
+    }
+
+
+def _add_plays_before_history(cur, stats, first_play):
+    windows = cur.execute("""
+        SELECT CAST(strftime('%s', 'now', 'localtime', 'start of day', ?, 'utc') AS INTEGER),
+               CAST(strftime('%s', 'now', 'localtime', 'start of day', ?, 'utc') AS INTEGER)
+    """, _WINDOWS).fetchone()
+    for key, window_start in zip(("velocity_30d", "velocity_1year"), windows):
+        if first_play is not None and first_play <= window_start:
+            continue
+        # A track last played before the history began was played at least once: a floor, not a count.
+        stats[key] += cur.execute("""
+            SELECT COUNT(*) FROM tracks t JOIN play_counts apc ON t.urlmd5 = apc.urlmd5
+            WHERE t.audio = 1 AND apc.playcount > 0 AND apc.lastplayed >= ?
+              AND (? IS NULL OR apc.lastplayed < ?)
+        """, (window_start, first_play, first_play)).fetchone()[0]
+        stats[key + "_partial"] = True
 
 
 def get_stats():
@@ -345,8 +384,13 @@ def _compute_stats():
             "velocity_30d":      row["velocity_30d"] or 0,
             "velocity_1year":    row["velocity_1year"] or 0,
         })
-        if apc_available:
-            stats.update(_history_velocity() or {})
+        stats["listening_calendar"] = None
+        stats["velocity_30d_partial"] = stats["velocity_1year_partial"] = False
+        history = _play_history() if apc_available else None
+        if history:
+            first_play = history.pop("first_play")
+            stats.update(history)
+            _add_plays_before_history(cur, stats, first_play)
 
         stats["albums_played_pct"]    = pct(stats["albums_played"],    stats["albums_total"])
         stats["albums_not_fully_pct"] = pct(stats["albums_not_fully"], stats["albums_total"])

@@ -18,8 +18,9 @@ nowplaying_bp = Blueprint("nowplaying", __name__)
 
 log = logging.getLogger(__name__)
 
-# Coverids are numeric ids or hex hashes; anything else must not reach the upstream URL.
-COVERID_RE = re.compile(r"[0-9a-fA-F]+")
+# Coverids are numeric ids (negative for Lyrion's temporary tracks) or hex hashes;
+# anything else must not reach the upstream URL.
+COVERID_RE = re.compile(r"-?[0-9a-fA-F]+")
 
 # Player ids are MAC addresses (or IPs); only matched against ids Lyrion
 # reported, never sent upstream, but keep junk out anyway.

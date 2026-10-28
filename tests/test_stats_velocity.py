@@ -114,8 +114,40 @@ class VelocityTest(unittest.TestCase):
             stats = _compute_stats()
         return stats["velocity_30d"], stats["velocity_1year"]
 
+    def _partial(self):
+        with self.app.app_context():
+            stats = _compute_stats()
+        return stats["velocity_30d_partial"], stats["velocity_1year_partial"]
+
+    def _edit_history(self, sql, *params):
+        conn = sqlite3.connect(self.history)
+        conn.execute(sql, params)
+        conn.commit()
+        conn.close()
+
     def test_counts_plays_from_the_history(self):
         self.assertEqual(self._velocity(), (4, 5))
+
+    def test_a_history_covering_both_windows_is_exact(self):
+        self.assertEqual(self._partial(), (False, False))
+
+    def test_a_younger_history_adds_a_floor_for_the_time_before_it(self):
+        self._edit_history("DELETE FROM play_history WHERE played = ?", LONG_AGO)
+        conn = sqlite3.connect(self.library)
+        conn.execute("INSERT INTO tracks VALUES (4, 'u4', 'm4', 1, 1, NULL)")
+        conn.commit()
+        conn.close()
+        conn = sqlite3.connect(self.persist)
+        conn.execute("INSERT INTO alternativeplaycount VALUES ('m4', 3, ?, 0, NULL)", (NOW - 200 * DAY,))
+        conn.commit()
+        conn.close()
+        self.assertEqual(self._velocity(), (4, 6))
+        self.assertEqual(self._partial(), (False, True))
+
+    def test_an_empty_history_falls_back_to_a_floor_for_both_windows(self):
+        self._edit_history("DELETE FROM play_history")
+        self.assertEqual(self._velocity(), (1, 2))
+        self.assertEqual(self._partial(), (True, True))
 
     def test_without_the_history_counts_tracks_by_their_last_genuine_play(self):
         os.unlink(self.history)

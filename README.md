@@ -13,11 +13,11 @@
 
 ## Features
 
-- **Now Playing** -- The player currently playing is detected automatically and its track shown live (cover art, title, artist, album) next to its volume, with the accent color sampled from the cover. Clicking the cover grows it over the panel.
+- **Now Playing** -- The player currently playing is detected automatically and its track shown live (cover art, title, artist, album) next to its volume, with the accent color sampled from the cover. A paused track stays on screen for 5 minutes (`PAUSE_TIMEOUT`), its progress bar pulsing gently. Clicking the cover grows it over the panel.
 - **Recent plays** -- On wide screens the recently played albums stack up as a pile of sleeves under the cover, newest on top. Built from the play history, one cover per album; with the Alternative Play Count plugin installed, skips are excluded.
 - **Synced lyrics** -- Lyrics with LRC timestamps scroll line by line in time with playback, karaoke-style.
 - **Web lyrics fallback** -- LRCLIB, Musixmatch, NetEase Cloud Music and Genius are queried for every playing track: they fill in what the library is missing and upgrade its plain text to a synced version when one exists. The provenance line under the lyrics then switches between everything found for the track — your library's own text and each upload the providers returned — so a wrong text in your tags, or a take whose words don't match the recording, can be read against the alternatives. Its last stop hides the lyrics when none of them fits; that is remembered on the device until another version of the track turns up. Set `LYRICS_PROVIDERS` to an empty value to stop the app calling out at all.
-- **Library statistics** -- Albums, artists, played/unplayed tracks and how deep the replays go, genres, ratings, lyrics, 30-day listening velocity.
+- **Library statistics** -- Albums, artists, played/unplayed tracks and how deep the replays go, genres, ratings, lyrics, 30-day listening velocity, and a listening calendar — recent months day by day, the year week by week — when the Alternative Play Count plugin keeps its play history.
 - **File server** -- Serves files from a configurable directory.
 - **Android app** -- A thin WebView wrapper (same principle as [lms-material-app](https://github.com/CDrummond/lms-material-app)) with LMS auto-discovery, published on [F-Droid](https://f-droid.org/packages/com.werdeil.lyriondashboard/), see [`android/`](android/README.md).
 
@@ -38,7 +38,7 @@ Left to right, click any of them for the full-size image: the enlarged cover, th
 
 - An accessible Lyrion Music Server
 - Docker and Docker Compose
-- Recommended: the [Alternative Play Count](https://github.com/AF-1/lms-alternativeplaycount) plugin on Lyrion. Without it the dashboard reads Lyrion's own play counters instead: the skip count disappears from the statistics, and since Lyrion bumps a track's last-played time on a skip too, an album that was only skipped past can surface in the recent plays. With the plugin's play history on (its default), the 30-day and 12-month figures count plays; otherwise they count the tracks played in the period.
+- Recommended: the [Alternative Play Count](https://github.com/AF-1/lms-alternativeplaycount) plugin on Lyrion. Without it the dashboard reads Lyrion's own play counters instead: the skip count disappears from the statistics, and since Lyrion bumps a track's last-played time on a skip too, an album that was only skipped past can surface in the recent plays. With the plugin's play history on (its default), the 30-day and 12-month figures count plays — shown as a minimum, marked ≥, while the history is younger than the period, since the plugin only records it from its March 2026 release on; otherwise they count the tracks played in the period.
 
 ## Installation
 

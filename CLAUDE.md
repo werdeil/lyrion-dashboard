@@ -34,11 +34,6 @@ CI (`.github/workflows/`) must stay green. Reproduce each job locally:
 # Unit tests (unittest, discovered from repo root) — python-ci.yml
 python -m unittest discover
 
-# A single test file / case / method
-python -m unittest tests.test_now_playing_route
-python -m unittest tests.test_now_playing_route.NowPlayingKnownTest
-python -m unittest tests.test_now_playing_route.NowPlayingKnownTest.test_no_known_includes_lyrics
-
 # Syntax check (also part of python-ci.yml)
 python -m compileall .
 
@@ -60,17 +55,11 @@ Pylint config (`.pylintrc`) intentionally disables the docstring-required checks
 
 In Claude Code on the web, `.claude/hooks/session-start.sh` installs these into a project `.venv` at session start (put first on `PATH`), so tests, pylint, pip-audit and bandit run without manual setup. Locally it's a no-op — manage your own venv.
 
-When opening a PR, follow `.github/pull_request_template.md`: fill in the problem, the solution and how it was tested, and work through its checklist (it mirrors the CI gates above plus the comment rules, FR/EN string parity, README and skill lockstep, and no-auth-by-design rules). PR titles and descriptions are written in **English**, like commit messages — only the user-facing UI and the READMEs are bilingual.
-
-**A PR title is a commit subject, so it follows Conventional Commits: `type(scope): summary`.** The squash merge turns it into the commit title on `master`, where it has to sit alongside `fix(lyrics): prefer a synced LRCLIB record over a plain one` without standing out. Types in use: `feat`, `fix`, `refactor`, `docs`, `chore`. The scope is the area touched (`lyrics`, `lyrion`, `nowplaying`, `stats`, `logs`, `android`, `release`, `deps`), dropped when the change is repo-wide. Lowercase after the colon, imperative, no trailing period, short enough to read in `git log --oneline`. The `Pull request` workflow fails a title that breaks this form, and labels the PR with its type and with the areas its files touch (`.github/labeler.yml`); the release notes are grouped by those labels (`.github/release.yml`). Commit subjects on the branch follow the same form.
-
-**Keep a PR body short — a few sentences per section, not an essay.** "Problem" is the state of things without the PR — what is broken, missing or needed, in a paragraph, never the investigation that found it. "Solution" is what the branch does about it, no re-derivation of the analysis. They stay apart because a reviewer reads them for different questions: whether the change is worth making, then whether it is the right one. "How it was tested" covers only what the checklist doesn't — the verification specific to this change, and anything that stayed unverified — never a restatement of the CI gates, which the checklist already ticks. Detail that a reviewer can get from the diff, the commit message or the code comments does not belong in the body; measurements, tables and alternatives considered belong in the commit message. **The three sections together stay under 200 words** — count them, because "short" left to judgement drifts into an essay one honest sentence at a time, and a body that needs scrolling to reach the checklist is already too long. The same restraint applies to review and issue comments.
+PR titles and commit subjects follow Conventional Commits `type(scope): summary`; see the `pull-request` skill before opening or updating a PR. PR titles and descriptions are written in **English**, like commit messages — only the user-facing UI and the READMEs are bilingual.
 
 **Markdown is never hard-wrapped: one paragraph is one line, however long.** That holds for the files in this repo — CLAUDE.md, the skills, the READMEs, the PR template — and for PR, issue and review bodies alike. In a file, a wrapped paragraph has to be reflowed the moment a sentence changes, so a two-word edit lands as a ten-line diff and the reviewer hunts for what actually moved; on GitHub, those bodies render with GFM line breaks on, so every newline inside a paragraph becomes a visible `<br>` and a body wrapped at 80 columns comes out ragged. Only prose joins up: code fences, tables, list items (each on its own single line) and raw HTML blocks — an image row, a comment — keep the line breaks they are written with. Keep angle brackets out of prose (`{id}`, not `<id>`; the sanitizer eats the latter). The commit message is the exception: it stays wrapped at ~72 columns because git shows it verbatim.
 
 **Never post progress commentary on a PR.** A comment is for something the maintainer has to act on or could not get from the branch — not "pushed a follow-up", "fixed the regression", "sorry, I misread". Pushing more commits is how progress is reported; the commit messages carry the reasoning, and the description carries the current state. A review round that reshapes the branch leaves the PR with a rewritten description, not a trail of replies.
-
-**A PR describes the branch as it now stands, not how it got there.** Before calling a PR ready — every time, not just when opening it — re-read the title and body against the actual diff (`git diff origin/master...HEAD`, with the `origin/`: a fresh clone's local `master` can lag and fold other people's commits into the comparison). Iteration routinely leaves them describing a first attempt whose constants, mechanism, even approach no longer exist; a stale body is worse than none, because a reviewer trusts it. The title is the squash-merge commit subject, so it has to name what finally landed.
 
 **Assign every PR to its author as soon as it is opened** — the GitHub account that opened it, read from the PR itself rather than assumed. When the tool that opens the PR takes no assignee, set it straight after through the issue API (a PR is an issue).
 
@@ -91,14 +80,9 @@ When opening a PR, follow `.github/pull_request_template.md`: fill in the proble
 
 ### Services
 
-- `services/lyrion.py` — JSON-RPC client for the music server. Every call goes through `lyrion_request` (tolerant of Lyrion's empty non-JSON bodies). `status` queries request only the fields they need via a `tags:` string. Covers are proxied same-origin so the page can sample pixels for the accent tint. `get_active_now_playing` caches a snapshot of all playing players for `NOW_PLAYING_TTL` (2s) behind a lock and ages the playback position by wall-clock time, so many polling clients cost Lyrion one enumeration per TTL. `verify=False` is used **only** for the self-signed local host (audit S1), never for public CDN URLs. **See the `lyrion-api` skill.**
+- `services/lyrion.py` — JSON-RPC client for the music server. Every call goes through `lyrion_request` (tolerant of Lyrion's empty non-JSON bodies). `status` queries request only the fields they need via a `tags:` string. Covers are proxied same-origin so the page can sample pixels for the accent tint. `get_active_now_playing` caches a snapshot of all playing or paused players for `NOW_PLAYING_TTL` (2s) behind a lock (a paused one drops out after `PAUSE_TIMEOUT`) and ages the playback position by wall-clock time, so many polling clients cost Lyrion one enumeration per TTL. `verify=False` is used **only** for the self-signed local host (audit S1), never for public CDN URLs. **See the `lyrion-api` skill.**
 - `services/database.py` — read-only SQLite access. Opens Lyrion's `library.db` in RO mode and `ATTACH`es `persist.db` (also RO) per request via a context manager. The app never writes to these DBs — they belong to Lyrion. Stats are cached single-flight for `STATS_TTL`. **See the `database` skill.**
 - `services/lyrics.py` — web lyrics fallback (LRCLIB, Musixmatch, NetEase, Genius, tried in `LYRICS_PROVIDERS` order; synced-capable providers first). Results live in a process-local in-memory cache (single gunicorn worker + threads means all requests share it); hits are cached longer (`TTL_HIT`) than misses (`TTL_MISS`). Cannot be persisted — `library.db` is read-only.
-- `services/ratelimit.py` — dependency-free `RateLimiter` (per-IP sliding window) and `Cooldown` (once per interval), used to fuse the outbound lyrics searches. Idle entries are swept on every call so the maps stay bounded.
-
-### Frontend
-
-Vanilla JS/CSS, no framework or bundler. `static/nowplaying.js` + `static/style.css`; `static/lib/` holds vendored `fast-average-color` and `vibrant` (used to derive the accent color from the cover). `templates/` has the Jinja page plus `_icons.html` (reusable inline-SVG icon macros).
 
 ### i18n (FR/EN)
 
@@ -135,10 +119,6 @@ Tests use `unittest` + `unittest.mock.patch`. Each `tests/test_*.py` is standalo
 
 `tests/__init__.py` pins `LOG_LEVEL=CRITICAL` so the suite's output stays readable; a test that asserts on a log line uses `assertLogs`, which raises the level of the logger it watches (`tests/test_logging.py`).
 
-## Versioning & releases
-
-`VERSION` (repo root) is the single source of truth for the web app version, exposed on `/health` and kept in sync with the Android `versionName` by the release workflow. Releases are cut manually via the `Release` workflow (`workflow_dispatch`), which tags and opens a draft GitHub release; publishing it fires `android.yml` to build and attach the signed APK.
-
 ## Repo-specific skills
 
 Project skills live in `.claude/skills/` (tracked in git, shared with contributors). Consult them when a task matches:
@@ -151,6 +131,7 @@ Project skills live in `.claude/skills/` (tracked in git, shared with contributo
 - **`frontend`** — the vanilla JS/CSS page (accent tint, karaoke sync, polling, i18n wiring, the Android bridge, the ESLint gate).
 - **`lyrics`** — the web fallback providers, their match rule, and the cache.
 - **`release`** — cutting a version (the `VERSION`/gradle mirrors, the manual Release → publish → `android.yml` chain).
+- **`pull-request`** — the PR title form, template and body budget, and re-checking the body against the diff.
 - **`android`** — the WebView wrapper (shell-only principle, signing split, static F-Droid versioning, discovery, the JS↔native bridge).
 
 **A skill that describes what a PR changes moves with it, in the same PR.** The trigger is the code, not the user: a refactor nobody can see — an rAF loop becoming a timer — leaves the skill confidently wrong, and unlike a stale README nobody reads it again until the next task has already trusted it.

@@ -1,7 +1,7 @@
 """Tests for the /cover/<coverid>.jpg route's coverid validation.
 
 The coverid is spliced into the upstream Lyrion URL, so only plain
-numeric/hex ids may reach fetch_cover — anything else (e.g. "..") must be
+numeric/hex ids, optionally negative, may reach fetch_cover — anything else (e.g. "..") must be
 rejected before any upstream request is made.
 """
 # The env scaffolding is intentionally the same as in the other tests; that
@@ -28,7 +28,7 @@ class CoverRouteTest(unittest.TestCase):
 
     @patch("routes.nowplaying.fetch_cover", return_value=(b"IMG", "image/jpeg"))
     def test_valid_ids_are_proxied(self, mock_fetch):
-        for coverid in ("42", "1a2b3c4d", "ABCDEF"):
+        for coverid in ("42", "1a2b3c4d", "ABCDEF", "-105057266985440"):
             response = self.client.get(f"/cover/{coverid}.jpg")
             self.assertEqual(response.status_code, 200)
             self.assertEqual(response.data, b"IMG")
@@ -42,7 +42,7 @@ class CoverRouteTest(unittest.TestCase):
 
     @patch("routes.nowplaying.fetch_cover")
     def test_invalid_ids_get_404_without_upstream_request(self, mock_fetch):
-        for coverid in ("..", "....", "42x", "a-b", "a.b", "%2e%2e", "a%2Fb"):
+        for coverid in ("..", "....", "42x", "a-b", "-", "--42", "42-","a.b", "%2e%2e", "a%2Fb"):
             response = self.client.get(f"/cover/{coverid}.jpg")
             self.assertEqual(response.status_code, 404, coverid)
         mock_fetch.assert_not_called()
