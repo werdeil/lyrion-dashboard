@@ -49,7 +49,7 @@ Nothing is hardcoded in the JS that the server already knows:
 - The page sends `?known=<track key>` (the `id|title|artist|album` it already shows); the server omits `lyrics` when it matches, so a steady-state poll skips the DB. Keep the key format in sync with the route.
 - `?player=<id>` pins the switcher's pick (persisted in `localStorage`); a malformed id is dropped server-side.
 
-A paused track (`paused` true) renders like a playing one with `progress.playing` false, so the bar and the karaoke freeze; `.is-paused` on the card dims the cover and shows the `.np-paused` badge over it. The empty state only comes once the server drops the pause after `PAUSE_TIMEOUT`.
+A paused track (`paused` true) renders like a playing one with `progress.playing` false, so the bar and the karaoke freeze; `.is-paused` on the card makes the progress bar breathe (the enlarged cover's too, reached as a sibling of the card, so CSS alone covers both) and reveals a visually-hidden `.np-paused-status` for screen readers, the bar being `aria-hidden`; under reduced motion the bar is only dimmed. The empty state only comes once the server drops the pause after `PAUSE_TIMEOUT`.
 
 `catchUp()` re-syncs after the tab was backgrounded. Stats poll separately (`pollStats`).
 
