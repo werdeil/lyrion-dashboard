@@ -14,7 +14,7 @@ All configuration comes from environment variables, read once at start-up. Under
 | `MUSIXMATCH_TOKEN` | Fixed Musixmatch token (otherwise fetched automatically) | -- |
 | `LRCLIB_TIMEOUT` | LRCLIB request timeout, in seconds | `15` |
 | `PAUSE_TIMEOUT` | How long, in seconds, a paused track stays on screen before the dashboard returns to its empty state; `0` treats a pause like a stop | `300` |
-| `LYRICS_VERIFY_DURATION_TOLERANCE` | Max drift (seconds) tolerated by `--verify` in `embed_lyrics.py` | `3` |
+| `LYRICS_VERIFY_DURATION_TOLERANCE` | Max drift (seconds) between a provider's track length and the playing track's before it counts as another recording | `3` |
 | `TZ` | Timezone used to align the listening-velocity windows on local midnight (e.g. `Europe/Paris`) | `UTC` |
 | `LOG_LEVEL` | Verbosity of the application logs (`DEBUG`, `INFO`, `WARNING`, `ERROR`, `CRITICAL`), also switchable at runtime — see [Logs](logs.md) | `INFO` (`DEBUG` when `DEV=1`) |
 | `DEV` | Set to `1` to live-reload templates and disable static caching (development) | -- |

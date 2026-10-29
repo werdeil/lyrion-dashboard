@@ -41,8 +41,8 @@ TTL_MISS = 3600
 # LRCLIB takes 8-10s on busy evenings.
 LRCLIB_TIMEOUT = int(os.getenv("LRCLIB_TIMEOUT", "15"))
 
-# Opt-in verification (batch CLI): how far a provider's track length may drift
-# from the file's before it counts as another recording.
+# How far a candidate's track length may drift from the request's before it
+# counts as another recording.
 VERIFY_DURATION_TOLERANCE = int(os.getenv("LYRICS_VERIFY_DURATION_TOLERANCE", "3"))
 
 # Versions offered for one track, the library's own text included. Each carries
@@ -704,24 +704,14 @@ def _matches_request(meta, artist, title, duration):
     return _duration_close(meta, _float_duration(duration))
 
 
-def _log_rejected(name, meta, artist, title, duration):
-    log.info(
-        "lyrics: %s answered with %r by %r (%ss), not %r by %r (%ss) - rejected",
-        name, meta.get("title"), meta.get("artist"), _int_duration(meta.get("duration")),
-        title, artist, _int_duration(duration),
-    )
-
-
-def _search_providers(artist, title, album, duration, verify):
+def _search_providers(artist, title, album, duration):
     """Try each enabled provider in order and return the first usable result.
 
     A plain-only result is held while the later providers able to sync are asked
-    for a synced one, unless `verify` is set: the batch CLI only stores plain text.
-    Same shape as fetch_lyrics' return value, without any caching: "unavailable"
+    for a synced one. Same shape as fetch_lyrics' return value, without any caching: "unavailable"
     means not one provider answered, which the caller must not confuse with a
     search that ran and came up empty.
     """
-    rejected = False
     unreachable = 0
     plain = None
     providers = _enabled_providers()
@@ -747,10 +737,6 @@ def _search_providers(artist, title, album, duration, verify):
         if not (found and (found.get("lyrics") or found.get("synced"))):
             log.info("lyrics: %s has no match (%d ms)", name, _elapsed_ms(started))
             continue
-        if verify and not _matches_request(found.get("meta"), artist, title, duration):
-            _log_rejected(name, found.get("meta") or {}, artist, title, duration)
-            rejected = True
-            continue
         log.debug(
             "lyrics: %s matched in %d ms (synced=%s, plain=%s)",
             name, _elapsed_ms(started), bool(found.get("synced")), bool(found.get("lyrics")),
@@ -758,7 +744,7 @@ def _search_providers(artist, title, album, duration, verify):
         result = {"lyrics": found.get("lyrics"), "synced": found.get("synced"), "source": name}
         if found.get("versions"):
             result["versions"] = found["versions"]
-        if result["synced"] or verify:
+        if result["synced"]:
             return result
         if plain is None:
             log.info("lyrics: %s has plain lyrics only, asking the next providers for synced ones", name)
@@ -768,28 +754,22 @@ def _search_providers(artist, title, album, duration, verify):
         return plain
     if unreachable and unreachable == len(providers):
         return {"lyrics": None, "synced": None, "source": "unavailable"}
-    return {"lyrics": None, "synced": None, "source": "rejected" if rejected else "none"}
+    return {"lyrics": None, "synced": None, "source": "none"}
 
 
-def fetch_lyrics(track_id, artist, title, album=None, duration=None, force=False, verify=False):
+def fetch_lyrics(track_id, artist, title, album=None, duration=None, force=False):
     """Resolve lyrics for the current track from the web, with caching.
 
     Tries each enabled provider in order and keeps the first synced result, else
     the first plain one.
     Returns a dict {"lyrics": str|None, "synced": str|None, "source": str}.
     `source` is the winning provider name (kept across cache hits), "none" when
-    nothing was found, "rejected"
-    when a candidate came back but failed verification, or "unavailable" when no
-    provider could be reached — the one outcome that is not cached, so a search
+    nothing was found, or "unavailable" when no provider could be reached — the one outcome that is not cached, so a search
     is retried as soon as they answer again.
 
     A provider that found several uploads of the song also returns "versions"
     for the page to cycle through: the winner first, then the rest synced
     before plain, at most MAX_VERSIONS long.
-
-    With `verify=True` (the batch CLI, which writes into tags), a result is only
-    accepted when its own metadata matches the requested track (see
-    _matches_request).
     """
     if not title or not artist:
         log.info("lyrics: search skipped, track %s has no artist or title", track_id)
@@ -798,9 +778,8 @@ def fetch_lyrics(track_id, artist, title, album=None, duration=None, force=False
         log.info("lyrics: search skipped for track %s, a metadata field exceeds %d chars", track_id, MAX_FIELD_LEN)
         return {"lyrics": None, "synced": None, "source": "none"}
 
-    # Streams like a Deezer flow keep one track_id across songs; `verify` is in the
-    # key since a lenient and a verified lookup can differ.
-    cache_key = f"{track_id or ''}|{artist}|{title}|{int(bool(verify))}"
+    # Streams like a Deezer flow keep one track_id across songs.
+    cache_key = f"{track_id or ''}|{artist}|{title}"
     if not force:
         cached = _cache_get(cache_key)
         if cached is not None:
@@ -808,8 +787,8 @@ def fetch_lyrics(track_id, artist, title, album=None, duration=None, force=False
             return dict(cached)
 
     started = time.monotonic()
-    log.debug("lyrics: searching %r by %r (album=%r, duration=%s, verify=%s)", title, artist, album, duration, verify)
-    result = _search_providers(artist, title, album, duration, verify)
+    log.debug("lyrics: searching %r by %r (album=%r, duration=%s)", title, artist, album, duration)
+    result = _search_providers(artist, title, album, duration)
     log.info(
         "lyrics: %r by %r -> %s (synced=%s, plain=%s) in %d ms",
         title, artist, result["source"], bool(result["synced"]), bool(result["lyrics"]), _elapsed_ms(started),

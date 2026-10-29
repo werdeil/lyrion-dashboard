@@ -14,7 +14,7 @@ Toute la configuration vient de variables d'environnement, lues une fois au dém
 | `MUSIXMATCH_TOKEN` | Jeton Musixmatch fixe (sinon récupéré automatiquement) | -- |
 | `LRCLIB_TIMEOUT` | Délai d'expiration des requêtes LRCLIB, en secondes | `15` |
 | `PAUSE_TIMEOUT` | Durée, en secondes, pendant laquelle une piste en pause reste affichée avant que le dashboard revienne à son état vide ; `0` traite une pause comme un arrêt | `300` |
-| `LYRICS_VERIFY_DURATION_TOLERANCE` | Écart max (secondes) toléré par `--verify` dans `embed_lyrics.py` | `3` |
+| `LYRICS_VERIFY_DURATION_TOLERANCE` | Écart max (secondes) entre la durée d'un morceau chez un fournisseur et celle du morceau joué avant qu'il compte comme un autre enregistrement | `3` |
 | `TZ` | Fuseau horaire utilisé pour aligner les fenêtres d'écoutes récentes sur minuit local (ex: `Europe/Paris`) | `UTC` |
 | `LOG_LEVEL` | Verbosité des logs applicatifs (`DEBUG`, `INFO`, `WARNING`, `ERROR`, `CRITICAL`), modifiable aussi à chaud — voir [Logs](logs.fr.md) | `INFO` (`DEBUG` si `DEV=1`) |
 | `DEV` | Mettre à `1` pour recharger les templates à la volée et désactiver le cache statique (développement) | -- |

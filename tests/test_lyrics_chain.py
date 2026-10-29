@@ -79,13 +79,6 @@ class ProviderChainTest(unittest.TestCase):
         self.assertEqual(res["source"], "netease")
         self.assertEqual(res["synced"], synced_only["synced"])
 
-    def test_verify_keeps_the_first_plain_result(self):
-        second = _answers(SYNCED)
-        self._use(("lrclib", _answers(PLAIN)), ("musixmatch", second))
-        res = L.fetch_lyrics(None, "Muse", "Space Debris", verify=True)
-        self.assertEqual(res["source"], "lrclib")
-        self.assertEqual(second.calls, 0)
-
 
 if __name__ == "__main__":
     unittest.main()

@@ -2,9 +2,7 @@
 .github
 .claude
 .venv
-.venv-cli
 venv
-state
 __pycache__
 *.pyc
 .env*
@@ -17,7 +15,6 @@ Dockerfile
 .dockerignore
 docker-compose*.yml
 eslint.config.mjs
-requirements-cli.txt
 CLAUDE.md
 README.md
 README.fr.md

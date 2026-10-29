@@ -67,14 +67,6 @@ class LyricsLoggingTest(unittest.TestCase):
         self.assertEqual(result["source"], "lrclib")
         self.assertTrue(any("genius failed" in line and "boom" in line for line in captured.output))
 
-    def test_rejected_candidate_logs_what_came_back(self):
-        other = {"lyrics": "nope", "synced": None,
-                 "meta": {"artist": "Other", "title": "Other song", "duration": 100}}
-        self._use("lrclib", lambda *_a: dict(other))
-        with self.assertLogs("services.lyrics", level="INFO") as captured:
-            L.fetch_lyrics("1", "A", "T", verify=True)
-        self.assertTrue(any("rejected" in line and "Other song" in line for line in captured.output))
-
     def test_missing_metadata_is_logged_rather_than_silent(self):
         with self.assertLogs("services.lyrics", level="INFO") as captured:
             L.fetch_lyrics("1", "", "T")
