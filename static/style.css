@@ -1351,6 +1351,7 @@ body.in-app .page-header {
 }
 
 .now-playing.is-paused .np-progress-bar,
+.now-playing.is-paused .lrc-line.active,
 .now-playing.is-paused ~ .cover-zoom .cover-zoom-progress-bar {
     animation: np-breathe 2.4s ease-in-out infinite;
 }
@@ -1361,6 +1362,7 @@ body.in-app .page-header {
 
 @media (prefers-reduced-motion: reduce) {
     .now-playing.is-paused .np-progress-bar,
+    .now-playing.is-paused .lrc-line.active,
     .now-playing.is-paused ~ .cover-zoom .cover-zoom-progress-bar {
         animation: none;
         opacity: 0.5;

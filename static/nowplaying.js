@@ -1248,6 +1248,16 @@ window.addEventListener('resize', function() {
     recentResizeTimer = setTimeout(renderRecent, 300);
 });
 
+// Each breathing element starts with its own class match, so later ones join the oldest one's phase.
+document.addEventListener('animationstart', function (e) {
+    if (e.animationName !== 'np-breathe') { return; }
+    var breathing = document.getAnimations().filter(function (a) {
+        return a.animationName === 'np-breathe' && a.startTime !== null;
+    });
+    var start = Math.min.apply(null, breathing.map(function (a) { return a.startTime; }));
+    breathing.forEach(function (a) { a.startTime = start; });
+});
+
 function render(data) {
     if (!data || !data.track_id) {
         nowPlaying.classList.add('is-empty');
