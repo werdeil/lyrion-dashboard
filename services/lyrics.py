@@ -5,6 +5,9 @@ gunicorn's single threaded worker shares it across requests. Providers are tried
 in `LYRICS_PROVIDERS` order: the first synced result wins, else the first plain one.
 """
 
+import base64
+import hashlib
+import hmac
 import logging
 import os
 import re
@@ -12,7 +15,7 @@ import time
 import threading
 import unicodedata
 from collections import OrderedDict
-from urllib.parse import quote
+from urllib.parse import quote, urlencode, urljoin
 
 import requests
 
@@ -25,11 +28,11 @@ except ImportError:  # Genius scraping is skipped if bs4 isn't installed.
 
 LRCLIB_SITE = "https://lrclib.net"
 LRCLIB_BASE = f"{LRCLIB_SITE}/api"
-MXM_BASE = "https://apic-desktop.musixmatch.com/ws/1.1"
+MXM_SITE = "https://www.musixmatch.com"
+MXM_BASE = f"{MXM_SITE}/ws/1.1"
 NETEASE_BASE = "https://music.163.com/api"
 USER_AGENT = "lyrion-custom-data (https://github.com/werdeil)"
-# A browser-like UA avoids being blocked when scraping Genius / talking to the
-# Musixmatch desktop endpoint or NetEase.
+# A browser-like UA avoids being blocked when scraping Genius or talking to NetEase.
 BROWSER_UA = (
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
     "(KHTML, like Gecko) Chrome/120.0 Safari/537.36"
@@ -102,6 +105,11 @@ def _int_duration(duration):
     """Coerce a possibly-fractional string duration to whole seconds, or None."""
     seconds = _float_duration(duration)
     return None if seconds is None else int(seconds)
+
+
+def _length_label(duration):
+    seconds = _int_duration(duration)
+    return "length unknown" if seconds is None else f"{seconds}s"
 
 
 # A provider takes (artist, title, album, duration) and returns None or {"lyrics", "synced", "meta"},
@@ -294,8 +302,8 @@ def _provider_lrclib(artist, title, album, duration):
             LRCLIB_SITE, payload.get("id"), payload.get("duration"), int(seconds),
         )
     log.debug(
-        "lrclib: record %s (%r, %ss), synced=%s",
-        payload.get("id"), payload.get("albumName"), payload.get("duration"),
+        "lrclib: record %s (%r, %s), synced=%s",
+        payload.get("id"), payload.get("albumName"), _length_label(payload.get("duration")),
         bool(synced_text),
     )
     return {
@@ -311,51 +319,126 @@ def _provider_lrclib(artist, title, album, duration):
     }
 
 
-_mxm_token = {"value": None, "expires_at": 0}
+# Musixmatch's web API signs every URL with a key shipped in the site's own JavaScript.
+_MXM_UA = (
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+    "(KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36"
+)
+_MXM_APP_ID = "mxm-com-v1.0"
+_MXM_KEY_TTL = 6 * 3600
+# Placeholder tracks Musixmatch serves instead of an answer: 226291677 is Drake's NOKIA,
+# 115264642 Coldplay's Paradise.
+_MXM_PLACEHOLDERS = {226291677, 115264642}
+_MXM_APP_SCRIPT_RE = re.compile(r'src="([^"]*/_next/static/chunks/pages/_app-[^"]+\.js)"')
+_MXM_KEY_RE = re.compile(r'from\(\s*"(.*?)"\s*\.split')
+_MXM_VERSION_RE = re.compile(r"/prod/([\d.]+)/")
+_mxm_key = {"value": {}}
 _mxm_lock = threading.Lock()
-_MXM_HEADERS = {
-    "authority": "apic-desktop.musixmatch.com",
-    "cookie": "AWSELB=0",
-    "User-Agent": BROWSER_UA,
-}
+_mxm_warned = threading.Event()
 
 
 def _musixmatch_token():
-    """Return a usable Musixmatch user token, cached in-process for 9 hours.
+    """Return `MUSIXMATCH_TOKEN`, or None, warning once per process when it is unset."""
+    token = os.getenv("MUSIXMATCH_TOKEN", "").strip()
+    if not token and not _mxm_warned.is_set():
+        _mxm_warned.set()
+        log.warning(
+            "musixmatch: skipped, MUSIXMATCH_TOKEN is not set - Musixmatch only answers a logged-in account: "
+            "log in on musixmatch.com and copy the mxm-com-v1.0 token of its musixmatchUserToken cookie "
+            "(docs/configuration.md)"
+        )
+    return token or None
 
-    `MUSIXMATCH_TOKEN` overrides the one the desktop web app is issued. Returns
-    None when Musixmatch refuses a usable token, and raises ProviderUnavailable
-    when it can't be reached.
+
+def _mxm_fetch_key():
+    try:
+        page = requests.get(
+            f"{MXM_SITE}/search", headers={"User-Agent": _MXM_UA, "Cookie": "mxm_bab=AB"}, timeout=10
+        )
+        scripts = _MXM_APP_SCRIPT_RE.findall(page.text)
+        if not scripts:
+            raise ProviderUnavailable(f"musixmatch: no signing key script on its site (HTTP {page.status_code})")
+        script_url = urljoin(f"{MXM_SITE}/", scripts[-1])
+        script = requests.get(script_url, headers={"User-Agent": _MXM_UA}, timeout=10)
+    except requests.RequestException as exc:
+        raise ProviderUnavailable("musixmatch") from exc
+    encoded = _MXM_KEY_RE.search(script.text)
+    if not encoded:
+        raise ProviderUnavailable("musixmatch: no signing key found in its site's script")
+    try:
+        secret = base64.b64decode(encoded.group(1)[::-1]).decode()
+    except (ValueError, UnicodeDecodeError) as exc:
+        raise ProviderUnavailable("musixmatch: unreadable signing key") from exc
+    version = _MXM_VERSION_RE.search(script_url)
+    log.debug("musixmatch: signing key loaded (site version %s)", version.group(1) if version else None)
+    return secret, version.group(1) if version else None
+
+
+def _mxm_signing_key(force=False):
+    """Return the cached signing key, loading it when missing, stale or `force`d.
+
+    A key loaded by `force` keeps `refreshed` set until a request goes through, so
+    a lasting rejection does not reload it on every call.
     """
     with _mxm_lock:
-        if _mxm_token["value"] and _mxm_token["expires_at"] > time.time():
-            return _mxm_token["value"]
+        key = _mxm_key["value"]
+        if force or key.get("expires_at", 0) <= time.time():
+            secret, version = _mxm_fetch_key()
+            key = {"secret": secret, "version": version, "expires_at": time.time() + _MXM_KEY_TTL, "refreshed": force}
+            _mxm_key["value"] = key
+        return key
 
-        override = os.getenv("MUSIXMATCH_TOKEN")
-        if override:
-            _mxm_token.update(value=override, expires_at=time.time() + 9 * 3600)
-            return override
 
+def _mxm_signed_url(endpoint, params, token, secret):
+    url = f"{MXM_BASE}/{endpoint}?" + urlencode({"app_id": _MXM_APP_ID, "usertoken": token, "format": "json", **params})
+    # The signature covers the URL and the local date, as the site's own client signs it.
+    digest = hmac.new(secret.encode(), (url + time.strftime("%Y%m%d")).encode(), hashlib.sha256).digest()
+    return f"{url}&signature={quote(base64.b64encode(digest).decode(), safe='')}&signature_protocol=sha256"
+
+
+def _mxm_refused(status):
+    return status in (401, 403)
+
+
+def _mxm_call(endpoint, params, token):
+    """Return the `body` of a signed Musixmatch web API call, or None when it has no data.
+
+    Raises ProviderUnavailable when Musixmatch can't be reached, is overloaded,
+    or refuses the token even with a freshly loaded signing key.
+    """
+    key = _mxm_signing_key()
+    while True:
+        headers = {"User-Agent": _MXM_UA, "Referer": f"{MXM_SITE}/"}
+        if key["version"]:
+            headers["x-mxm-app-version"] = key["version"]
         try:
-            r = requests.get(
-                f"{MXM_BASE}/token.get",
-                params={"app_id": "web-desktop-app-v1.0"},
-                headers=_MXM_HEADERS,
-                timeout=5,
-            )
-            token = (r.json().get("message", {}).get("body", {}) or {}).get("user_token")
+            r = requests.get(_mxm_signed_url(endpoint, params, token, key["secret"]), headers=headers, timeout=6)
         except requests.RequestException as exc:
             raise ProviderUnavailable("musixmatch") from exc
-        except (ValueError, AttributeError) as exc:
-            log.warning("musixmatch: token endpoint returned an unusable body (%s)", exc)
-            return None
+        try:
+            message = r.json()["message"]
+            body, status = message.get("body"), int(message["header"]["status_code"])
+        except (ValueError, KeyError, TypeError, AttributeError):
+            body, status = None, None
+        log.debug("musixmatch: %s answered HTTP %s, status %s", endpoint, r.status_code, status)
 
-        # Musixmatch hands out a sentinel token when rate-limiting; reject it.
-        if not token or token.startswith("UpgradeOnly"):
-            log.warning("musixmatch: no usable token (rate-limited), provider skipped")
+        if _mxm_refused(r.status_code) or _mxm_refused(status):
+            if not key["refreshed"]:
+                key = _mxm_signing_key(force=True)
+                continue
+            raise ProviderUnavailable(
+                f"musixmatch refused the request (HTTP {r.status_code}, status {status}): MUSIXMATCH_TOKEN "
+                "is likely expired or revoked - log in on musixmatch.com again and copy a fresh token"
+            )
+        key["refreshed"] = False
+        if r.status_code == 429 or r.status_code >= 500 or status == 429 or (status or 0) >= 500:
+            raise ProviderUnavailable(f"musixmatch is overloaded (HTTP {r.status_code}, status {status})")
+        if status is None:
+            raise ProviderUnavailable(f"musixmatch returned an unreadable answer (HTTP {r.status_code})")
+        if status != 200:
             return None
-        _mxm_token.update(value=token, expires_at=time.time() + 9 * 3600)
-        return token
+        # An empty answer comes back as a list or a string instead of an object.
+        return body if isinstance(body, dict) else None
 
 
 def _mxm_subtitle(subtitle_list, language):
@@ -373,77 +456,91 @@ def _mxm_subtitle(subtitle_list, language):
     return None
 
 
-def _mxm_macro_calls(artist, title, album, duration, token):
-    """Run the desktop macro and return its `macro_calls` map, or None.
-
-    Raises ProviderUnavailable when Musixmatch can't be reached.
-    """
-    params = {
-        "format": "json",
-        "namespace": "lyrics_richsynched",
-        "subtitle_format": "lrc",
-        "app_id": "web-desktop-app-v1.0",
-        "usertoken": token,
-        "q_artist": artist,
-        "q_track": title,
-    }
-    if album:
-        params["q_album"] = album
-    seconds = _int_duration(duration)
-    if seconds is not None:
-        params["q_duration"] = seconds
-
-    try:
-        r = requests.get(
-            f"{MXM_BASE}/macro.subtitles.get", params=params, headers=_MXM_HEADERS, timeout=6
-        )
-        body = r.json().get("message", {}).get("body", {})
-    except requests.RequestException as exc:
-        raise ProviderUnavailable("musixmatch") from exc
-    except (ValueError, AttributeError) as exc:
-        log.debug("musixmatch: unreadable response (%s)", exc)
-        return None
-    return body.get("macro_calls", {}) if isinstance(body, dict) else {}
-
-
-def _provider_musixmatch(artist, title, album, duration):
-    token = _musixmatch_token()
-    if not token:
-        return None
-    calls = _mxm_macro_calls(artist, title, album, duration, token)
-    if calls is None:
-        return None
-
-    def _body(call):
-        node = calls.get(call, {})
-        body = node.get("message", {}).get("body") if isinstance(node, dict) else None
-        return body if isinstance(body, dict) else {}
-
-    track = _body("matcher.track.get").get("track", {})
-    meta = {
+def _mxm_track_meta(track):
+    return {
         "artist": track.get("artist_name"),
         "title": track.get("track_name"),
         "album": track.get("album_name"),
         "duration": track.get("track_length"),
     }
-    # Musixmatch's matcher is fuzzy and answers even when nothing really fits,
-    # so a track it doesn't carry comes back as the nearest song it does.
-    if not _matches_request(meta, artist, title, duration):
-        log.info(
-            "musixmatch: matched %r by %r (%ss), not %r by %r (%ss) - dropped",
-            meta["title"], meta["artist"], _int_duration(meta["duration"]),
-            title, artist, _int_duration(duration),
+
+
+def _mxm_pick(tracks, artist, title, duration):
+    """Return the search hit that is this recording, or None.
+
+    A hit must pass _matches_request; among those, one with synced lyrics comes
+    first, then the nearest in length. Raises ProviderUnavailable when the search
+    answered with nothing but a placeholder track nobody asked for.
+    """
+    hits = [
+        t for t in tracks
+        if isinstance(t, dict) and t.get("track_id") and not t.get("instrumental")
+        and (t.get("has_lyrics") or t.get("has_subtitles"))
+    ]
+    matches = [t for t in hits if _matches_request(_mxm_track_meta(t), artist, title, duration)]
+    listed = [t for t in tracks if isinstance(t, dict)]
+    if not matches and listed and all(t.get("track_id") in _MXM_PLACEHOLDERS for t in listed):
+        placeholder = _mxm_track_meta(listed[0])
+        raise ProviderUnavailable(
+            f"musixmatch answered with its placeholder track {placeholder['title']!r} by {placeholder['artist']!r} "
+            "instead of searching - degraded access, check MUSIXMATCH_TOKEN"
         )
+    seconds = _float_duration(duration)
+    ranked = _by_length([dict(t, duration=t.get("track_length")) for t in matches], seconds)
+    ranked.sort(key=lambda t: not t.get("has_subtitles"))
+    return ranked[0] if ranked else None
+
+
+def _provider_musixmatch(artist, title, _album, duration):
+    """Search Musixmatch's web API with the operator's account token.
+
+    `track.search` lists the candidates, the one that verifies against the
+    request is kept (never another song, whatever the caller's `verify`), then
+    its LRC and plain text are fetched. Returns None without a token. Raises
+    ProviderUnavailable when Musixmatch can't be reached or refuses the token.
+    """
+    token = _musixmatch_token()
+    if not token:
         return None
+    body = _mxm_call("track.search", {
+        "q_track": title,
+        "q_artist": artist,
+        "f_has_lyrics": "true",
+        "s_track_rating": "desc",
+        "page_size": "10",
+        "page": "1",
+    }, token)
+    tracks = [
+        entry.get("track") for entry in (body or {}).get("track_list") or [] if isinstance(entry, dict)
+    ]
+    track = _mxm_pick(tracks, artist, title, duration)
+    if not track:
+        if tracks:
+            first = _mxm_track_meta(tracks[0]) if isinstance(tracks[0], dict) else {}
+            log.info(
+                "musixmatch: %d search results, none is %r by %r (%s) - first is %r by %r (%s)",
+                len(tracks), title, artist, _length_label(duration),
+                first.get("title"), first.get("artist"), _length_label(first.get("duration")),
+            )
+        return None
+    meta = _mxm_track_meta(track)
+    track_id = track["track_id"]
 
-    lyrics_node = _body("track.lyrics.get").get("lyrics", {})
-    lyrics = lyrics_node.get("lyrics_body") or None
-    synced = _mxm_subtitle(
-        _body("track.subtitles.get").get("subtitle_list"), lyrics_node.get("lyrics_language")
-    )
+    lyrics, language = None, None
+    if track.get("has_lyrics"):
+        node = (_mxm_call("track.lyrics.get", {"track_id": str(track_id)}, token) or {}).get("lyrics")
+        if isinstance(node, dict):
+            lyrics, language = node.get("lyrics_body") or None, node.get("lyrics_language")
+    synced = None
+    if track.get("has_subtitles"):
+        node = _mxm_call("track.subtitles.get", {"track_id": str(track_id), "subtitle_format": "lrc"}, token) or {}
+        synced = _mxm_subtitle(node.get("subtitle_list"), language)
 
+    log.debug("musixmatch: track %s (%r, %s), synced=%s, plain=%s",
+              track_id, meta["album"], _length_label(meta["duration"]), bool(synced), bool(lyrics))
     if lyrics or synced:
         return {"lyrics": lyrics, "synced": synced, "meta": meta}
+    log.info("musixmatch: track %s (%r, %s) has no lyrics", track_id, meta["album"], _length_label(meta["duration"]))
     return None
 
 
@@ -563,9 +660,9 @@ def _provider_netease(artist, title, _album, duration):
     song_id, meta = picked
 
     text = _netease_lyric(song_id)
-    log.debug("netease: song %s (%r, %ss), %d characters", song_id, meta["album"], _int_duration(meta["duration"]), len(text))
+    log.debug("netease: song %s (%r, %s), %d characters", song_id, meta["album"], _length_label(meta["duration"]), len(text))
     if not text:
-        log.info("netease: song %s (%r, %ss) has no lyrics", song_id, meta["album"], _int_duration(meta["duration"]))
+        log.info("netease: song %s (%r, %s) has no lyrics", song_id, meta["album"], _length_label(meta["duration"]))
         return None
     if _LRC_TIMESTAMP_RE.search(text):
         return {"lyrics": None, "synced": text, "meta": meta}
@@ -661,11 +758,14 @@ PLAIN_ONLY_PROVIDERS = {"genius"}
 def _enabled_providers():
     """Resolve the ordered provider list from `LYRICS_PROVIDERS`.
 
-    Unknown names are ignored.
+    Unknown names are ignored, and so is Musixmatch without `MUSIXMATCH_TOKEN`.
     """
     raw = os.getenv("LYRICS_PROVIDERS", DEFAULT_PROVIDER_ORDER)
     names = [n.strip().lower() for n in raw.split(",") if n.strip()]
-    return [(n, PROVIDERS[n]) for n in names if n in PROVIDERS]
+    return [
+        (n, PROVIDERS[n]) for n in names
+        if n in PROVIDERS and (n != "musixmatch" or _musixmatch_token())
+    ]
 
 
 # Qualifiers and credits that should not defeat a match: parenthetical/bracketed
@@ -719,9 +819,9 @@ def _matches_request(meta, artist, title, duration):
 
 def _log_rejected(name, meta, artist, title, duration):
     log.info(
-        "lyrics: %s answered with %r by %r (%ss), not %r by %r (%ss) - rejected",
-        name, meta.get("title"), meta.get("artist"), _int_duration(meta.get("duration")),
-        title, artist, _int_duration(duration),
+        "lyrics: %s answered with %r by %r (%s), not %r by %r (%s) - rejected",
+        name, meta.get("title"), meta.get("artist"), _length_label(meta.get("duration")),
+        title, artist, _length_label(duration),
     )
 
 

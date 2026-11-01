@@ -11,7 +11,7 @@ All configuration comes from environment variables, read once at start-up. Under
 | `PLAY_COUNTS_SOURCE` | Where play counts come from: `auto` (Alternative Play Count when installed, Lyrion's own counters otherwise) or `lyrion` (always Lyrion's counters) | `auto` |
 | `CUSTOM_DATA_DIR` | Generated files directory | `/opt/scripts/custom_data` |
 | `LYRICS_PROVIDERS` | Web lyrics providers, tried in order (`lrclib`, `musixmatch`, `netease`, `genius`); empty disables the web search entirely | `lrclib,musixmatch,netease,genius` |
-| `MUSIXMATCH_TOKEN` | Fixed Musixmatch token (otherwise fetched automatically) | -- |
+| `MUSIXMATCH_TOKEN` | Your Musixmatch account token; without it Musixmatch is skipped — see [Musixmatch token](#musixmatch-token) | -- |
 | `LRCLIB_TIMEOUT` | LRCLIB request timeout, in seconds | `15` |
 | `PAUSE_TIMEOUT` | How long, in seconds, a paused track stays on screen before the dashboard returns to its empty state; `0` treats a pause like a stop | `300` |
 | `LYRICS_VERIFY_DURATION_TOLERANCE` | Max drift (seconds) tolerated by `--verify` in `embed_lyrics.py` | `3` |
@@ -20,6 +20,16 @@ All configuration comes from environment variables, read once at start-up. Under
 | `DEV` | Set to `1` to live-reload templates and disable static caching (development) | -- |
 
 What each `LOG_LEVEL` actually prints is on the [Logs](logs.md) page.
+
+## Musixmatch token
+
+Musixmatch only answers a logged-in account, so it needs the token of a (free) Musixmatch account in `MUSIXMATCH_TOKEN`; without one it is skipped, and the logs say so once at the first search. To get it:
+
+1. Log in on [musixmatch.com](https://www.musixmatch.com) in a desktop browser.
+2. Open the developer tools (F12), then *Application* (Chrome, Edge) or *Storage* (Firefox) → *Cookies* → `https://www.musixmatch.com`.
+3. Copy the value of the `musixmatchUserToken` cookie and URL-decode it (any online URL decoder, or `python3 -c 'import sys, urllib.parse; print(urllib.parse.unquote(sys.argv[1]))' '…'`). It reads `{"tokens":{"mxm-com-v1.0":"…", …}}`: the value under `mxm-com-v1.0` is the token.
+
+The token lasts as long as that browser session: logging out of musixmatch.com, or Musixmatch revoking it, makes the dashboard log `musixmatch refused the request (…)` on each search, and a fresh token has to be copied the same way. To check a token by hand, see [Logs](logs.md#musixmatch).
 
 ## Where the databases live
 

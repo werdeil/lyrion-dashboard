@@ -11,7 +11,7 @@ Toute la configuration vient de variables d'environnement, lues une fois au dém
 | `PLAY_COUNTS_SOURCE` | Origine des compteurs d'écoute : `auto` (Alternative Play Count s'il est installé, sinon les compteurs de Lyrion) ou `lyrion` (toujours ceux de Lyrion) | `auto` |
 | `CUSTOM_DATA_DIR` | Répertoire des fichiers générés | `/opt/scripts/custom_data` |
 | `LYRICS_PROVIDERS` | Fournisseurs de paroles web, essayés dans l'ordre (`lrclib`, `musixmatch`, `netease`, `genius`) ; vide désactive complètement la recherche web | `lrclib,musixmatch,netease,genius` |
-| `MUSIXMATCH_TOKEN` | Jeton Musixmatch fixe (sinon récupéré automatiquement) | -- |
+| `MUSIXMATCH_TOKEN` | Jeton de votre compte Musixmatch ; sans lui, Musixmatch est sauté — voir [Jeton Musixmatch](#jeton-musixmatch) | -- |
 | `LRCLIB_TIMEOUT` | Délai d'expiration des requêtes LRCLIB, en secondes | `15` |
 | `PAUSE_TIMEOUT` | Durée, en secondes, pendant laquelle une piste en pause reste affichée avant que le dashboard revienne à son état vide ; `0` traite une pause comme un arrêt | `300` |
 | `LYRICS_VERIFY_DURATION_TOLERANCE` | Écart max (secondes) toléré par `--verify` dans `embed_lyrics.py` | `3` |
@@ -20,6 +20,16 @@ Toute la configuration vient de variables d'environnement, lues une fois au dém
 | `DEV` | Mettre à `1` pour recharger les templates à la volée et désactiver le cache statique (développement) | -- |
 
 Ce que chaque `LOG_LEVEL` écrit réellement est sur la page [Logs](logs.fr.md).
+
+## Jeton Musixmatch
+
+Musixmatch ne répond plus qu'à un compte connecté : il lui faut le jeton d'un compte Musixmatch (gratuit) dans `MUSIXMATCH_TOKEN` ; sans jeton, il est sauté, et les logs le signalent une fois, à la première recherche. Pour l'obtenir :
+
+1. Connectez-vous sur [musixmatch.com](https://www.musixmatch.com) dans un navigateur de bureau.
+2. Ouvrez les outils de développement (F12), puis *Application* (Chrome, Edge) ou *Stockage* (Firefox) → *Cookies* → `https://www.musixmatch.com`.
+3. Copiez la valeur du cookie `musixmatchUserToken` et décodez-la (n'importe quel décodeur d'URL en ligne, ou `python3 -c 'import sys, urllib.parse; print(urllib.parse.unquote(sys.argv[1]))' '…'`). Elle se lit `{"tokens":{"mxm-com-v1.0":"…", …}}` : la valeur sous `mxm-com-v1.0` est le jeton.
+
+Le jeton vit aussi longtemps que cette session de navigateur : se déconnecter de musixmatch.com, ou une révocation par Musixmatch, fait écrire au dashboard `musixmatch refused the request (…)` à chaque recherche, et il faut recopier un jeton neuf de la même manière. Pour vérifier un jeton à la main, voir [Logs](logs.fr.md#musixmatch).
 
 ## Où vivent les bases de données
 
