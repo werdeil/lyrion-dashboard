@@ -58,7 +58,7 @@ The search's `INFO` line counts one set narrowing three times — candidates ret
 
 - Tries each enabled provider in order, keeps the **first synced** result, else the first plain one (see above).
 - Returns `{"lyrics", "synced", "source"}`, plus `versions` when the provider offered several. `source` is the winning provider name (preserved across cache hits so the UI can show the origin), `"none"` when nothing was found, or `"rejected"` when a candidate came back but failed verification.
-- **Caching:** an `OrderedDict` LRU behind a lock, bounded to `CACHE_MAX_ENTRIES`, with hits kept `TTL_HIT` (24h) and misses `TTL_MISS` (1h) — a track with no lyrics online isn't re-queried on every click, but a transient failure recovers sooner. The cache key is `track_id|artist|title|verify`, **not** track_id alone: streamed "flow"/mix sources reuse one playlist track_id while the song changes underneath, which would otherwise serve the first song's lyrics for all of them.
+- **Caching:** an `OrderedDict` LRU behind a lock, bounded to `CACHE_MAX_ENTRIES`, with hits kept `TTL_HIT` (24h) and misses `TTL_MISS` (1h) — a track with no lyrics online isn't re-queried on every click, but a transient failure recovers sooner. A search during which a provider was unreachable (`_search_providers` returns `complete=False`) is not cached at all unless it found synced lyrics, since the provider that never answered may hold better ones. The cache key is `track_id|artist|title|verify`, **not** track_id alone: streamed "flow"/mix sources reuse one playlist track_id while the song changes underneath, which would otherwise serve the first song's lyrics for all of them.
 
 ## Diagnosing a track without lyrics
 
