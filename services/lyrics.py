@@ -171,7 +171,7 @@ def _lrclib_attempts(artist, title, album):
     return attempts
 
 
-def _lrclib_retryable(status):
+def _lrclib_unavailable(status):
     return status == 429 or status >= 500
 
 
@@ -222,7 +222,7 @@ def _lrclib_search(artist, title, album, seconds, fallback):
             )
         except requests.RequestException as exc:
             raise ProviderUnavailable("lrclib") from exc
-        if _lrclib_retryable(r.status_code):
+        if _lrclib_unavailable(r.status_code):
             if fallback is None:
                 raise ProviderUnavailable(f"lrclib answered HTTP {r.status_code}")
             log.info("lrclib: search returned HTTP %s, keeping the get record", r.status_code)
@@ -270,7 +270,7 @@ def _provider_lrclib(artist, title, album, duration):
         r = requests.get(f"{LRCLIB_BASE}/get", params=params, headers=headers, timeout=LRCLIB_TIMEOUT)
         if r.status_code == 200:
             payload = r.json()
-        elif _lrclib_retryable(r.status_code):
+        elif _lrclib_unavailable(r.status_code):
             raise ProviderUnavailable(f"lrclib answered HTTP {r.status_code}")
         else:
             log.debug("lrclib: get returned HTTP %s, falling back to search", r.status_code)
