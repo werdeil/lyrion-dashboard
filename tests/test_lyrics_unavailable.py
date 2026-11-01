@@ -3,8 +3,8 @@
 A provider that can't be reached returns nothing, exactly like a provider that
 has no match — but caching that as a miss would fuse every later search for
 TTL_MISS, long after a passing outage is over. Providers raise
-ProviderUnavailable for it, and fetch_lyrics only skips the cache when no
-provider answered at all.
+ProviderUnavailable for it, and fetch_lyrics skips the cache whenever one did,
+unless a synced result was found anyway.
 """
 # The env scaffolding is intentionally the same as in the other tests; that
 # repetition is what keeps each file standalone.
@@ -79,12 +79,32 @@ class UnavailableProvidersTest(unittest.TestCase):
         self.assertEqual(L.fetch_lyrics(None, "Muse", "Space Debris")["source"], "p0")
         self.assertEqual(back.calls, 1)
 
-    def test_a_reachable_provider_with_no_match_still_caches_a_miss(self):
+    def test_a_miss_is_not_cached_while_a_provider_is_down(self):
         silent = _silent()
         self._use(_unreachable("a"), silent)
         res = L.fetch_lyrics(None, "Muse", "Space Debris")
         self.assertEqual(res["source"], "none")
+        self.assertEqual(len(L._cache), 0)
+        L.fetch_lyrics(None, "Muse", "Space Debris")
+        self.assertEqual(silent.calls, 2)
+
+    def test_plain_lyrics_are_not_cached_while_a_provider_is_down(self):
+        found = _finds()
+        self._use(found, _unreachable("b"))
+        self.assertEqual(L.fetch_lyrics(None, "Muse", "Space Debris")["lyrics"], "la la la")
+        self.assertEqual(len(L._cache), 0)
+
+    def test_synced_lyrics_are_cached_even_with_a_provider_down(self):
+        def synced(*_args):
+            return {"lyrics": "la", "synced": "[00:01.00] la", "meta": None}
+        self._use(_unreachable("a"), synced)
+        L.fetch_lyrics(None, "Muse", "Space Debris")
         self.assertEqual(len(L._cache), 1)
+
+    def test_a_miss_with_every_provider_reachable_is_cached(self):
+        silent = _silent()
+        self._use(silent)
+        L.fetch_lyrics(None, "Muse", "Space Debris")
         L.fetch_lyrics(None, "Muse", "Space Debris")
         self.assertEqual(silent.calls, 1)
 

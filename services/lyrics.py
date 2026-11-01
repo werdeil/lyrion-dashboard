@@ -171,6 +171,10 @@ def _lrclib_attempts(artist, title, album):
     return attempts
 
 
+def _lrclib_unavailable(status):
+    return status == 429 or status >= 500
+
+
 def _lrclib_search_url(artist, title):
     """Browsable URL for this track on LRCLIB's own search page, for the diagnostic logs."""
     query = " ".join(part for part in (artist, title) if part)
@@ -203,7 +207,8 @@ def _lrclib_search(artist, title, album, seconds, fallback):
     length, or `fallback` (the `get` hit, when there was one) if the search
     turns up nothing better, and the rest of the set it was chosen from —
     other uploads of the same song, which the page offers to compare it
-    against. Raises ProviderUnavailable if LRCLIB can't be reached.
+    against. Raises ProviderUnavailable if LRCLIB can't be reached, or answers
+    429/5xx with no `get` hit to fall back on.
     """
     others = []
     headers = {"User-Agent": USER_AGENT}
@@ -217,6 +222,11 @@ def _lrclib_search(artist, title, album, seconds, fallback):
             )
         except requests.RequestException as exc:
             raise ProviderUnavailable("lrclib") from exc
+        if _lrclib_unavailable(r.status_code):
+            if fallback is None:
+                raise ProviderUnavailable(f"lrclib answered HTTP {r.status_code}")
+            log.info("lrclib: search returned HTTP %s, keeping the get record", r.status_code)
+            return fallback, others
         if r.status_code != 200:
             log.info("lrclib: search returned HTTP %s", r.status_code)
             continue
@@ -242,7 +252,8 @@ def _provider_lrclib(artist, title, album, duration):
     mismatches. LRCLIB stores lyrics per upload, so a `get` hit with no synced
     record of this length is only a fallback while the search looks for one. A synced candidate must
     match the track's duration; one that doesn't still serves as plain text.
-    Raises ProviderUnavailable when LRCLIB can't be reached at all.
+    Raises ProviderUnavailable when LRCLIB can't be reached or answers 429/5xx,
+    so an outage is not cached as a miss.
     """
     headers = {"User-Agent": USER_AGENT}
 
@@ -259,6 +270,8 @@ def _provider_lrclib(artist, title, album, duration):
         r = requests.get(f"{LRCLIB_BASE}/get", params=params, headers=headers, timeout=LRCLIB_TIMEOUT)
         if r.status_code == 200:
             payload = r.json()
+        elif _lrclib_unavailable(r.status_code):
+            raise ProviderUnavailable(f"lrclib answered HTTP {r.status_code}")
         else:
             log.debug("lrclib: get returned HTTP %s, falling back to search", r.status_code)
     except requests.RequestException as exc:
@@ -713,13 +726,14 @@ def _log_rejected(name, meta, artist, title, duration):
 
 
 def _search_providers(artist, title, album, duration, verify):
-    """Try each enabled provider in order and return the first usable result.
+    """Try each enabled provider in order and return (result, complete).
 
     A plain-only result is held while the later providers able to sync are asked
     for a synced one, unless `verify` is set: the batch CLI only stores plain text.
-    Same shape as fetch_lyrics' return value, without any caching: "unavailable"
+    `result` has fetch_lyrics' return shape, without any caching: "unavailable"
     means not one provider answered, which the caller must not confuse with a
-    search that ran and came up empty.
+    search that ran and came up empty. `complete` is False when a provider that
+    was asked could not be reached.
     """
     rejected = False
     unreachable = 0
@@ -759,16 +773,16 @@ def _search_providers(artist, title, album, duration, verify):
         if found.get("versions"):
             result["versions"] = found["versions"]
         if result["synced"] or verify:
-            return result
+            return result, not unreachable
         if plain is None:
             log.info("lyrics: %s has plain lyrics only, asking the next providers for synced ones", name)
             plain = result
 
     if plain:
-        return plain
+        return plain, not unreachable
     if unreachable and unreachable == len(providers):
-        return {"lyrics": None, "synced": None, "source": "unavailable"}
-    return {"lyrics": None, "synced": None, "source": "rejected" if rejected else "none"}
+        return {"lyrics": None, "synced": None, "source": "unavailable"}, False
+    return {"lyrics": None, "synced": None, "source": "rejected" if rejected else "none"}, not unreachable
 
 
 def fetch_lyrics(track_id, artist, title, album=None, duration=None, force=False, verify=False):
@@ -780,8 +794,9 @@ def fetch_lyrics(track_id, artist, title, album=None, duration=None, force=False
     `source` is the winning provider name (kept across cache hits), "none" when
     nothing was found, "rejected"
     when a candidate came back but failed verification, or "unavailable" when no
-    provider could be reached — the one outcome that is not cached, so a search
-    is retried as soon as they answer again.
+    provider could be reached. A synced result is cached; any other outcome is
+    cached only when every provider asked could be reached, so a search is
+    retried as soon as an outage is over.
 
     A provider that found several uploads of the song also returns "versions"
     for the page to cycle through: the winner first, then the rest synced
@@ -809,14 +824,13 @@ def fetch_lyrics(track_id, artist, title, album=None, duration=None, force=False
 
     started = time.monotonic()
     log.debug("lyrics: searching %r by %r (album=%r, duration=%s, verify=%s)", title, artist, album, duration, verify)
-    result = _search_providers(artist, title, album, duration, verify)
+    result, complete = _search_providers(artist, title, album, duration, verify)
     log.info(
         "lyrics: %r by %r -> %s (synced=%s, plain=%s) in %d ms",
         title, artist, result["source"], bool(result["synced"]), bool(result["lyrics"]), _elapsed_ms(started),
     )
-    if result["source"] == "unavailable":
-        # Nothing was learned about the track, so caching this as a miss would
-        # fuse every search for TTL_MISS over a passing outage.
+    if not (complete or result["synced"]):
+        log.info("lyrics: a provider was unreachable, %r by %r not cached", title, artist)
         return result
 
     hit = bool(result["lyrics"] or result["synced"])

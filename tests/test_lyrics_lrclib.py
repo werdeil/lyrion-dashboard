@@ -44,19 +44,20 @@ class FakeResponse:
 class _Lrclib:
     """Stands in for LRCLIB: one payload for /get, one per /search attempt."""
 
-    def __init__(self, get=None, searches=(), get_status=200):
+    def __init__(self, get=None, searches=(), get_status=200, search_status=200):
         self.get = get
         self.searches = list(searches)
         self.get_status = get_status
+        self.search_status = search_status
         self.calls = []
 
     def __call__(self, url, **kwargs):
         self.calls.append((url, kwargs.get("params", {})))
         if url.endswith("/get"):
-            if self.get is None:
+            if self.get is None and self.get_status == 200:
                 return FakeResponse(None, 404)
             return FakeResponse(self.get, self.get_status)
-        return FakeResponse(self.searches.pop(0) if self.searches else [])
+        return FakeResponse(self.searches.pop(0) if self.searches else [], self.search_status)
 
     @property
     def search_calls(self):
@@ -237,6 +238,45 @@ class LrclibDurationMatchTest(unittest.TestCase):
         self.assertEqual(len(dropped), 1)
         self.assertIn("lrclib.net/tracks/22439347", dropped[0])
         self.assertIn("is 419s, this track is 302s", dropped[0])
+
+
+
+class LrclibOutageTest(unittest.TestCase):
+    def _fetch(self, fake):
+        with patch("services.lyrics.requests.get", side_effect=fake):
+            return L._provider_lrclib("Anaïs Delva", "Libérée, Delivrée", "Disney Hits", "222.626")
+
+    def test_an_overloaded_get_is_unavailable_without_searching(self):
+        for status in (503, 502, 429):
+            fake = _Lrclib(get_status=status)
+            with self.assertRaises(L.ProviderUnavailable):
+                self._fetch(fake)
+            self.assertEqual(fake.search_calls, [])
+
+    def test_an_overloaded_search_after_a_get_miss_is_unavailable(self):
+        fake = _Lrclib(get=None, search_status=503)
+        with self.assertRaises(L.ProviderUnavailable):
+            self._fetch(fake)
+        self.assertEqual(len(fake.search_calls), 1)
+
+    def test_an_overloaded_search_keeps_the_plain_get_record(self):
+        fake = _Lrclib(get=_record(1, synced=None, plain="from get", duration=222), search_status=503)
+        result = self._fetch(fake)
+        self.assertEqual(result["lyrics"], "from get")
+        self.assertEqual(len(fake.search_calls), 1)
+
+    def test_an_outage_is_not_cached_as_a_miss(self):
+        L._cache.clear()
+        orig = L._enabled_providers
+        L._enabled_providers = lambda: [("lrclib", L._provider_lrclib)]
+        try:
+            with patch("services.lyrics.requests.get", side_effect=_Lrclib(get_status=503)):
+                res = L.fetch_lyrics(None, "Anaïs Delva", "Libérée, Delivrée", "Disney Hits", "222.626")
+            self.assertEqual(res["source"], "unavailable")
+            self.assertEqual(len(L._cache), 0)
+        finally:
+            L._enabled_providers = orig
+            L._cache.clear()
 
 
 if __name__ == "__main__":
