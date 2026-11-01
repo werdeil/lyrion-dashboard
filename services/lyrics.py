@@ -778,12 +778,11 @@ def _search_providers(artist, title, album, duration, verify):
             log.info("lyrics: %s has plain lyrics only, asking the next providers for synced ones", name)
             plain = result
 
-    complete = not unreachable
     if plain:
-        return plain, complete
+        return plain, not unreachable
     if unreachable and unreachable == len(providers):
-        return {"lyrics": None, "synced": None, "source": "unavailable"}, complete
-    return {"lyrics": None, "synced": None, "source": "rejected" if rejected else "none"}, complete
+        return {"lyrics": None, "synced": None, "source": "unavailable"}, False
+    return {"lyrics": None, "synced": None, "source": "rejected" if rejected else "none"}, not unreachable
 
 
 def fetch_lyrics(track_id, artist, title, album=None, duration=None, force=False, verify=False):
