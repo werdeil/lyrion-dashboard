@@ -171,6 +171,10 @@ def _lrclib_attempts(artist, title, album):
     return attempts
 
 
+def _lrclib_down(status):
+    return status == 429 or status >= 500
+
+
 def _lrclib_search_url(artist, title):
     """Browsable URL for this track on LRCLIB's own search page, for the diagnostic logs."""
     query = " ".join(part for part in (artist, title) if part)
@@ -203,7 +207,8 @@ def _lrclib_search(artist, title, album, seconds, fallback):
     length, or `fallback` (the `get` hit, when there was one) if the search
     turns up nothing better, and the rest of the set it was chosen from —
     other uploads of the same song, which the page offers to compare it
-    against. Raises ProviderUnavailable if LRCLIB can't be reached.
+    against. Raises ProviderUnavailable if LRCLIB can't be reached, or answers
+    429/5xx with no `get` hit to fall back on.
     """
     others = []
     headers = {"User-Agent": USER_AGENT}
@@ -217,6 +222,11 @@ def _lrclib_search(artist, title, album, seconds, fallback):
             )
         except requests.RequestException as exc:
             raise ProviderUnavailable("lrclib") from exc
+        if _lrclib_down(r.status_code):
+            if fallback is None:
+                raise ProviderUnavailable(f"lrclib answered HTTP {r.status_code}")
+            log.info("lrclib: search returned HTTP %s, keeping the get record", r.status_code)
+            return fallback, others
         if r.status_code != 200:
             log.info("lrclib: search returned HTTP %s", r.status_code)
             continue
@@ -242,7 +252,8 @@ def _provider_lrclib(artist, title, album, duration):
     mismatches. LRCLIB stores lyrics per upload, so a `get` hit with no synced
     record of this length is only a fallback while the search looks for one. A synced candidate must
     match the track's duration; one that doesn't still serves as plain text.
-    Raises ProviderUnavailable when LRCLIB can't be reached at all.
+    Raises ProviderUnavailable when LRCLIB can't be reached or answers 429/5xx,
+    so an outage is not cached as a miss.
     """
     headers = {"User-Agent": USER_AGENT}
 
@@ -259,6 +270,8 @@ def _provider_lrclib(artist, title, album, duration):
         r = requests.get(f"{LRCLIB_BASE}/get", params=params, headers=headers, timeout=LRCLIB_TIMEOUT)
         if r.status_code == 200:
             payload = r.json()
+        elif _lrclib_down(r.status_code):
+            raise ProviderUnavailable(f"lrclib answered HTTP {r.status_code}")
         else:
             log.debug("lrclib: get returned HTTP %s, falling back to search", r.status_code)
     except requests.RequestException as exc:
