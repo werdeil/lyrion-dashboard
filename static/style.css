@@ -33,7 +33,7 @@
     --border-color: #3a3a3a;   /* hairlines: rules, cover edge */
     --page-pad: 16px;          /* body gutter, subtracted by the viewport-fitting calc */
     --surface: #303030;        /* raised neutral fills: progress track, cards */
-    --nothing: #141414;        /* a play level or a day with no plays at all */
+    --nothing: #141414;        /* a play level never reached */
     --text-error: #ffb7c0;
     transition: --tint-color 900ms ease, --accent-color 900ms ease;
 }
@@ -280,10 +280,11 @@ hr {
     border-radius: 1px;
 }
 
-.calendar-level-0 { background: var(--nothing); }
-.calendar-level-1 { background: color-mix(in srgb, var(--accent-color) 25%, var(--nothing)); }
-.calendar-level-2 { background: color-mix(in srgb, var(--accent-color) 50%, var(--nothing)); }
-.calendar-level-3 { background: color-mix(in srgb, var(--accent-color) 75%, var(--nothing)); }
+.calendar-day[class*="calendar-level-"] { box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08); }
+.calendar-level-0 { background: rgba(255, 255, 255, 0.05); }
+.calendar-level-1 { background: color-mix(in srgb, var(--accent-color) 40%, transparent); }
+.calendar-level-2 { background: color-mix(in srgb, var(--accent-color) 60%, transparent); }
+.calendar-level-3 { background: color-mix(in srgb, var(--accent-color) 80%, transparent); }
 .calendar-level-4 { background: var(--accent-color); }
 
 .calendar-legend {
