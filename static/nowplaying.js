@@ -1,13 +1,29 @@
 var I18N = JSON.parse(document.getElementById('i18n-data').textContent);
 
+// The narrow page, where the stats panel is a screen of its own; must match style.css.
+var STACKED_MQ = '(max-width: 860px)';
+
+function isStacked() {
+    return !!(window.matchMedia && window.matchMedia(STACKED_MQ).matches);
+}
+
 document.querySelectorAll('.stat-group-title').forEach(function(title) {
     title.addEventListener('click', function() {
         var group = title.closest('.stat-group');
-        if (group) {
+        if (group && !isStacked()) {
             group.classList.toggle('collapsed');
         }
     });
 });
+
+if (window.matchMedia) {
+    window.matchMedia(STACKED_MQ).addEventListener('change', function(e) {
+        if (!e.matches) { return; }
+        document.querySelectorAll('.stat-group.collapsed').forEach(function(group) {
+            group.classList.remove('collapsed');
+        });
+    });
+}
 
 var LYRION_HOST = document.body.dataset.lyrionHost || '';
 
@@ -624,7 +640,14 @@ function versionLength(version) {
 }
 
 // Callers run right after setLyrics(), so lrcLines tells whether the text on screen is synced.
+// Stacked, a card with lyrics fills a screen of its own; without, it stays compact over the stats.
+function fitLyrics() {
+    document.documentElement.classList.toggle('lyrics-fit',
+        versions.length > 0 && !nowPlaying.classList.contains('is-empty'));
+}
+
 function updateSource() {
+    fitLyrics();
     if (!el.source) { return; }
     var version = versions[versionIdx];
     var label = version && (lyricsHidden ? I18N.lyrics_hidden_chip : sourceLabel(version));
@@ -764,7 +787,6 @@ function landOnVersions(current) {
 if (el.source) {
     el.source.addEventListener('click', function() {
         if (!versions.length) { return; }
-        holdLyricsHeight();
         if (lyricsHidden) {
             rememberHidden(false);
             showVersion(0);
@@ -776,23 +798,6 @@ if (el.source) {
         }
     });
 }
-
-// Released on a width change only: the mobile URL bar resizes the height on scroll.
-var heldWidth = 0;
-function holdLyricsHeight() {
-    // The fitted layouts size the box from the viewport (flex-basis 0), not from its text.
-    if (getComputedStyle(el.lyrics).flexBasis === '0px') { return; }
-    el.lyrics.style.minHeight = el.lyrics.offsetHeight + 'px';
-    heldWidth = window.innerWidth;
-}
-
-function releaseLyricsHeight() {
-    el.lyrics.style.minHeight = '';
-}
-
-window.addEventListener('resize', function() {
-    if (window.innerWidth !== heldWidth) { releaseLyricsHeight(); }
-});
 
 function setSearching(on) {
     searching = on;
@@ -1262,6 +1267,7 @@ function render(data) {
     if (!data || !data.track_id) {
         nowPlaying.classList.add('is-empty');
         nowPlaying.classList.remove('is-paused');
+        fitLyrics();
         loadMosaic();
         startMosaic();
         // The listens that just ended reorder the pile, so the next playback refetches it.
@@ -1317,7 +1323,6 @@ function render(data) {
     var trackKey = [data.track_id, data.title, data.artist, data.album].join('|');
     if (trackKey !== lastTrackKey) {
         lastTrackKey = trackKey;
-        releaseLyricsHeight();
         currentTrack = data;
         // COVER_SIZE is the /cover route's cap; remote artwork has no resize form.
         el.cover.src = data.artwork_url
@@ -1869,6 +1874,7 @@ var calendarShown = '';
 var calendarData = null;
 // The smallest day the expanded strip draws; it shows as many recent weeks as fit at that size.
 var CALENDAR_MIN_DAY_PX = 10;
+var CALENDAR_MIN_DAY_PX_STACKED = 7;
 // A month is four or five week columns, too narrow for its name in the side panel.
 var CALENDAR_LABEL_WEEKS = 6;
 // The shortest span the strip draws, which caps the size of its days.
@@ -1909,7 +1915,7 @@ function renderCalendar(calendar) {
     if (!box) { return; }
     calendarData = calendar;
     box.hidden = !calendar;
-    var columns = calendar ? Math.max(1, Math.floor((box.clientWidth + 1) / (CALENDAR_MIN_DAY_PX + 1))) : 0;
+    var columns = calendar ? Math.max(1, Math.floor((box.clientWidth + 1) / ((isStacked() ? CALENDAR_MIN_DAY_PX_STACKED : CALENDAR_MIN_DAY_PX) + 1))) : 0;
     var key = JSON.stringify(calendar) + '|' + columns;
     if (key === calendarShown) { return; }
     calendarShown = key;
