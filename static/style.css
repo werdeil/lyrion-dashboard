@@ -33,6 +33,7 @@
     --border-color: #3a3a3a;   /* hairlines: rules, cover edge */
     --page-pad: 16px;          /* body gutter, subtracted by the viewport-fitting calc */
     --header-h: 0px;           /* the in-app header's height with its margin, subtracted likewise */
+    --stats-peek: 64px;        /* the stats panel's top a fitted narrow card leaves in view, gutter included */
     --surface: #303030;        /* raised neutral fills: progress track, cards */
     --empty-fill: rgba(255, 255, 255, 0.05);  /* a play level never reached, a day without plays */
     --cell-edge: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
@@ -1585,25 +1586,21 @@ body.in-app .page-header {
     }
 }
 
-/* With lyrics, the narrow page scrolls between two full screens, the card fitted
-   to the viewport and the stats panel; must match fitLyrics in nowplaying.js. */
+/* With lyrics, the narrow card fills the viewport but for --stats-peek, which leaves
+   the stats panel's top in view; must match fitLyrics in nowplaying.js. */
+@media (max-width: 860px) and (orientation: landscape) {
+    :root {
+        --stats-peek: var(--page-pad);
+    }
+}
+
 @media (max-width: 860px) {
-    html.lyrics-fit {
-        scroll-snap-type: y mandatory;
-    }
-    .lyrics-fit body {
-        scroll-snap-align: start;
-    }
-    .lyrics-fit .stats-panel {
-        scroll-snap-align: start;
-        scroll-margin-top: var(--page-pad);
-    }
     .lyrics-fit .left-panel:not(.is-zoomed) {
         display: flex;
         flex-direction: column;
         /* dvh, as in the fixed layout above. */
-        height: calc(100vh - 2 * var(--page-pad) - var(--header-h));
-        height: calc(100dvh - 2 * var(--page-pad) - var(--header-h));
+        height: calc(100vh - var(--page-pad) - var(--header-h) - var(--stats-peek));
+        height: calc(100dvh - var(--page-pad) - var(--header-h) - var(--stats-peek));
     }
     .lyrics-fit .now-playing {
         flex: 1 1 auto;
