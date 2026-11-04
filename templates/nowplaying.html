@@ -102,7 +102,14 @@
                     {# Decorative cover mosaic, filled by nowplaying.js from /mosaic-covers.json. #}
                     <div class="np-empty-mosaic" id="np-empty-mosaic" aria-hidden="true"></div>
                     <div class="np-empty-content">
-                        <span class="np-empty-icon">&#9835;</span>
+                        {# The newest mosaic cover, its record half out of the sleeve. #}
+                        <div class="np-empty-record" id="np-empty-record" aria-hidden="true" hidden>
+                            <img class="np-empty-sleeve" id="np-empty-sleeve" alt="">
+                            <div class="np-vinyl">
+                                <div class="np-vinyl-disc"><img class="np-vinyl-label" id="np-empty-label" alt=""></div>
+                                <div class="np-vinyl-sheen"></div>
+                            </div>
+                        </div>
                         <p class="np-empty-text">{{ t.empty_state }}</p>
                         <a class="np-empty-open" id="np-empty-open"
                            href="{{ (lyrion_host ~ '/material/') if lyrion_host else '#' }}"

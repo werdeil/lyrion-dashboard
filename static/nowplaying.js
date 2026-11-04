@@ -54,6 +54,9 @@ var el = {
     empty: document.getElementById('np-empty'),
     emptyMosaic: document.getElementById('np-empty-mosaic'),
     emptyOpen: document.getElementById('np-empty-open'),
+    emptyRecord: document.getElementById('np-empty-record'),
+    emptySleeve: document.getElementById('np-empty-sleeve'),
+    emptyLabel: document.getElementById('np-empty-label'),
     recent: document.getElementById('np-recent'),
     recentPile: document.getElementById('np-recent-pile'),
 };
@@ -424,9 +427,8 @@ function swatchSource(img) {
     return swatchCanvas;
 }
 
-function sampleCoverTint() {
+function sampleCoverTint(img) {
     try {
-        var img = el.cover;
         if (!img.naturalWidth) { return; }
 
         var vRgb;
@@ -1118,6 +1120,21 @@ var mosaicDirty = false;
 // High-water mark of what has been asked for, so a resize only re-asks when
 // the card wants more than any request so far.
 var mosaicAsked = 0;
+function showEmptyRecord(coverId) {
+    if (!el.emptyRecord) { return; }
+    var src = '/cover/' + coverId + '.jpg?size=' + COVER_SIZE;
+    el.emptyRecord.hidden = false;
+    el.emptyLabel.src = src;
+    if (el.emptySleeve.getAttribute('src') === src) { tintFromSleeve(); }
+    else { el.emptySleeve.src = src; }
+}
+
+function tintFromSleeve() {
+    if (nowPlaying.classList.contains('is-empty') && el.emptySleeve.complete) {
+        sampleCoverTint(el.emptySleeve);
+    }
+}
+
 function loadMosaic() {
     if (mosaicLoaded || mosaicLoading || !el.emptyMosaic) { return; }
     mosaicLoading = true;
@@ -1136,6 +1153,7 @@ function loadMosaic() {
                 layoutMosaic(ids);
             }
             if (el.empty) { el.empty.classList.add('has-mosaic'); }
+            showEmptyRecord(ids[0]);
             // Reduced-motion leaves the belt laid out but still (startMosaic).
             startMosaic();
         })
@@ -1377,7 +1395,6 @@ function render(data) {
         el.cover.removeAttribute('src');
         closeCoverZoom();
         setLyrionLink(null);
-        resetColors();
         lastTrackKey = null;
         currentTrack = null;
         lrcLines = null;
@@ -1842,9 +1859,12 @@ function fitCardCover() {
 
 el.cover.addEventListener('load', function() {
     fitCardCover();
-    sampleCoverTint();
+    sampleCoverTint(el.cover);
     syncVinylLabel();
 });
+
+// Idle, the page keeps the last track's colours until the sleeve takes them over.
+if (el.emptySleeve) { el.emptySleeve.addEventListener('load', tintFromSleeve); }
 
 // Broken-cover fallback (an inline onerror would violate the CSP); the guard
 // keeps a broken placeholder from looping the error event forever.
