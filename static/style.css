@@ -1622,13 +1622,3 @@ body.in-app .page-header {
     }
 }
 
-@media (max-width: 860px) {
-    /* Must match STACKED_MQ in nowplaying.js, which keeps the groups unfolded here. */
-    .stat-group-title {
-        cursor: default;
-    }
-    .stat-group-title-label::after {
-        content: none;
-    }
-}
-

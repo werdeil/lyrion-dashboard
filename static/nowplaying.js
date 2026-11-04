@@ -1,29 +1,13 @@
 var I18N = JSON.parse(document.getElementById('i18n-data').textContent);
 
-// The narrow page, where the stats panel is a screen of its own; must match style.css.
-var STACKED_MQ = '(max-width: 860px)';
-
-function isStacked() {
-    return !!(window.matchMedia && window.matchMedia(STACKED_MQ).matches);
-}
-
 document.querySelectorAll('.stat-group-title').forEach(function(title) {
     title.addEventListener('click', function() {
         var group = title.closest('.stat-group');
-        if (group && !isStacked()) {
+        if (group) {
             group.classList.toggle('collapsed');
         }
     });
 });
-
-if (window.matchMedia) {
-    window.matchMedia(STACKED_MQ).addEventListener('change', function(e) {
-        if (!e.matches) { return; }
-        document.querySelectorAll('.stat-group.collapsed').forEach(function(group) {
-            group.classList.remove('collapsed');
-        });
-    });
-}
 
 var LYRION_HOST = document.body.dataset.lyrionHost || '';
 
@@ -639,13 +623,13 @@ function versionLength(version) {
     return ' \u00b7 ' + Math.floor(secs / 60) + ':' + ('0' + (Math.round(secs) % 60)).slice(-2);
 }
 
-// Callers run right after setLyrics(), so lrcLines tells whether the text on screen is synced.
-// Stacked, a card with lyrics fills a screen of its own; without, it stays compact over the stats.
+// Stacked, a card with lyrics is fitted to the screen; without, it stays compact over the stats.
 function fitLyrics() {
     document.documentElement.classList.toggle('lyrics-fit',
         versions.length > 0 && !nowPlaying.classList.contains('is-empty'));
 }
 
+// Callers run right after setLyrics(), so lrcLines tells whether the text on screen is synced.
 function updateSource() {
     fitLyrics();
     if (!el.source) { return; }
@@ -1875,6 +1859,12 @@ var calendarData = null;
 // The smallest day the expanded strip draws; it shows as many recent weeks as fit at that size.
 var CALENDAR_MIN_DAY_PX = 10;
 var CALENDAR_MIN_DAY_PX_STACKED = 7;
+// The stacked layout, where the stats panel spans the page; must match style.css.
+var STACKED_MQ = '(max-width: 860px)';
+
+function isStacked() {
+    return !!(window.matchMedia && window.matchMedia(STACKED_MQ).matches);
+}
 // A month is four or five week columns, too narrow for its name in the side panel.
 var CALENDAR_LABEL_WEEKS = 6;
 // The shortest span the strip draws, which caps the size of its days.
