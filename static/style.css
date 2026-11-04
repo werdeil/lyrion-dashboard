@@ -867,13 +867,12 @@ body.in-app .np-pull {
 
 .np-lyrics-empty-text strong {
     color: var(--text);
-    font-size: var(--fs-sm);
-    font-weight: normal;
+    font-weight: 600;
 }
 
 .np-lyrics-empty-hint {
     color: var(--text-faint);
-    font-size: var(--fs-xs);
+    font-size: var(--fs-sm);
 }
 
 /* fitVinyl() sizes the record inline; at 0 it cannot inflate the box it measures. */
