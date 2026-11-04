@@ -867,6 +867,7 @@ body.in-app .np-pull {
 
 .np-lyrics-empty-text strong {
     color: var(--text);
+    font-weight: 600;
 }
 
 .np-lyrics-empty-hint {
@@ -887,15 +888,7 @@ body.in-app .np-pull {
 }
 
 .np-lyrics.is-roomy .np-lyrics-empty-text {
-    gap: 6px;
-}
-
-.np-lyrics.is-roomy .np-lyrics-empty-text strong {
-    font-size: var(--fs-xl);
-}
-
-.np-lyrics.is-roomy .np-lyrics-empty-hint {
-    font-size: var(--fs-md);
+    gap: 4px;
 }
 
 .np-vinyl {
