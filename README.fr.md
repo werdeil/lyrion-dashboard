@@ -15,7 +15,7 @@
 
 - **Now Playing** -- Le lecteur en cours de lecture est détecté automatiquement et sa piste affichée en direct (pochette, titre, artiste, album) à côté de son volume, la couleur d'accent étant échantillonnée sur la pochette. Une piste en pause reste affichée pendant 5 minutes (`PAUSE_TIMEOUT`), sa barre de progression et la ligne de paroles en cours pulsant doucement. Un clic sur la pochette l'agrandit jusqu'à remplir la carte.
 - **Dernières écoutes** -- Sur grand écran, les albums récemment écoutés s'empilent comme des pochettes de disque sous la cover, le plus récent au-dessus. Construit à partir de l'historique d'écoute, une pochette par album ; avec le plugin Alternative Play Count installé, les sauts sont exclus.
-- **Paroles synchronisées** -- Les paroles avec timestamps LRC défilent ligne par ligne au rythme de la lecture, façon karaoké.
+- **Paroles synchronisées** -- Les paroles avec timestamps LRC défilent ligne par ligne au rythme de la lecture, façon karaoké. Un morceau tagué `[Instrumental]`, un morceau sans paroles nulle part ou dont vous avez masqué les paroles affiche à la place un vinyle qui tourne, sa pochette en étiquette, arrêté quand la lecture est en pause.
 - **Recherche web de paroles** -- LRCLIB, Musixmatch, NetEase Cloud Music et Genius sont interrogés pour chaque morceau joué : ils complètent les paroles absentes de la bibliothèque et convertissent son texte simple en version synchronisée quand elle existe. La ligne de provenance sous les paroles bascule ensuite entre tout ce qui a été trouvé pour le morceau — le texte de votre bibliothèque et chaque version renvoyée par les fournisseurs — pour confronter des tags erronés, ou une prise dont les paroles ne collent pas à l'enregistrement, aux autres versions. Son dernier arrêt masque les paroles quand aucune ne convient ; c'est retenu sur l'appareil jusqu'à ce qu'une autre version du morceau apparaisse. Musixmatch a besoin du jeton de votre compte dans `MUSIXMATCH_TOKEN` et est sauté sans lui ([Configuration](docs/configuration.fr.md#jeton-musixmatch)). Donnez une valeur vide à `LYRICS_PROVIDERS` pour que l'application n'appelle plus rien.
 - **Statistiques de la bibliothèque** -- Albums, artistes, morceaux joués/non joués et profondeur des réécoutes, genres, notes, paroles, vélocité d'écoute sur 30 jours, et un calendrier d'écoute — les derniers mois jour par jour, l'année semaine par semaine — quand le plugin Alternative Play Count tient son historique d'écoute.
 - **Serveur de fichiers** -- Sert les fichiers depuis un répertoire configurable.
@@ -27,12 +27,13 @@
   <a href="docs/screenshots/demo-cover-zoom.png"><img src="docs/screenshots/demo-cover-zoom.png" alt="Pochette agrandie" title="Un clic sur la pochette : elle remplit la carte, la progression sur son arête basse" width="210"></a>
   <a href="docs/screenshots/demo-empty.png"><img src="docs/screenshots/demo-empty.png" alt="État vide" title="Rien ne joue : une mosaïque lente des albums écoutés récemment" width="210"></a>
   <a href="docs/screenshots/demo-lyrics.png"><img src="docs/screenshots/demo-lyrics.png" alt="Paroles synchronisées" title="Paroles karaoké : la ligne en cours est surlignée, la source teintée si synchronisée" width="135"></a>
+  <a href="docs/screenshots/demo-instrumental.png"><img src="docs/screenshots/demo-instrumental.png" alt="Morceau instrumental" title="Pas de paroles à afficher : un vinyle tourne, la pochette en étiquette" width="135"></a>
   <a href="docs/screenshots/dashboard-mobile.png"><img src="docs/screenshots/dashboard-mobile.png" alt="Vue mobile" title="La mise en page mobile responsive" width="85"></a>
   <a href="docs/screenshots/demo-recent.png"><img src="docs/screenshots/demo-recent.png" alt="Dernières écoutes" title="La pile des pochettes récemment écoutées" width="85"></a>
   <a href="docs/screenshots/demo-stats.png"><img src="docs/screenshots/demo-stats.png" alt="Statistiques de la bibliothèque" title="Le panneau de statistiques de la bibliothèque" width="85"></a>
 </p>
 
-De gauche à droite, cliquez pour la version pleine taille : la pochette agrandie, la mosaïque des albums récemment écoutés de l'état vide, les paroles karaoké, la vue mobile, la pile des dernières écoutes et le panneau de statistiques.
+De gauche à droite, cliquez pour la version pleine taille : la pochette agrandie, la mosaïque des albums récemment écoutés de l'état vide, les paroles karaoké, le vinyle d'un morceau instrumental, la vue mobile, la pile des dernières écoutes et le panneau de statistiques.
 
 ## Prérequis
 

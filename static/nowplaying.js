@@ -525,25 +525,26 @@ function parseLRC(text) {
     return parsed;
 }
 
-// keepScroll preserves the current scroll position (used when only the mode
-// changes); by default the view resets to the top (used on a new track).
-function setLyrics(text, isEmpty, keepScroll) {
-    var prevScroll = keepScroll ? el.lyrics.scrollTop : 0;
+function clearLyrics(keepScroll) {
     if (!keepScroll) { setAutoFollow(true); }
-    el.lyrics.classList.remove('empty', 'lrc-mode');
+    el.lyrics.classList.remove('empty', 'lrc-mode', 'is-roomy');
+    delete el.lyrics.dataset.empty;
     el.lyrics.textContent = '';
     lrcLines = null;
     lrcNodes = null;
     lrcActiveIdx = -1;
+}
 
-    if (!text || isEmpty) {
-        el.lyrics.textContent = text || I18N.no_lyrics_library;
-        el.lyrics.classList.toggle('empty', !!isEmpty || !text);
-        el.lyrics.scrollTop = prevScroll;
-        updateScrollReset();
-        updateRetry();
+// keepScroll preserves the current scroll position (used when only the mode
+// changes); by default the view resets to the top (used on a new track).
+function setLyrics(text, keepScroll) {
+    if (!text) { setEmptyLyrics('none', I18N.no_lyrics_library); return; }
+    if (isInstrumental(text)) {
+        setEmptyLyrics('instrumental', I18N.instrumental, I18N.instrumental_hint);
         return;
     }
+    var prevScroll = keepScroll ? el.lyrics.scrollTop : 0;
+    clearLyrics(keepScroll);
 
     var parsed = parseLRC(text);
     if (parsed) {
@@ -554,7 +555,7 @@ function setLyrics(text, isEmpty, keepScroll) {
             var div = document.createElement('div');
             div.className = 'lrc-line';
             div.dataset.time = parsed[i].time;
-            div.textContent = parsed[i].text || '\u00a0';
+            div.textContent = parsed[i].text || ' ';
             el.lyrics.appendChild(div);
             lrcNodes.push(div);
         }
@@ -568,6 +569,100 @@ function setLyrics(text, isEmpty, keepScroll) {
     }
     updateScrollReset();
     updateRetry();
+}
+
+// Taggers write the marker in many shapes: [Instrumental], (instrumental), an LRC line holding it.
+function isInstrumental(text) {
+    var words = text.replace(/\[\d+:\d+(?:[.:]\d+)?\]/g, '').replace(/[[\]()*.\s]/g, '').toLowerCase();
+    return words === 'instrumental' || words === 'instrumentale';
+}
+
+var emptyView = null;
+
+function makeDiv(className) {
+    var div = document.createElement('div');
+    div.className = className;
+    return div;
+}
+
+function buildEmptyView() {
+    var view = {
+        root: makeDiv('np-lyrics-empty'),
+        vinyl: makeDiv('np-vinyl'),
+        label: document.createElement('img'),
+        text: makeDiv('np-lyrics-empty-text'),
+        title: document.createElement('strong'),
+        hint: document.createElement('span'),
+    };
+    var disc = makeDiv('np-vinyl-disc');
+    view.vinyl.setAttribute('aria-hidden', 'true');
+    view.label.className = 'np-vinyl-label';
+    view.label.alt = '';
+    view.label.addEventListener('error', function() { view.label.hidden = true; });
+    disc.appendChild(view.label);
+    view.vinyl.appendChild(disc);
+    view.vinyl.appendChild(makeDiv('np-vinyl-sheen'));
+    view.hint.className = 'np-lyrics-empty-hint';
+    view.text.appendChild(view.title);
+    view.text.appendChild(view.hint);
+    view.root.appendChild(view.vinyl);
+    view.root.appendChild(view.text);
+    return view;
+}
+
+function syncVinylLabel() {
+    if (!emptyView) { return; }
+    var src = el.cover.currentSrc || el.cover.src;
+    emptyView.label.hidden = !src;
+    if (src && emptyView.label.src !== src) { emptyView.label.src = src; }
+}
+
+// kind is none | searching | hidden | instrumental. An empty box already on
+// screen keeps its nodes, so the record never restarts its fade between two kinds.
+function setEmptyLyrics(kind, title, hint) {
+    emptyView = emptyView || buildEmptyView();
+    var fresh = emptyView.root.parentNode !== el.lyrics;
+    if (fresh) {
+        clearLyrics(false);
+        el.lyrics.appendChild(emptyView.root);
+        el.lyrics.classList.add('empty');
+    }
+    emptyView.root.classList.toggle('is-fresh', fresh);
+    el.lyrics.dataset.empty = kind;
+    emptyView.title.textContent = title;
+    emptyView.hint.textContent = hint || '';
+    emptyView.hint.hidden = !hint;
+    syncVinylLabel();
+    el.lyrics.scrollTop = 0;
+    fitVinyl();
+    updateScrollReset();
+    updateRetry();
+}
+
+var VINYL_MIN = 120;
+var VINYL_MAX = 300;
+
+// The large record needs a box whose height comes from the viewport: one sized
+// by its own content would grow with the record.
+function fitVinyl() {
+    if (!emptyView || emptyView.root.parentNode !== el.lyrics) { return; }
+    var box = el.lyrics;
+    var vinyl = emptyView.vinyl;
+    box.classList.remove('is-roomy');
+    vinyl.style.width = '';
+    vinyl.style.height = '';
+    if (getComputedStyle(box).flexBasis !== '0px') { return; }
+    box.classList.add('is-roomy');
+    var css = getComputedStyle(box);
+    var height = box.clientHeight - parseFloat(css.paddingTop) - parseFloat(css.paddingBottom)
+        - emptyView.text.offsetHeight - parseFloat(getComputedStyle(emptyView.root).rowGap);
+    var size = Math.floor(Math.min(height, box.clientWidth * 0.6, VINYL_MAX));
+    if (size < VINYL_MIN) {
+        box.classList.remove('is-roomy');
+        return;
+    }
+    vinyl.style.width = size + 'px';
+    vinyl.style.height = size + 'px';
 }
 
 function currentTime() {
@@ -623,15 +718,18 @@ function versionLength(version) {
     return ' \u00b7 ' + Math.floor(secs / 60) + ':' + ('0' + (Math.round(secs) % 60)).slice(-2);
 }
 
-// Stacked, a landscape screen always fits the card to it; portrait only once there are lyrics.
+// Stacked, a landscape screen always fits the card to it; portrait only once there are
+// lyrics, which an instrumental marker alone is not.
 var FIT_LANDSCAPE_MQ = '(max-width: 860px) and (orientation: landscape)';
 var FIT_PORTRAIT_MQ = '(max-width: 860px) and (orientation: portrait)';
 
 function fitCard() {
+    var words = versions.some(function(version) { return !isInstrumental(version.text); });
     var fit = window.matchMedia && (window.matchMedia(FIT_LANDSCAPE_MQ).matches ||
         (window.matchMedia(FIT_PORTRAIT_MQ).matches &&
-         versions.length > 0 && !nowPlaying.classList.contains('is-empty')));
+         words && !nowPlaying.classList.contains('is-empty')));
     document.documentElement.classList.toggle('card-fit', !!fit);
+    fitVinyl();
 }
 
 if (window.matchMedia) {
@@ -669,7 +767,7 @@ function showVersion(idx, keepScroll) {
     if (!version) { return; }
     versionIdx = idx;
     lyricsHidden = false;
-    setLyrics(version.text, false, keepScroll);
+    setLyrics(version.text, keepScroll);
     updateSource();
 }
 
@@ -677,7 +775,7 @@ function showVersion(idx, keepScroll) {
 function showHidden() {
     versionIdx = Math.max(versionIdx, 0);
     lyricsHidden = true;
-    setLyrics(I18N.lyrics_hidden, true);
+    setEmptyLyrics('hidden', I18N.lyrics_hidden, I18N.lyrics_hidden_hint);
     updateSource();
 }
 
@@ -794,6 +892,8 @@ if (el.source) {
         }
     });
 }
+
+window.addEventListener('resize', fitVinyl);
 
 function setSearching(on) {
     searching = on;
@@ -1329,9 +1429,9 @@ function render(data) {
         versions = data.lyrics ? [{ text: data.lyrics, source: 'library' }] : [];
         versionIdx = data.lyrics ? 0 : -1;
         lyricsHidden = false;
-        if (!data.lyrics) { setLyrics(I18N.no_lyrics_library, true); }
-        else if (allHidden()) { showHidden(); }
-        else { showVersion(0); }
+        // Without library lyrics, fetchLyrics() below paints the search state.
+        if (data.lyrics && allHidden()) { showHidden(); }
+        else if (data.lyrics) { showVersion(0); }
         updateSource();
         lyricsTried = false;
         searchFailure = null;
@@ -1339,10 +1439,11 @@ function render(data) {
         // The cooldown is per track, so a new one starts with a live button.
         holdRetry(0);
 
-        if (data.lyrics) {
-            trySyncedFromWeb();
-        } else {
+        // An instrumental marker is the library's answer; only a retry asks the web past it.
+        if (!data.lyrics) {
             fetchLyrics();
+        } else if (!isInstrumental(data.lyrics)) {
+            trySyncedFromWeb();
         }
     }
 }
@@ -1355,14 +1456,10 @@ function searchFailureMessage(res) {
     return null;
 }
 
-function emptyLyricsMessage(res) {
-    return searchFailureMessage(res) || I18N.no_lyrics_found;
-}
-
 function fetchLyrics() {
     if (!currentTrack) { return; }
     var track = currentTrack;
-    setLyrics(I18N.searching, true);
+    setEmptyLyrics('searching', I18N.searching);
     var params = new URLSearchParams({
         track_id: track.track_id || '',
         artist:   track.artist || '',
@@ -1385,13 +1482,14 @@ function fetchLyrics() {
             if (pushWebVersions(res)) {
                 landOnVersions(null);
             } else {
-                setLyrics(emptyLyricsMessage(res), true);
+                var failure = searchFailureMessage(res);
+                setEmptyLyrics('none', failure || I18N.no_lyrics_found, failure ? '' : I18N.no_lyrics_found_hint);
             }
         })
         .catch(function() {
             if (track !== currentTrack) { return; }
             setSearching(false);
-            setLyrics(I18N.lyrics_unavailable, true);
+            setEmptyLyrics('none', I18N.lyrics_unavailable);
         });
 }
 
@@ -1745,6 +1843,7 @@ function fitCardCover() {
 el.cover.addEventListener('load', function() {
     fitCardCover();
     sampleCoverTint();
+    syncVinylLabel();
 });
 
 // Broken-cover fallback (an inline onerror would violate the CSP); the guard
