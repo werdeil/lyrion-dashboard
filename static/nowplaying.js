@@ -1075,7 +1075,8 @@ function layoutMosaic(ids) {
     var count = grid.rows * grid.perRow + 1;
     var size = mosaicCoverSize(grid.tile);
 
-    el.emptyMosaic.style.setProperty('--mosaic-tile', grid.tile + 'px');
+    // On the empty block, so the sleeve over the mosaic matches the tiles.
+    el.empty.style.setProperty('--mosaic-tile', grid.tile + 'px');
     var frag = document.createDocumentFragment();
     var tiles = [];
     for (var i = 0; i < count; i++) {
