@@ -32,6 +32,8 @@
     --text-on-accent: #1a1a1a; /* dark glyphs/labels on accent-filled controls */
     --border-color: #3a3a3a;   /* hairlines: rules, cover edge */
     --page-pad: 16px;          /* body gutter, subtracted by the viewport-fitting calc */
+    --header-h: 0px;           /* the in-app header's height with its margin, subtracted likewise */
+    --stats-peek: 64px;        /* the stats panel's top a fitted narrow card leaves in view, gutter included */
     --surface: #303030;        /* raised neutral fills: progress track, cards */
     --empty-fill: rgba(255, 255, 255, 0.05);  /* a play level never reached, a day without plays */
     --cell-edge: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
@@ -1192,10 +1194,16 @@ body.in-app .np-pull {
     display: none;
 }
 
+body.in-app {
+    /* The header's tallest child is a 2.2rem .lyrion-link. */
+    --header-h: calc(2.2rem + 14px);
+}
+
 body.in-app .page-header {
     display: grid;
     grid-template-columns: 1fr auto 1fr;
     align-items: center;
+    height: 2.2rem;
     margin-bottom: 14px;
 }
 
@@ -1400,8 +1408,8 @@ body.in-app .page-header {
     color: var(--text);
 }
 
-/* The stacked card grows with the lyrics, so the enlarged cover squares it off. */
 @media (max-width: 860px) and (min-height: 601px) {
+    /* The stacked card is taller than wide, so the enlarged cover squares it off. */
     .left-panel.is-zoomed .now-playing {
         /* Definite, so the ratio squares the card off the panel's width; left
            auto, the animated height would drive the width instead. */
@@ -1553,8 +1561,8 @@ body.in-app .page-header {
     }
 }
 
-/* Floor the card, per cover size, so the idle mosaic and a lyrics-less playing
-   card share a height instead of the card growing when playback starts. */
+/* Floor the compact card, per cover size, so the idle mosaic and a lyrics-less
+   playing card share a height instead of the card growing when playback starts. */
 @media (min-width: 541px) and (max-width: 860px) {
     .now-playing {
         min-height: 345px;
@@ -1578,33 +1586,39 @@ body.in-app .page-header {
     }
 }
 
-/* Narrow landscape keeps the scrollable page — the stats panel is below the
-   fold — but fits the card to the visible viewport so nothing is cut off. */
-@media (max-height: 600px) and (orientation: landscape) and (max-width: 860px) {
-    .left-panel {
+/* With lyrics, the narrow card fills the viewport but for --stats-peek, which leaves
+   the stats panel's top in view; must match fitLyrics in nowplaying.js. */
+@media (max-width: 860px) and (orientation: landscape) {
+    :root {
+        --stats-peek: var(--page-pad);
+    }
+}
+
+@media (max-width: 860px) {
+    .lyrics-fit .left-panel:not(.is-zoomed) {
         display: flex;
         flex-direction: column;
         /* dvh, as in the fixed layout above. */
-        height: calc(100vh - 2 * var(--page-pad));
-        height: calc(100dvh - 2 * var(--page-pad));
+        height: calc(100vh - var(--page-pad) - var(--header-h) - var(--stats-peek));
+        height: calc(100dvh - var(--page-pad) - var(--header-h) - var(--stats-peek));
     }
-    .now-playing {
+    .lyrics-fit .now-playing {
         flex: 1 1 auto;
-        /* After the card's min-height floors above, which this overrides. */
         min-height: 0;
         grid-template-rows: auto 1fr;
         overflow: hidden;
     }
-    .np-lyrics-block {
+    .lyrics-fit .np-lyrics-block {
         display: flex;
         flex-direction: column;
         min-height: 0;
         /* The card's align-items:start would size this to its content. */
         align-self: stretch;
     }
-    .np-lyrics {
+    .lyrics-fit .np-lyrics {
         /* Basis 0, as in the fixed layout. */
         flex: 1 1 0;
+        max-height: none;
     }
 }
 
