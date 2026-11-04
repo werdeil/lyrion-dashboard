@@ -542,7 +542,7 @@ function clearLyrics(keepScroll) {
 function setLyrics(text, keepScroll) {
     if (!text) { setEmptyLyrics('none', I18N.no_lyrics_library); return; }
     if (isInstrumental(text)) {
-        setEmptyLyrics('instrumental', I18N.instrumental, I18N.instrumental_hint);
+        setEmptyLyrics('instrumental', I18N.instrumental);
         return;
     }
     var prevScroll = keepScroll ? el.lyrics.scrollTop : 0;
@@ -593,8 +593,6 @@ function buildEmptyView() {
         vinyl: makeDiv('np-vinyl'),
         label: document.createElement('img'),
         text: makeDiv('np-lyrics-empty-text'),
-        title: document.createElement('strong'),
-        hint: document.createElement('span'),
     };
     var disc = makeDiv('np-vinyl-disc');
     view.vinyl.setAttribute('aria-hidden', 'true');
@@ -604,9 +602,6 @@ function buildEmptyView() {
     disc.appendChild(view.label);
     view.vinyl.appendChild(disc);
     view.vinyl.appendChild(makeDiv('np-vinyl-sheen'));
-    view.hint.className = 'np-lyrics-empty-hint';
-    view.text.appendChild(view.title);
-    view.text.appendChild(view.hint);
     view.root.appendChild(view.vinyl);
     view.root.appendChild(view.text);
     return view;
@@ -621,7 +616,7 @@ function syncVinylLabel() {
 
 // kind is none | searching | hidden | instrumental. An empty box already on
 // screen keeps its nodes, so the record never restarts its fade between two kinds.
-function setEmptyLyrics(kind, title, hint) {
+function setEmptyLyrics(kind, message) {
     emptyView = emptyView || buildEmptyView();
     var fresh = emptyView.root.parentNode !== el.lyrics;
     if (fresh) {
@@ -631,9 +626,7 @@ function setEmptyLyrics(kind, title, hint) {
     }
     emptyView.root.classList.toggle('is-fresh', fresh);
     el.lyrics.dataset.empty = kind;
-    emptyView.title.textContent = title;
-    emptyView.hint.textContent = hint || '';
-    emptyView.hint.hidden = !hint;
+    emptyView.text.textContent = message;
     syncVinylLabel();
     el.lyrics.scrollTop = 0;
     fitVinyl();
@@ -777,7 +770,7 @@ function showVersion(idx, keepScroll) {
 function showHidden() {
     versionIdx = Math.max(versionIdx, 0);
     lyricsHidden = true;
-    setEmptyLyrics('hidden', I18N.lyrics_hidden, I18N.lyrics_hidden_hint);
+    setEmptyLyrics('hidden', I18N.lyrics_hidden);
     updateSource();
 }
 
@@ -1500,8 +1493,7 @@ function fetchLyrics() {
             if (pushWebVersions(res)) {
                 landOnVersions(null);
             } else {
-                var failure = searchFailureMessage(res);
-                setEmptyLyrics('none', failure || I18N.no_lyrics_found, failure ? '' : I18N.no_lyrics_found_hint);
+                setEmptyLyrics('none', searchFailureMessage(res) || I18N.no_lyrics_found);
             }
         })
         .catch(function() {

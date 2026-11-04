@@ -859,20 +859,8 @@ body.in-app .np-pull {
 }
 
 .np-lyrics-empty-text {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
     min-width: 0;
-}
-
-.np-lyrics-empty-text strong {
     color: var(--text);
-    font-weight: 600;
-}
-
-.np-lyrics-empty-hint {
-    color: var(--text-faint);
-    font-size: var(--fs-sm);
 }
 
 /* fitVinyl() sizes the record inline; at 0 it cannot inflate the box it measures. */
@@ -885,10 +873,6 @@ body.in-app .np-pull {
 .np-lyrics.is-roomy .np-vinyl {
     width: 0;
     height: 0;
-}
-
-.np-lyrics.is-roomy .np-lyrics-empty-text {
-    gap: 4px;
 }
 
 .np-vinyl {
