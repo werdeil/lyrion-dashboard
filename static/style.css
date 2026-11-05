@@ -846,7 +846,6 @@ body.in-app .np-pull {
     display: flex;
     align-items: center;
     justify-content: center;
-    line-height: 1.4;
     white-space: normal;
 }
 
@@ -855,6 +854,7 @@ body.in-app .np-pull {
     align-items: center;
     gap: 14px;
     padding: 4px 0;
+    line-height: 1.4;
     text-align: left;
 }
 
@@ -863,16 +863,27 @@ body.in-app .np-pull {
     color: var(--text);
 }
 
-/* fitVinyl() sizes the record inline; at 0 it cannot inflate the box it measures. */
+/* The message sits where the first lyrics line would; the record is centred on the
+   box above the chip's clearance, wherever the message ends. */
+.np-lyrics.empty.is-roomy {
+    display: block;
+}
+
 .np-lyrics.is-roomy .np-lyrics-empty {
-    flex-direction: column;
-    row-gap: 18px;
+    display: block;
+    padding: 0;
+    line-height: inherit;
     text-align: center;
 }
 
+/* fitVinyl() sizes the record inline; at 0 it cannot inflate the box it measures. */
 .np-lyrics.is-roomy .np-vinyl {
+    position: absolute;
+    top: calc(50% - var(--source-clearance) / 2);
+    left: 50%;
     width: 0;
     height: 0;
+    transform: translate(-50%, -50%);
 }
 
 .np-vinyl {

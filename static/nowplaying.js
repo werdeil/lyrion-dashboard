@@ -636,9 +636,11 @@ function setEmptyLyrics(kind, message) {
 
 var VINYL_MIN = 120;
 var VINYL_MAX = 300;
+var VINYL_GAP = 18;
 
 // The large record needs a box whose height comes from the viewport: one sized
-// by its own content would grow with the record.
+// by its own content would grow with the record. Centred on the box, it leaves
+// the message's height plus a gap free on both sides.
 function fitVinyl() {
     if (!emptyView || emptyView.root.parentNode !== el.lyrics) { return; }
     var box = el.lyrics;
@@ -650,7 +652,7 @@ function fitVinyl() {
     box.classList.add('is-roomy');
     var css = getComputedStyle(box);
     var height = box.clientHeight - parseFloat(css.paddingTop) - parseFloat(css.paddingBottom)
-        - emptyView.text.offsetHeight - parseFloat(getComputedStyle(emptyView.root).rowGap);
+        - 2 * (emptyView.text.offsetHeight + VINYL_GAP);
     var size = Math.floor(Math.min(height, box.clientWidth * 0.6, VINYL_MAX));
     if (size < VINYL_MIN) {
         box.classList.remove('is-roomy');
