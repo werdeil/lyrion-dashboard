@@ -634,7 +634,7 @@ function setEmptyLyrics(kind, message) {
     updateRetry();
 }
 
-var VINYL_MIN = 120;
+var VINYL_MIN = 64;
 var VINYL_MAX = 300;
 var VINYL_GAP = 18;
 
@@ -890,7 +890,9 @@ if (el.source) {
     });
 }
 
-window.addEventListener('resize', fitVinyl);
+// The box also changes size without the window: a cover loading reshapes the card above it.
+if (window.ResizeObserver) { new ResizeObserver(fitVinyl).observe(el.lyrics); }
+else { window.addEventListener('resize', fitVinyl); }
 
 function setSearching(on) {
     searching = on;
