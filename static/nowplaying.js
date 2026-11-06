@@ -958,7 +958,8 @@ function placeTile(tile, x, y, instant) {
     if (instant) {
         tile.style.transition = 'none';
     }
-    tile.style.transform = 'translate3d(' + x + 'px,' + y + 'px,0)';
+    // 2D, so only will-change (idle) promotes a tile to its own layer.
+    tile.style.transform = 'translate(' + x + 'px,' + y + 'px)';
     if (instant) {
         void tile.offsetWidth;   // flush, so the next write transitions from here
         tile.style.transition = '';
@@ -1125,7 +1126,7 @@ function layoutMosaic(ids) {
     mosaicGeom = {
         tiles: tiles, step: grid.step, rowH: grid.rowH,
         rows: grid.rows, perRow: grid.perRow, slots: count,
-        length: count * grid.step, phase: 0,
+        length: count * grid.step, phase: 0, W: W, H: H,
         // Where each tile is drawn, and the row drop owed to it.
         drawnX: [], drawnY: [], dropY: [],
     };
@@ -1174,7 +1175,8 @@ function loadMosaic() {
         .then(function(r) { return r.json(); })
         .then(function(ids) {
             mosaicLoading = false;
-            mosaicLoaded = true;
+            // Fetched behind a playing card, it is not yet the idle screen's own.
+            mosaicLoaded = nowPlaying.classList.contains('is-empty');
             if (!ids || !ids.length) { return; }
             if (mosaicDirty || !mosaicIds || mosaicIds.join('|') !== ids.join('|')) {
                 mosaicIds = ids;
@@ -1189,23 +1191,30 @@ function loadMosaic() {
         .catch(function() { mosaicLoading = false; });
 }
 
+// The mosaic backs the card while playing too, so the card's own size changes
+// (a fitted card, a track without lyrics) re-lay it, not only the window's.
 var mosaicResizeTimer = null;
-window.addEventListener('resize', function() {
+function refitMosaic() {
     if (!mosaicIds) { return; }
     if (mosaicResizeTimer) { clearTimeout(mosaicResizeTimer); }
     mosaicResizeTimer = setTimeout(function() {
-        mosaicDirty = true;
-        // A hidden card measures nothing usable: leave it stale for next time.
-        if (!nowPlaying.classList.contains('is-empty')) { return; }
+        var g = mosaicGeom;
+        if (!el.emptyMosaic.offsetWidth) { return; }
+        if (g && g.W === mosaicCardW() && g.H === mosaicCardH()) { return; }
         if (mosaicCoversWanted() > mosaicAsked) {
+            mosaicDirty = true;
             mosaicLoaded = false;
             loadMosaic();
             return;
         }
-        mosaicDirty = false;
         layoutMosaic(mosaicIds);
     }, 300);
-});
+}
+
+if (el.emptyMosaic) {
+    if (window.ResizeObserver) { new ResizeObserver(refitMosaic).observe(el.emptyMosaic); }
+    else { window.addEventListener('resize', refitMosaic); }
+}
 
 // Ratios are fractions of the pile's column.
 var RECENT_COVER_SIZE = 512;
@@ -1439,6 +1448,8 @@ function render(data) {
     nowPlaying.classList.toggle('is-paused', !!data.paused);
     mosaicLoaded = false;
     stopMosaic();
+    // A page opened mid-track still needs the covers behind the card.
+    if (!mosaicAsked) { loadMosaic(); }
 
     progress = {
         time: data.time || 0,
