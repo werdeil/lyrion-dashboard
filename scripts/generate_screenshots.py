@@ -419,6 +419,14 @@ ADVANCE_BELT_JS = """
 })
 """
 
+# The mosaic backs the playing card too: every tile loaded and revealed.
+MOSAIC_SHOWN_JS = """
+() => {
+    const tiles = document.querySelectorAll('.np-mosaic-tile');
+    return tiles.length > 0 && [...tiles].every(i => i.complete && i.classList.contains('is-shown'));
+}
+"""
+
 PLAYING_JS = "() => !document.getElementById('now-playing').classList.contains('is-empty')"
 OPEN_ZOOM_JS = "() => document.getElementById('np-cover-button').click()"
 
@@ -470,6 +478,7 @@ def capture(browser, base_url, shot):
     page = ctx.new_page()
     page.goto(base_url)
     page.wait_for_function(shot.ready)
+    page.wait_for_function(MOSAIC_SHOWN_JS)
     # Past the lyrics scroll settling and the pile's 300ms debounced re-render.
     page.wait_for_timeout(400)
     # The pile renders only in the wide desktop layout (CSS min-width 1081px,
