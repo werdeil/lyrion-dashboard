@@ -623,15 +623,28 @@ function versionLength(version) {
     return ' \u00b7 ' + Math.floor(secs / 60) + ':' + ('0' + (Math.round(secs) % 60)).slice(-2);
 }
 
-// Stacked, a card with lyrics is fitted to the screen; without, it stays compact over the stats.
-function fitLyrics() {
-    document.documentElement.classList.toggle('lyrics-fit',
-        versions.length > 0 && !nowPlaying.classList.contains('is-empty'));
+// Stacked, a short landscape screen always fits the card to it; portrait only once there are lyrics.
+// Must match style.css.
+var FIT_LANDSCAPE_MQ = '(max-height: 600px) and (orientation: landscape) and (max-width: 860px)';
+var FIT_PORTRAIT_MQ = '(max-width: 860px) and (orientation: portrait)';
+
+function fitCard() {
+    var fit = window.matchMedia && (window.matchMedia(FIT_LANDSCAPE_MQ).matches ||
+        (window.matchMedia(FIT_PORTRAIT_MQ).matches &&
+         versions.length > 0 && !nowPlaying.classList.contains('is-empty')));
+    document.documentElement.classList.toggle('card-fit', !!fit);
 }
+
+if (window.matchMedia) {
+    [FIT_LANDSCAPE_MQ, FIT_PORTRAIT_MQ].forEach(function(query) {
+        window.matchMedia(query).addEventListener('change', fitCard);
+    });
+}
+fitCard();
 
 // Callers run right after setLyrics(), so lrcLines tells whether the text on screen is synced.
 function updateSource() {
-    fitLyrics();
+    fitCard();
     if (!el.source) { return; }
     var version = versions[versionIdx];
     var label = version && (lyricsHidden ? I18N.lyrics_hidden_chip : sourceLabel(version));
@@ -1251,7 +1264,7 @@ function render(data) {
     if (!data || !data.track_id) {
         nowPlaying.classList.add('is-empty');
         nowPlaying.classList.remove('is-paused');
-        fitLyrics();
+        fitCard();
         loadMosaic();
         startMosaic();
         // The listens that just ended reorder the pile, so the next playback refetches it.

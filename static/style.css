@@ -1410,6 +1410,9 @@ body.in-app .page-header {
 
 @media (max-width: 860px) and (min-height: 601px) {
     /* The stacked card is taller than wide, so the enlarged cover squares it off. */
+    .card-fit .left-panel.is-zoomed {
+        height: auto;
+    }
     .left-panel.is-zoomed .now-playing {
         /* Definite, so the ratio squares the card off the panel's width; left
            auto, the animated height would drive the width instead. */
@@ -1586,8 +1589,8 @@ body.in-app .page-header {
     }
 }
 
-/* With lyrics, the narrow card fills the viewport but for --stats-peek, which leaves
-   the stats panel's top in view; must match fitLyrics in nowplaying.js. */
+/* A fitted narrow card fills the viewport but for --stats-peek, which leaves the stats
+   panel's top in view in portrait; card-fit is set by fitCard in nowplaying.js. */
 @media (max-width: 860px) and (orientation: landscape) {
     :root {
         --stats-peek: var(--page-pad);
@@ -1595,27 +1598,27 @@ body.in-app .page-header {
 }
 
 @media (max-width: 860px) {
-    .lyrics-fit .left-panel:not(.is-zoomed) {
+    .card-fit .left-panel {
         display: flex;
         flex-direction: column;
         /* dvh, as in the fixed layout above. */
         height: calc(100vh - var(--page-pad) - var(--header-h) - var(--stats-peek));
         height: calc(100dvh - var(--page-pad) - var(--header-h) - var(--stats-peek));
     }
-    .lyrics-fit .now-playing {
+    .card-fit .now-playing {
         flex: 1 1 auto;
         min-height: 0;
         grid-template-rows: auto 1fr;
         overflow: hidden;
     }
-    .lyrics-fit .np-lyrics-block {
+    .card-fit .np-lyrics-block {
         display: flex;
         flex-direction: column;
         min-height: 0;
         /* The card's align-items:start would size this to its content. */
         align-self: stretch;
     }
-    .lyrics-fit .np-lyrics {
+    .card-fit .np-lyrics {
         /* Basis 0, as in the fixed layout. */
         flex: 1 1 0;
         max-height: none;
