@@ -54,9 +54,6 @@ var el = {
     empty: document.getElementById('np-empty'),
     emptyMosaic: document.getElementById('np-empty-mosaic'),
     emptyOpen: document.getElementById('np-empty-open'),
-    emptyRecord: document.getElementById('np-empty-record'),
-    emptySleeve: document.getElementById('np-empty-sleeve'),
-    emptyLabel: document.getElementById('np-empty-label'),
     recent: document.getElementById('np-recent'),
     recentPile: document.getElementById('np-recent-pile'),
 };
@@ -1072,8 +1069,7 @@ function layoutMosaic(ids) {
     var count = grid.rows * grid.perRow + 1;
     var size = mosaicCoverSize(grid.tile);
 
-    // On the empty block, so the sleeve over the mosaic matches the tiles.
-    el.empty.style.setProperty('--mosaic-tile', grid.tile + 'px');
+    el.emptyMosaic.style.setProperty('--mosaic-tile', grid.tile + 'px');
     var frag = document.createDocumentFragment();
     var tiles = [];
     for (var i = 0; i < count; i++) {
@@ -1081,10 +1077,18 @@ function layoutMosaic(ids) {
         img.className = 'np-mosaic-tile';
         img.onload = function() {
             this.style.setProperty('--mosaic-r', coverRatio(this));
+            if (this === mosaicGeom.tiles[0]) { tintFromNewest(); }
             mosaicTileSettled();
         };
         img.onerror = mosaicTileSettled;
-        img.src = '/cover/' + encodeURIComponent(ids[i % ids.length]) + '.jpg?size=' + size;
+        img.src = mosaicCoverUrl(ids[i % ids.length], size);
+        // The last tile rides just ahead of the newest along the belt: the record
+        // marking where the list loops, labelled with the newest cover.
+        if (i === count - 1 && count > 1) {
+            img.classList.add('is-record');
+            img.style.backgroundImage = 'url("' + mosaicCoverUrl(ids[0], size) + '")';
+            img.src = RECORD_SRC;
+        }
         img.alt = '';
         img.decoding = 'async';
         if (reduce) { img.classList.add('is-shown'); }
@@ -1118,18 +1122,17 @@ var mosaicDirty = false;
 // High-water mark of what has been asked for, so a resize only re-asks when
 // the card wants more than any request so far.
 var mosaicAsked = 0;
-function showEmptyRecord(coverId) {
-    if (!el.emptyRecord) { return; }
-    var src = '/cover/' + coverId + '.jpg?size=' + COVER_SIZE;
-    el.emptyRecord.hidden = false;
-    el.emptyLabel.src = src;
-    if (el.emptySleeve.getAttribute('src') === src) { tintFromSleeve(); }
-    else { el.emptySleeve.src = src; }
+var RECORD_SRC = '/static/vinyl.svg';
+
+function mosaicCoverUrl(id, size) {
+    return '/cover/' + encodeURIComponent(id) + '.jpg?size=' + size;
 }
 
-function tintFromSleeve() {
-    if (nowPlaying.classList.contains('is-empty') && el.emptySleeve.complete) {
-        sampleCoverTint(el.emptySleeve);
+// Idle, the page takes its colours from the newest cover in the mosaic.
+function tintFromNewest() {
+    var newest = mosaicGeom && mosaicGeom.tiles[0];
+    if (nowPlaying.classList.contains('is-empty') && newest && newest.complete) {
+        sampleCoverTint(newest);
     }
 }
 
@@ -1151,7 +1154,7 @@ function loadMosaic() {
                 layoutMosaic(ids);
             }
             if (el.empty) { el.empty.classList.add('has-mosaic'); }
-            showEmptyRecord(ids[0]);
+            tintFromNewest();
             // Reduced-motion leaves the belt laid out but still (startMosaic).
             startMosaic();
         })
@@ -1859,9 +1862,6 @@ el.cover.addEventListener('load', function() {
     sampleCoverTint(el.cover);
     syncVinylLabel();
 });
-
-// Idle, the page keeps the last track's colours until the sleeve takes them over.
-if (el.emptySleeve) { el.emptySleeve.addEventListener('load', tintFromSleeve); }
 
 // Broken-cover fallback (an inline onerror would violate the CSP); the guard
 // keeps a broken placeholder from looping the error event forever.

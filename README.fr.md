@@ -25,7 +25,7 @@
 
 <p>
   <a href="docs/screenshots/demo-cover-zoom.png"><img src="docs/screenshots/demo-cover-zoom.png" alt="Pochette agrandie" title="Un clic sur la pochette : elle remplit la carte, la progression sur son arête basse" width="210"></a>
-  <a href="docs/screenshots/demo-empty.png"><img src="docs/screenshots/demo-empty.png" alt="État vide" title="Rien ne joue : la pochette du dernier album sur une mosaïque lente des albums écoutés récemment" width="210"></a>
+  <a href="docs/screenshots/demo-empty.png"><img src="docs/screenshots/demo-empty.png" alt="État vide" title="Rien ne joue : une mosaïque lente des albums écoutés récemment, un vinyle marquant le dernier" width="210"></a>
   <a href="docs/screenshots/demo-lyrics.png"><img src="docs/screenshots/demo-lyrics.png" alt="Paroles synchronisées" title="Paroles karaoké : la ligne en cours est surlignée, la source teintée si synchronisée" width="135"></a>
   <a href="docs/screenshots/demo-instrumental.png"><img src="docs/screenshots/demo-instrumental.png" alt="Morceau instrumental" title="Pas de paroles à afficher : un vinyle tourne, la pochette en étiquette" width="135"></a>
   <a href="docs/screenshots/dashboard-mobile.png"><img src="docs/screenshots/dashboard-mobile.png" alt="Vue mobile" title="La mise en page mobile responsive" width="85"></a>
@@ -33,7 +33,7 @@
   <a href="docs/screenshots/demo-stats.png"><img src="docs/screenshots/demo-stats.png" alt="Statistiques de la bibliothèque" title="Le panneau de statistiques de la bibliothèque" width="85"></a>
 </p>
 
-De gauche à droite, cliquez pour la version pleine taille : la pochette agrandie, la mosaïque des albums récemment écoutés de l'état vide autour de la pochette du dernier, les paroles karaoké, le vinyle d'un morceau instrumental, la vue mobile, la pile des dernières écoutes et le panneau de statistiques.
+De gauche à droite, cliquez pour la version pleine taille : la pochette agrandie, la mosaïque des albums récemment écoutés de l'état vide, où un vinyle marque le dernier, les paroles karaoké, le vinyle d'un morceau instrumental, la vue mobile, la pile des dernières écoutes et le panneau de statistiques.
 
 ## Prérequis
 

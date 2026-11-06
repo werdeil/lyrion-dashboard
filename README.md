@@ -25,7 +25,7 @@
 
 <p>
   <a href="docs/screenshots/demo-cover-zoom.png"><img src="docs/screenshots/demo-cover-zoom.png" alt="Enlarged cover" title="Click the cover: it fills the panel, playback progress on its bottom edge" width="210"></a>
-  <a href="docs/screenshots/demo-empty.png"><img src="docs/screenshots/demo-empty.png" alt="Empty state" title="Nothing playing: the last album's sleeve over a slow mosaic of the albums played recently" width="210"></a>
+  <a href="docs/screenshots/demo-empty.png"><img src="docs/screenshots/demo-empty.png" alt="Empty state" title="Nothing playing: a slow mosaic of the albums played recently, a record marking the last one" width="210"></a>
   <a href="docs/screenshots/demo-lyrics.png"><img src="docs/screenshots/demo-lyrics.png" alt="Synced lyrics" title="Karaoke lyrics: the current line is highlighted, the source tinted when synced" width="135"></a>
   <a href="docs/screenshots/demo-instrumental.png"><img src="docs/screenshots/demo-instrumental.png" alt="Instrumental track" title="No words to show: a record spins with the cover as its label" width="135"></a>
   <a href="docs/screenshots/dashboard-mobile.png"><img src="docs/screenshots/dashboard-mobile.png" alt="Mobile view" title="The responsive mobile layout" width="85"></a>
@@ -33,7 +33,7 @@
   <a href="docs/screenshots/demo-stats.png"><img src="docs/screenshots/demo-stats.png" alt="Library statistics" title="The library statistics panel" width="85"></a>
 </p>
 
-Left to right, click any of them for the full-size image: the enlarged cover, the empty state's mosaic of recently played albums around the last one's sleeve, the karaoke lyrics, the record shown for an instrumental track, the mobile layout, the pile of recent sleeves and the statistics panel.
+Left to right, click any of them for the full-size image: the enlarged cover, the empty state's mosaic of recently played albums, where a record marks the last one, the karaoke lyrics, the record shown for an instrumental track, the mobile layout, the pile of recent sleeves and the statistics panel.
 
 ## Requirements
 

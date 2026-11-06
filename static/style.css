@@ -1187,6 +1187,12 @@ body.in-app .np-pull {
     opacity: 1;
 }
 
+/* The newest cover shows through the record's transparent centre, sized to its hole. */
+.np-mosaic-tile.is-record {
+    border-radius: 50%;
+    background: center / 36% no-repeat;
+}
+
 @media (prefers-reduced-motion: reduce) {
     .np-mosaic-tile {
         transition: none;
@@ -1205,42 +1211,6 @@ body.in-app .np-pull {
     background: radial-gradient(55% 55% at 50% 50%,
         rgba(33, 33, 33, 0.55) 0%,
         rgba(33, 33, 33, 0.1) 100%);
-}
-
-.np-empty-record {
-    --sleeve: var(--mosaic-tile, 130px);
-    position: relative;
-    width: calc(var(--sleeve) * 1.34);
-    height: var(--sleeve);
-    margin-bottom: 4px;
-}
-
-.np-empty-record[hidden] {
-    display: none;
-}
-
-.np-empty-sleeve {
-    position: relative;
-    z-index: 1;
-    width: var(--sleeve);
-    height: var(--sleeve);
-    border-radius: 6px;
-    object-fit: cover;
-    box-shadow: 0 12px 34px rgba(0, 0, 0, 0.6);
-}
-
-.np-empty-record .np-vinyl {
-    position: absolute;
-    top: 4%;
-    left: calc(var(--sleeve) * 0.42);
-    width: calc(var(--sleeve) * 0.92);
-    height: calc(var(--sleeve) * 0.92);
-    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.55),
-                0 0 0 2px color-mix(in srgb, var(--accent-color) 25%, transparent);
-}
-
-.np-empty-record .np-vinyl-disc {
-    animation: none;
 }
 
 .np-empty-text {
