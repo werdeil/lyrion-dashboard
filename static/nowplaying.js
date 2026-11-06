@@ -623,9 +623,8 @@ function versionLength(version) {
     return ' \u00b7 ' + Math.floor(secs / 60) + ':' + ('0' + (Math.round(secs) % 60)).slice(-2);
 }
 
-// Stacked, a short landscape screen always fits the card to it; portrait only once there are lyrics.
-// Must match style.css.
-var FIT_LANDSCAPE_MQ = '(max-height: 600px) and (orientation: landscape) and (max-width: 860px)';
+// Stacked, a landscape screen always fits the card to it; portrait only once there are lyrics.
+var FIT_LANDSCAPE_MQ = '(max-width: 860px) and (orientation: landscape)';
 var FIT_PORTRAIT_MQ = '(max-width: 860px) and (orientation: portrait)';
 
 function fitCard() {

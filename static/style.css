@@ -1408,7 +1408,7 @@ body.in-app .page-header {
     color: var(--text);
 }
 
-@media (max-width: 860px) and (min-height: 601px) {
+@media (max-width: 860px) and (orientation: portrait) {
     /* The stacked card is taller than wide, so the enlarged cover squares it off. */
     .card-fit .left-panel.is-zoomed {
         height: auto;
