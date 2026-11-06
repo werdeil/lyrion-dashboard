@@ -1213,6 +1213,16 @@ body.in-app .np-pull {
         rgba(33, 33, 33, 0.1) 100%);
 }
 
+.np-empty-icon {
+    font-size: 3rem;
+    opacity: 0.6;
+}
+
+.np-empty.has-mosaic .np-empty-icon {
+    color: var(--text);
+    opacity: 0.9;
+}
+
 .np-empty-text {
     margin: 0;
     font-size: var(--fs-lg);
