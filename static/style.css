@@ -1272,6 +1272,11 @@ body.in-app .np-pull {
     display: flex;
 }
 
+/* Fades in as the tiles fade up from the playing card's backdrop. */
+.now-playing.is-empty .np-empty-content {
+    animation: np-fade-in 450ms ease both;
+}
+
 /* Playing, the mosaic stays as a still, faint backdrop over the whole card. */
 .now-playing:not(.is-empty) .np-empty {
     display: block;
@@ -1291,7 +1296,6 @@ body.in-app .np-pull {
 
 /* No own layers while still: the lyrics scroll over it on a Pi's software compositor. */
 .now-playing:not(.is-empty) .np-mosaic-tile {
-    filter: saturate(0.6) brightness(0.6);
     will-change: auto;
 }
 

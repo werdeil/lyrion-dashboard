@@ -1082,7 +1082,115 @@ function mosaicStartSlot(g, W, H, tile) {
     return best;
 }
 
+function mosaicCoverUrl(id, size) {
+    return '/cover/' + encodeURIComponent(id) + '.jpg?size=' + size;
+}
+
+function setTileCover(img, id, size) {
+    img.classList.remove('is-record');
+    img.style.backgroundImage = '';
+    img.dataset.cover = id;
+    img.dataset.size = size;
+    img.src = mosaicCoverUrl(id, size);
+}
+
+var RECORD_SRC = '/static/vinyl.svg';
+var RECORD_COVER = 'record';
+
+// The newest cover shows through the record's transparent centre as its label.
+function setTileRecord(img, label, size) {
+    img.classList.add('is-record');
+    img.style.backgroundImage = 'url("' + mosaicCoverUrl(label, size) + '")';
+    img.dataset.cover = RECORD_COVER;
+    img.dataset.label = label;
+    img.dataset.size = size;
+    img.src = RECORD_SRC;
+}
+
+function setTile(img, target, size) {
+    if (target.record) { setTileRecord(img, target.id, size); }
+    else { setTileCover(img, target.id, size); }
+}
+
+function tileHolds(img, target) {
+    return target.record
+        ? img.dataset.cover === RECORD_COVER && img.dataset.label === target.id
+        : img.dataset.cover === target.id;
+}
+
+// A tile whose cover changes in place dims while the new one loads, then fades back.
+function swapTile(img, target) {
+    img.classList.remove('is-shown');
+    img.dataset.swapping = '1';
+    setTile(img, target, img.dataset.size);
+}
+
+// The last tile rides just ahead of the newest along the belt: the record marking
+// where the list loops, labelled with the newest cover, in the oldest one's place.
+function mosaicTarget(ids, r, slots) {
+    if (r === slots - 1 && slots > 1) { return { record: true, id: ids[0] }; }
+    return { record: false, id: ids[r % ids.length] };
+}
+
+function makeMosaicTile() {
+    var img = document.createElement('img');
+    img.className = 'np-mosaic-tile';
+    img.onload = function() {
+        this.style.setProperty('--mosaic-r', coverRatio(this));
+        tileLoaded(this);
+    };
+    img.onerror = function() { tileLoaded(this); };
+    img.alt = '';
+    img.decoding = 'async';
+    return img;
+}
+
+function tileLoaded(img) {
+    if (mosaicGeom && img === tileAt(mosaicGeom, 0)) { tintFromNewest(); }
+    if (img.dataset.swapping) {
+        delete img.dataset.swapping;
+        img.classList.add('is-shown');
+        return;
+    }
+    mosaicTileSettled();
+}
+
+// Tiles keep their recency order along the belt: the one at g.head holds the
+// newest cover, the next one along the second, and so on.
+function tileAt(g, r) {
+    return g.tiles[(g.head + r) % g.slots];
+}
+
+function mosaicMismatches(g, ids, head) {
+    var count = 0;
+    for (var r = 0; r < g.slots; r++) {
+        if (!tileHolds(g.tiles[(head + r) % g.slots], mosaicTarget(ids, r, g.slots))) { count++; }
+    }
+    return count;
+}
+
+// A new list mostly adds the albums just played in front of the previous newest,
+// which lands on the tiles of the oldest: the head moves to the rotation that
+// leaves the fewest covers to change, and only those are swapped.
+function updateMosaic(ids) {
+    var g = mosaicGeom;
+    var best = g.head;
+    var fewest = mosaicMismatches(g, ids, best);
+    for (var head = 0; head < g.slots && fewest > 0; head++) {
+        var n = mosaicMismatches(g, ids, head);
+        if (n < fewest) { best = head; fewest = n; }
+    }
+    g.head = best;
+    for (var r = 0; r < g.slots; r++) {
+        var target = mosaicTarget(ids, r, g.slots);
+        if (!tileHolds(tileAt(g, r), target)) { swapTile(tileAt(g, r), target); }
+    }
+}
+
+// Tiles already loaded carry over, in their recency order, so a re-lay never
+// blanks the belt; only a larger thumbnail than the one shown is re-requested.
 function layoutMosaic(ids) {
+    var previous = mosaicGeom;
     el.emptyMosaic.textContent = '';
     if (mosaicRevealTimer) { clearTimeout(mosaicRevealTimer); mosaicRevealTimer = null; }
     mosaicRevealCursor = 0;
@@ -1100,32 +1208,26 @@ function layoutMosaic(ids) {
     el.emptyMosaic.style.setProperty('--mosaic-tile', grid.tile + 'px');
     var frag = document.createDocumentFragment();
     var tiles = [];
+    var reused = previous ? Math.min(previous.slots, count) : 0;
     for (var i = 0; i < count; i++) {
-        var img = document.createElement('img');
-        img.className = 'np-mosaic-tile';
-        img.onload = function() {
-            this.style.setProperty('--mosaic-r', coverRatio(this));
-            if (this === mosaicGeom.tiles[0]) { tintFromNewest(); }
-            mosaicTileSettled();
-        };
-        img.onerror = mosaicTileSettled;
-        img.src = mosaicCoverUrl(ids[i % ids.length], size);
-        // The last tile rides just ahead of the newest along the belt: the record
-        // marking where the list loops, labelled with the newest cover.
-        if (i === count - 1 && count > 1) {
-            img.classList.add('is-record');
-            img.style.backgroundImage = 'url("' + mosaicCoverUrl(ids[0], size) + '")';
-            img.src = RECORD_SRC;
+        var img;
+        if (i < reused) {
+            img = tileAt(previous, i);
+            if (+img.dataset.size < size) {
+                setTile(img, img.classList.contains('is-record')
+                    ? { record: true, id: img.dataset.label } : { record: false, id: img.dataset.cover }, size);
+            }
+        } else {
+            img = makeMosaicTile();
+            setTile(img, mosaicTarget(ids, i, count), size);
+            if (reduce) { img.classList.add('is-shown'); }
         }
-        img.alt = '';
-        img.decoding = 'async';
-        if (reduce) { img.classList.add('is-shown'); }
         frag.appendChild(img);
         tiles.push(img);
     }
     mosaicGeom = {
         tiles: tiles, step: grid.step, rowH: grid.rowH,
-        rows: grid.rows, perRow: grid.perRow, slots: count,
+        rows: grid.rows, perRow: grid.perRow, slots: count, head: 0,
         length: count * grid.step, phase: 0, W: W, H: H,
         // Where each tile is drawn, and the row drop owed to it.
         drawnX: [], drawnY: [], dropY: [],
@@ -1140,6 +1242,7 @@ function layoutMosaic(ids) {
     } else {
         advanceMosaicReveal();
     }
+    if (reused) { updateMosaic(ids); }
 }
 
 // Invalidated while something plays (see render()), since playback changes what
@@ -1151,15 +1254,9 @@ var mosaicDirty = false;
 // High-water mark of what has been asked for, so a resize only re-asks when
 // the card wants more than any request so far.
 var mosaicAsked = 0;
-var RECORD_SRC = '/static/vinyl.svg';
-
-function mosaicCoverUrl(id, size) {
-    return '/cover/' + encodeURIComponent(id) + '.jpg?size=' + size;
-}
-
 // Idle, the page takes its colours from the newest cover in the mosaic.
 function tintFromNewest() {
-    var newest = mosaicGeom && mosaicGeom.tiles[0];
+    var newest = mosaicGeom && tileAt(mosaicGeom, 0);
     if (nowPlaying.classList.contains('is-empty') && newest && newest.complete) {
         sampleCoverTint(newest);
     }
@@ -1178,10 +1275,13 @@ function loadMosaic() {
             // Fetched behind a playing card, it is not yet the idle screen's own.
             mosaicLoaded = nowPlaying.classList.contains('is-empty');
             if (!ids || !ids.length) { return; }
-            if (mosaicDirty || !mosaicIds || mosaicIds.join('|') !== ids.join('|')) {
-                mosaicIds = ids;
+            var changed = !mosaicIds || mosaicIds.join('|') !== ids.join('|');
+            mosaicIds = ids;
+            if (mosaicDirty || !mosaicGeom) {
                 mosaicDirty = false;
                 layoutMosaic(ids);
+            } else if (changed) {
+                updateMosaic(ids);
             }
             if (el.empty) { el.empty.classList.add('has-mosaic'); }
             tintFromNewest();
