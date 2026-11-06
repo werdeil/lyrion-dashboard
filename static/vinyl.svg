@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100">
+  <defs>
+    <radialGradient id="g" cx="50" cy="50" r="50" gradientUnits="userSpaceOnUse">
+      <stop offset="0.35" stop-color="#16171a"/>
+      <stop offset="1" stop-color="#0c0d0f"/>
+    </radialGradient>
+  </defs>
+  <path fill="url(#g)" fill-rule="evenodd" d="M50 0a50 50 0 1 0 0 100A50 50 0 1 0 50 0zm0 33a17 17 0 1 1 0 34a17 17 0 1 1 0-34z"/>
+  <g fill="none" stroke="#fff" stroke-opacity="0.06" stroke-width="0.5">
+    <circle cx="50" cy="50" r="20"/><circle cx="50" cy="50" r="23"/><circle cx="50" cy="50" r="26"/>
+    <circle cx="50" cy="50" r="29"/><circle cx="50" cy="50" r="32"/><circle cx="50" cy="50" r="35"/>
+    <circle cx="50" cy="50" r="38"/><circle cx="50" cy="50" r="41"/><circle cx="50" cy="50" r="44"/>
+    <circle cx="50" cy="50" r="47"/>
+  </g>
+  <path fill="#fff" fill-opacity="0.07" d="M65.6 41L90.7 26.5A47 47 0 0 1 95.4 37.8L67.4 45.3A18 18 0 0 0 65.6 41zM34.4 59L9.3 73.5A47 47 0 0 1 4.6 62.2L32.6 54.7A18 18 0 0 0 34.4 59z"/>
+  <circle cx="50" cy="50" r="17" fill="none" stroke="#000" stroke-opacity="0.35" stroke-width="1"/>
+  <circle cx="50" cy="50" r="2" fill="#0c0d0f"/>
+</svg>

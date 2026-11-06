@@ -22,6 +22,7 @@ export default [
                 console: "readonly",
                 Image: "readonly",
                 getComputedStyle: "readonly",
+                ResizeObserver: "readonly",
                 requestAnimationFrame: "readonly",
                 cancelAnimationFrame: "readonly",
                 URLSearchParams: "readonly",

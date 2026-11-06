@@ -15,7 +15,7 @@
 
 - **Now Playing** -- The player currently playing is detected automatically and its track shown live (cover art, title, artist, album) next to its volume, with the accent color sampled from the cover. A paused track stays on screen for 5 minutes (`PAUSE_TIMEOUT`), its progress bar and current lyric line pulsing gently. Clicking the cover grows it over the panel.
 - **Recent plays** -- On wide screens the recently played albums stack up as a pile of sleeves under the cover, newest on top. Built from the play history, one cover per album; with the Alternative Play Count plugin installed, skips are excluded.
-- **Synced lyrics** -- Lyrics with LRC timestamps scroll line by line in time with playback, karaoke-style.
+- **Synced lyrics** -- Lyrics with LRC timestamps scroll line by line in time with playback, karaoke-style. A track tagged `[Instrumental]`, one without lyrics anywhere, or one whose lyrics you hid shows a record spinning with its cover as the label instead, stopped while playback is paused.
 - **Web lyrics fallback** -- LRCLIB, Musixmatch, NetEase Cloud Music and Genius are queried for every playing track: they fill in what the library is missing and upgrade its plain text to a synced version when one exists. The provenance line under the lyrics then switches between everything found for the track — your library's own text and each upload the providers returned — so a wrong text in your tags, or a take whose words don't match the recording, can be read against the alternatives. Its last stop hides the lyrics when none of them fits; that is remembered on the device until another version of the track turns up. Musixmatch needs your account token in `MUSIXMATCH_TOKEN` and is skipped without one ([Configuration](docs/configuration.md#musixmatch-token)). Set `LYRICS_PROVIDERS` to an empty value to stop the app calling out at all.
 - **Library statistics** -- Albums, artists, played/unplayed tracks and how deep the replays go, genres, ratings, lyrics, 30-day listening velocity, and a listening calendar — recent months day by day, the year week by week — when the Alternative Play Count plugin keeps its play history.
 - **File server** -- Serves files from a configurable directory.
@@ -25,14 +25,15 @@
 
 <p>
   <a href="docs/screenshots/demo-cover-zoom.png"><img src="docs/screenshots/demo-cover-zoom.png" alt="Enlarged cover" title="Click the cover: it fills the panel, playback progress on its bottom edge" width="210"></a>
-  <a href="docs/screenshots/demo-empty.png"><img src="docs/screenshots/demo-empty.png" alt="Empty state" title="Nothing playing: a slow mosaic of the albums played recently" width="210"></a>
+  <a href="docs/screenshots/demo-empty.png"><img src="docs/screenshots/demo-empty.png" alt="Empty state" title="Nothing playing: a slow mosaic of the albums played recently, a record marking the last one" width="210"></a>
   <a href="docs/screenshots/demo-lyrics.png"><img src="docs/screenshots/demo-lyrics.png" alt="Synced lyrics" title="Karaoke lyrics: the current line is highlighted, the source tinted when synced" width="135"></a>
+  <a href="docs/screenshots/demo-instrumental.png"><img src="docs/screenshots/demo-instrumental.png" alt="Instrumental track" title="No words to show: a record spins with the cover as its label" width="135"></a>
   <a href="docs/screenshots/dashboard-mobile.png"><img src="docs/screenshots/dashboard-mobile.png" alt="Mobile view" title="The responsive mobile layout" width="85"></a>
   <a href="docs/screenshots/demo-recent.png"><img src="docs/screenshots/demo-recent.png" alt="Recent plays" title="The pile of recently played sleeves" width="85"></a>
   <a href="docs/screenshots/demo-stats.png"><img src="docs/screenshots/demo-stats.png" alt="Library statistics" title="The library statistics panel" width="85"></a>
 </p>
 
-Left to right, click any of them for the full-size image: the enlarged cover, the empty state's mosaic of recently played albums, the karaoke lyrics, the mobile layout, the pile of recent sleeves and the statistics panel.
+Left to right, click any of them for the full-size image: the enlarged cover, the empty state's mosaic of recently played albums, where a record marks the last one, the karaoke lyrics, the record shown for an instrumental track, the mobile layout, the pile of recent sleeves and the statistics panel.
 
 ## Requirements
 

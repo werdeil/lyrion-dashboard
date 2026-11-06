@@ -15,6 +15,7 @@ library stats), then captures it with headless Chromium via Playwright:
                      button shows
 - demo-cover-zoom.png   desktop, the cover clicked open over the panel
 - demo-lyrics.png    the now-playing card alone, karaoke line highlighted
+- demo-instrumental.png  the lyrics box of an instrumental track: the record
 - demo-recent.png    the cover and the pile of recently played sleeves
 - demo-stats.png     the library statistics panel alone
 - demo-empty.png     desktop with nothing playing: the recently-played mosaic
@@ -229,6 +230,17 @@ TRACKS = {
             "On le ranime à chaque heure",
         ], hold_after="Les étincelles montent, la nuit se brise"),
     },
+    # Tagged instrumental: the lyrics box shows the record instead of text.
+    "interlude": {
+        "now": {
+            "playing": True, "mode": "play", "time": 41.0, "duration": 156,
+            "track_id": 1004, "title": "Interlude", "artist": "Les Lanternes",
+            "album": "Solstice", "coverid": COVER_EMBER, "artwork_url": None,
+            "player_name": "Cuisine", "player_id": "aa:bb:cc:dd:ee:03",
+            "volume": 30, "muted": False,
+        },
+        "lyrics": "[Instrumental]",
+    },
     # Nothing playing: the page falls back to its empty state, whose backdrop
     # is a mosaic of the recently played covers.
     "idle": {
@@ -378,6 +390,35 @@ MOSAIC_READY_JS = """
 }
 """
 
+# The record sized to its box, its label (the cover) loaded.
+VINYL_READY_JS = """
+() => {
+    const label = document.querySelector('.np-lyrics.is-roomy .np-vinyl-label');
+    return document.documentElement.style.getPropertyValue('--accent-color') !== ''
+        && label && label.complete && label.naturalWidth > 0;
+}
+"""
+
+# Stops the record at a fixed angle, so the capture only changes with the code.
+STILL_VINYL_JS = (
+    "() => document.getAnimations().filter(a => a.animationName === 'np-spin')"
+    ".forEach(a => { a.pause(); a.currentTime = 700; })"
+)
+
+# Steps the belt until the record, which starts off the card, rides its middle row.
+ADVANCE_BELT_JS = """
+() => new Promise(done => {
+    stopMosaic();
+    let left = 10;
+    const tick = () => {
+        if (left-- === 0) { setTimeout(done, 1600); return; }
+        stepMosaic();
+        setTimeout(tick, 1600);
+    };
+    tick();
+})
+"""
+
 PLAYING_JS = "() => !document.getElementById('now-playing').classList.contains('is-empty')"
 OPEN_ZOOM_JS = "() => document.getElementById('np-cover-button').click()"
 
@@ -525,9 +566,12 @@ SHOTS = {
     # Demo gallery: one feature per capture, cropped to what it shows.
     "demo-cover-zoom.png": Shot("rose", action=OPEN_ZOOM_JS, settle=600),
     "demo-lyrics.png": Shot("teal", locale="fr-FR", dpr=2, element=".np-lyrics-block"),
+    "demo-instrumental.png": Shot(
+        "interlude", dpr=2, ready=VINYL_READY_JS, action=STILL_VINYL_JS, element=".np-lyrics-block",
+    ),
     "demo-recent.png": Shot("rose", dpr=2, element=".np-side"),
     "demo-stats.png": Shot("ember", dpr=2, action=FOLD_ALBUM_ARTISTS_JS, settle=300, element=".stats-panel"),
-    "demo-empty.png": Shot("idle", ready=MOSAIC_READY_JS),
+    "demo-empty.png": Shot("idle", ready=MOSAIC_READY_JS, action=ADVANCE_BELT_JS, settle=300),
 }
 
 
