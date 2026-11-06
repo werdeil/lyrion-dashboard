@@ -1291,8 +1291,13 @@ body.in-app .np-pull {
 
 /* No own layers while still: the lyrics scroll over it on a Pi's software compositor. */
 .now-playing:not(.is-empty) .np-mosaic-tile {
-    filter: saturate(0.5) brightness(0.15);
+    filter: saturate(0.6) brightness(0.6);
     will-change: auto;
+}
+
+/* Faded into the card rather than darkened: darker tiles only sharpen the gaps between them. */
+.now-playing:not(.is-empty) .np-mosaic-tile.is-shown {
+    opacity: 0.15;
 }
 
 .page-logo {
