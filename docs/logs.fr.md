@@ -20,7 +20,7 @@ lyrics: genius has no match (486 ms)
 lyrics: 'Hocus Pocus' by 'Focus' -> none (synced=False, plain=False) in 5801 ms
 ```
 
-Une recherche qui aboutit tient en une ligne, `lyrics: 'Space Debris' by 'Deep Purple' -> lrclib (synced=True, plain=True) in 412 ms`. `source` distingue les cas : un nom de fournisseur (trouvé), `none` (recherche faite, aucune correspondance), `unavailable` (aucun fournisseur n'a répondu — la recherche n'est pas mise en cache et sera réessayée). Également en `INFO` : un résultat servi depuis le cache au lieu d'une nouvelle recherche, une recherche refusée par le rate limit ou le cooldown de rafraîchissement, un recalcul des statistiques avec sa durée, et `musixmatch: matched 'Nu Ma Uita' by 'Elena' (199s), not 'Space Debris' by 'Muse' (247s) - dropped` quand le moteur de correspondance approximatif de Musixmatch a répondu avec un autre morceau.
+Une recherche qui aboutit tient en une ligne, `lyrics: 'Space Debris' by 'Deep Purple' -> lrclib (synced=True, plain=True) in 412 ms`. `source` distingue les cas : un nom de fournisseur (trouvé), `none` (recherche faite, aucune correspondance), `unavailable` (aucun fournisseur n'a répondu). Une recherche pendant laquelle un fournisseur était injoignable n'est pas mise en cache, sauf si elle a trouvé des paroles synchronisées, et le signale par `lyrics: a provider was unreachable, … not cached` : elle sera refaite au prochain changement de morceau ou au prochain réessai. Également en `INFO` : un résultat servi depuis le cache au lieu d'une nouvelle recherche, une recherche refusée par le rate limit ou le cooldown de rafraîchissement, un recalcul des statistiques avec sa durée, et `musixmatch: 3 search results, none is 'Space Debris' by 'Muse' (247s) - first is 'Nu Ma Uita' by 'Elena' (199s)` quand la recherche Musixmatch n'a listé que d'autres morceaux ou d'autres enregistrements. Une durée que le fournisseur ou vos tags ne donnent pas s'affiche `(length unknown)`.
 
 Deux lignes LRCLIB portent une URL, pour les morceaux qui méritent un examen. `lrclib: no record, catalogue search: https://lrclib.net/search/Focus%20Hocus%20Pocus` passe vos propres tags dans la page de recherche de LRCLIB : elle dit si le catalogue n'a vraiment rien, ou s'il orthographie l'artiste ou le titre autrement que votre bibliothèque. `lrclib: https://lrclib.net/tracks/22439347 is 419s, this track is 302s - its timings dropped` est l'autre cas fréquent — le bon morceau, mais une version live ou allongée dont le LRC défilerait sur la mauvaise timeline : ses mots sont gardés comme paroles simples, pas son karaoké. Cette recherche consultable ne filtre pas sur la durée comme le fait l'application, elle listera donc des enregistrements que l'application refuse ensuite : c'est l'écart entre les deux qui est le diagnostic, pas un bug.
 
@@ -36,3 +36,19 @@ curl -X POST 'http://lyrion-dashboard:1111/log-level?level=info'
 ```
 
 Le changement vit dans le process en cours — un redémarrage revient à `LOG_LEVEL`, c'est ce que rapporte `default`. Comme le reste de l'application, cet endpoint ne demande aucune authentification : à garder sur le LAN.
+
+## Musixmatch
+
+Musixmatch a besoin du jeton de votre compte ([Configuration](configuration.fr.md#jeton-musixmatch)), et chacun de ses trois états a sa ligne :
+
+- `musixmatch: skipped, MUSIXMATCH_TOKEN is not set …` — un `WARNING` écrit une fois par démarrage ; Musixmatch est écarté de toutes les recherches tant qu'aucun jeton n'est fourni.
+- `lyrics: musixmatch unreachable after … (musixmatch refused the request (HTTP 401, status 401): MUSIXMATCH_TOKEN is likely expired or revoked …)` — le jeton a été refusé ; recopiez-en un neuf.
+- `lyrics: musixmatch unreachable after … (musixmatch answered with its placeholder track 'NOKIA' by 'Drake' instead of searching …)` — Musixmatch répond à toute recherche par le même morceau bouche-trou quand il ne fait plus confiance à l'appelant ; c'est une panne, pas une absence de résultat, donc la recherche n'est pas mise en cache.
+
+Les deux refus comptent comme une panne : la recherche est refaite au morceau suivant. Pour vérifier un jeton sans attendre, lancez une recherche dans le conteneur avec le client de l'application, qui signe la requête comme Musixmatch l'exige :
+
+```bash
+docker exec lyrion-dashboard python -c "from services.lyrics import _provider_musixmatch as m; print(m('Henri Salvador', 'Embrasse-la', None, None))"
+```
+
+Elle affiche les paroles trouvées (`{'lyrics': …, 'synced': '[00:…`), `None` quand Musixmatch n'a pas de correspondance, ou le refus ci-dessus sous forme d'erreur.

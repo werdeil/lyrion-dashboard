@@ -20,7 +20,7 @@ lyrics: genius has no match (486 ms)
 lyrics: 'Hocus Pocus' by 'Focus' -> none (synced=False, plain=False) in 5801 ms
 ```
 
-A healthy search is a single line, `lyrics: 'Space Debris' by 'Deep Purple' -> lrclib (synced=True, plain=True) in 412 ms`. `source` tells the outcomes apart: a provider name (found), `none` (searched, nothing matched), `unavailable` (no provider answered — the search is not cached and will be retried). Also at `INFO`: a result served from the cache instead of a new search, a search refused by the rate limit or the refresh cooldown, a stats recompute with its duration, and `musixmatch: matched 'Nu Ma Uita' by 'Elena' (199s), not 'Space Debris' by 'Muse' (247s) - dropped` when Musixmatch's fuzzy matcher answered with a different song.
+A healthy search is a single line, `lyrics: 'Space Debris' by 'Deep Purple' -> lrclib (synced=True, plain=True) in 412 ms`. `source` tells the outcomes apart: a provider name (found), `none` (searched, nothing matched), `unavailable` (no provider answered). A search during which any provider was unreachable is not cached unless it found synced lyrics, and says so with `lyrics: a provider was unreachable, … not cached`: it is retried on the next track change or retry. Also at `INFO`: a result served from the cache instead of a new search, a search refused by the rate limit or the refresh cooldown, a stats recompute with its duration, and `musixmatch: 3 search results, none is 'Space Debris' by 'Muse' (247s) - first is 'Nu Ma Uita' by 'Elena' (199s)` when Musixmatch's search only listed other songs or other recordings. A length the provider or your tags don't give reads `(length unknown)`.
 
 Two LRCLIB lines carry a URL, for the tracks worth a closer look. `lrclib: no record, catalogue search: https://lrclib.net/search/Focus%20Hocus%20Pocus` runs your own tags through LRCLIB's search page: it says whether the catalogue really holds nothing, or whether it spells the artist or the title differently from your library. `lrclib: https://lrclib.net/tracks/22439347 is 419s, this track is 302s - its timings dropped` is the other frequent case — the right song, but a live or extended upload whose LRC would scroll against the wrong timeline, so its words are kept as plain lyrics and the karaoke is not. That browsable search does not filter on length the way the app does, so it will list records the app then refuses: the gap between the two is the diagnosis, not a bug.
 
@@ -36,3 +36,19 @@ curl -X POST 'http://lyrion-dashboard:1111/log-level?level=info'
 ```
 
 The change lives in the running process — a restart goes back to `LOG_LEVEL`, which is what `default` reports. Like the rest of the app it asks for no credentials, so keep it on the LAN.
+
+## Musixmatch
+
+Musixmatch needs your account token ([Configuration](configuration.md#musixmatch-token)), and its three states each have their line:
+
+- `musixmatch: skipped, MUSIXMATCH_TOKEN is not set …` — a `WARNING` written once per start-up; Musixmatch is left out of every search until a token is set.
+- `lyrics: musixmatch unreachable after … (musixmatch refused the request (HTTP 401, status 401): MUSIXMATCH_TOKEN is likely expired or revoked …)` — the token was turned down; copy a fresh one.
+- `lyrics: musixmatch unreachable after … (musixmatch answered with its placeholder track 'NOKIA' by 'Drake' instead of searching …)` — Musixmatch answers every search with the same placeholder song when it no longer trusts the caller; that is an outage, not a miss, so the search is not cached.
+
+Both refusals count as an outage, so the search is retried at the next track. To check a token without waiting for one, run a search inside the container with the app's own client, which signs the request the way Musixmatch requires:
+
+```bash
+docker exec lyrion-dashboard python -c "from services.lyrics import _provider_musixmatch as m; print(m('Henri Salvador', 'Embrasse-la', None, None))"
+```
+
+It prints the lyrics found (`{'lyrics': …, 'synced': '[00:…`), `None` when Musixmatch has no match, or the refusal above as an error.

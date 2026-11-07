@@ -1,8 +1,8 @@
 """Tests for the diagnostic logs of the lyrics chain.
 
 These logs are what `docker logs` shows when a track ends up without lyrics,
-so each outcome — found, nothing found, provider down, provider crashed,
-candidate rejected — must be traceable to a line.
+so each outcome — found, nothing found, provider down, provider crashed — must
+be traceable to a line.
 """
 # The env scaffolding is intentionally the same as in the other tests; that
 # repetition is what keeps each file standalone.

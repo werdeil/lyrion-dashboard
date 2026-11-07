@@ -623,8 +623,27 @@ function versionLength(version) {
     return ' \u00b7 ' + Math.floor(secs / 60) + ':' + ('0' + (Math.round(secs) % 60)).slice(-2);
 }
 
+// Stacked, a landscape screen always fits the card to it; portrait only once there are lyrics.
+var FIT_LANDSCAPE_MQ = '(max-width: 860px) and (orientation: landscape)';
+var FIT_PORTRAIT_MQ = '(max-width: 860px) and (orientation: portrait)';
+
+function fitCard() {
+    var fit = window.matchMedia && (window.matchMedia(FIT_LANDSCAPE_MQ).matches ||
+        (window.matchMedia(FIT_PORTRAIT_MQ).matches &&
+         versions.length > 0 && !nowPlaying.classList.contains('is-empty')));
+    document.documentElement.classList.toggle('card-fit', !!fit);
+}
+
+if (window.matchMedia) {
+    [FIT_LANDSCAPE_MQ, FIT_PORTRAIT_MQ].forEach(function(query) {
+        window.matchMedia(query).addEventListener('change', fitCard);
+    });
+}
+fitCard();
+
 // Callers run right after setLyrics(), so lrcLines tells whether the text on screen is synced.
 function updateSource() {
+    fitCard();
     if (!el.source) { return; }
     var version = versions[versionIdx];
     var label = version && (lyricsHidden ? I18N.lyrics_hidden_chip : sourceLabel(version));
@@ -764,7 +783,6 @@ function landOnVersions(current) {
 if (el.source) {
     el.source.addEventListener('click', function() {
         if (!versions.length) { return; }
-        holdLyricsHeight();
         if (lyricsHidden) {
             rememberHidden(false);
             showVersion(0);
@@ -776,23 +794,6 @@ if (el.source) {
         }
     });
 }
-
-// Released on a width change only: the mobile URL bar resizes the height on scroll.
-var heldWidth = 0;
-function holdLyricsHeight() {
-    // The fitted layouts size the box from the viewport (flex-basis 0), not from its text.
-    if (getComputedStyle(el.lyrics).flexBasis === '0px') { return; }
-    el.lyrics.style.minHeight = el.lyrics.offsetHeight + 'px';
-    heldWidth = window.innerWidth;
-}
-
-function releaseLyricsHeight() {
-    el.lyrics.style.minHeight = '';
-}
-
-window.addEventListener('resize', function() {
-    if (window.innerWidth !== heldWidth) { releaseLyricsHeight(); }
-});
 
 function setSearching(on) {
     searching = on;
@@ -1248,10 +1249,21 @@ window.addEventListener('resize', function() {
     recentResizeTimer = setTimeout(renderRecent, 300);
 });
 
+// Each breathing element starts with its own class match, so later ones join the oldest one's phase.
+document.addEventListener('animationstart', function (e) {
+    if (e.animationName !== 'np-breathe') { return; }
+    var breathing = document.getAnimations().filter(function (a) {
+        return a.animationName === 'np-breathe' && a.startTime !== null;
+    });
+    var start = Math.min.apply(null, breathing.map(function (a) { return a.startTime; }));
+    breathing.forEach(function (a) { a.startTime = start; });
+});
+
 function render(data) {
     if (!data || !data.track_id) {
         nowPlaying.classList.add('is-empty');
         nowPlaying.classList.remove('is-paused');
+        fitCard();
         loadMosaic();
         startMosaic();
         // The listens that just ended reorder the pile, so the next playback refetches it.
@@ -1307,7 +1319,6 @@ function render(data) {
     var trackKey = [data.track_id, data.title, data.artist, data.album].join('|');
     if (trackKey !== lastTrackKey) {
         lastTrackKey = trackKey;
-        releaseLyricsHeight();
         currentTrack = data;
         // COVER_SIZE is the /cover route's cap; remote artwork has no resize form.
         el.cover.src = data.artwork_url
@@ -1859,6 +1870,13 @@ var calendarShown = '';
 var calendarData = null;
 // The smallest day the expanded strip draws; it shows as many recent weeks as fit at that size.
 var CALENDAR_MIN_DAY_PX = 10;
+var CALENDAR_MIN_DAY_PX_STACKED = 7;
+// The stacked layout, where the stats panel spans the page; must match style.css.
+var STACKED_MQ = '(max-width: 860px)';
+
+function isStacked() {
+    return !!(window.matchMedia && window.matchMedia(STACKED_MQ).matches);
+}
 // A month is four or five week columns, too narrow for its name in the side panel.
 var CALENDAR_LABEL_WEEKS = 6;
 // The shortest span the strip draws, which caps the size of its days.
@@ -1899,7 +1917,7 @@ function renderCalendar(calendar) {
     if (!box) { return; }
     calendarData = calendar;
     box.hidden = !calendar;
-    var columns = calendar ? Math.max(1, Math.floor((box.clientWidth + 1) / (CALENDAR_MIN_DAY_PX + 1))) : 0;
+    var columns = calendar ? Math.max(1, Math.floor((box.clientWidth + 1) / ((isStacked() ? CALENDAR_MIN_DAY_PX_STACKED : CALENDAR_MIN_DAY_PX) + 1))) : 0;
     var key = JSON.stringify(calendar) + '|' + columns;
     if (key === calendarShown) { return; }
     calendarShown = key;
