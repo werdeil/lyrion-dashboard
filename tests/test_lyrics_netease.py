@@ -51,7 +51,6 @@ class NeteaseTest(unittest.TestCase):
         found, _ = self._fetch([_song(7, "Space Debris", ["Muse"], 247000)], lrc)
         self.assertEqual(found["synced"], "[00:12.34]la la la")
         self.assertIsNone(found["lyrics"])
-        self.assertEqual(found["meta"]["duration"], 247.0)
 
     def test_untimed_text_is_plain(self):
         found, _ = self._fetch([_song(7, "Space Debris", ["Muse"], 247000)], "la la la\nla la")
@@ -74,7 +73,7 @@ class NeteaseTest(unittest.TestCase):
 
     def test_any_credited_artist_matches(self):
         found, _ = self._fetch([_song(5, "Space Debris", ["Someone", "Muse"], 247000)], "[00:01.00]la")
-        self.assertEqual(found["meta"]["artist"], "Muse")
+        self.assertEqual(found["synced"], "[00:01.00]la")
 
     def test_no_lyrics_collected(self):
         with patch.object(L.requests, "get", side_effect=[

@@ -12,9 +12,8 @@ os.environ.setdefault("DB_PERSIST_DIR", tempfile.mkdtemp())
 
 import services.lyrics as L  # pylint: disable=wrong-import-position
 
-META = {"artist": "Muse", "title": "Space Debris", "album": None, "duration": None}
-PLAIN = {"lyrics": "la la la", "synced": None, "meta": META}
-SYNCED = {"lyrics": "la la la", "synced": "[00:01.00]la la la", "meta": META}
+PLAIN = {"lyrics": "la la la", "synced": None}
+SYNCED = {"lyrics": "la la la", "synced": "[00:01.00]la la la"}
 
 
 def _answers(found):
@@ -73,7 +72,7 @@ class ProviderChainTest(unittest.TestCase):
         self.assertEqual(L.fetch_lyrics(None, "Muse", "Space Debris")["source"], "genius")
 
     def test_netease_is_still_asked_once_plain_lyrics_are_held(self):
-        synced_only = {"lyrics": None, "synced": "[00:01.00]la la la", "meta": META}
+        synced_only = {"lyrics": None, "synced": "[00:01.00]la la la"}
         self._use(("lrclib", _answers(PLAIN)), ("musixmatch", _answers(None)), ("netease", _answers(synced_only)))
         res = L.fetch_lyrics(None, "Muse", "Space Debris")
         self.assertEqual(res["source"], "netease")

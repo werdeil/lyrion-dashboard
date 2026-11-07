@@ -112,8 +112,8 @@ def _length_label(duration):
     return "length unknown" if seconds is None else f"{seconds}s"
 
 
-# A provider takes (artist, title, album, duration) and returns None or {"lyrics", "synced", "meta"},
-# meta describing the matched candidate: its own artist/title/album/duration.
+# A provider takes (artist, title, album, duration) and returns None or {"lyrics", "synced"},
+# plus "versions" when it found several uploads.
 
 
 def _duration_delta(candidate, seconds):
@@ -309,12 +309,6 @@ def _provider_lrclib(artist, title, album, duration):
     return {
         "lyrics": payload.get("plainLyrics"),
         "synced": synced_text,
-        "meta": {
-            "artist": payload.get("artistName"),
-            "title": payload.get("trackName"),
-            "album": payload.get("albumName"),
-            "duration": payload.get("duration"),
-        },
         "versions": [_lrclib_version(c, seconds) for c in [payload] + others[:MAX_VERSIONS - 1]],
     }
 
@@ -539,7 +533,7 @@ def _provider_musixmatch(artist, title, _album, duration):
     log.debug("musixmatch: track %s (%r, %s), synced=%s, plain=%s",
               track_id, meta["album"], _length_label(meta["duration"]), bool(synced), bool(lyrics))
     if lyrics or synced:
-        return {"lyrics": lyrics, "synced": synced, "meta": meta}
+        return {"lyrics": lyrics, "synced": synced}
     log.info("musixmatch: track %s (%r, %s) has no lyrics", track_id, meta["album"], _length_label(meta["duration"]))
     return None
 
@@ -575,14 +569,8 @@ def _netease_pick(songs, artist, title, duration):
         if not isinstance(song, dict) or not song.get("id"):
             continue
         meta = _netease_song_meta(song)
-        credited = next(
-            (a for a in meta["artists"] if _matches_request(dict(meta, artist=a), artist, title, duration)), None
-        )
-        if credited:
-            matches.append({
-                "id": song["id"], "artist": credited, "title": meta["title"],
-                "album": meta["album"], "duration": meta["duration"],
-            })
+        if any(_matches_request(dict(meta, artist=a), artist, title, duration) for a in meta["artists"]):
+            matches.append(dict(meta, id=song["id"]))
     if not matches:
         return None
     best = _by_length(matches, _float_duration(duration))[0]
@@ -665,8 +653,8 @@ def _provider_netease(artist, title, _album, duration):
         log.info("netease: song %s (%r, %s) has no lyrics", song_id, meta["album"], _length_label(meta["duration"]))
         return None
     if _LRC_TIMESTAMP_RE.search(text):
-        return {"lyrics": None, "synced": text, "meta": meta}
-    return {"lyrics": text, "synced": None, "meta": meta}
+        return {"lyrics": None, "synced": text}
+    return {"lyrics": text, "synced": None}
 
 
 def _parse_genius_html(html):
@@ -707,21 +695,12 @@ def _provider_genius(artist, title, album, _duration):
         return None
 
     url = None
-    hit_meta = None
     for section in sections:
         if section.get("type") != "song":
             continue
         for hit in section.get("hits", []):
-            result = hit.get("result", {})
-            url = result.get("url")
+            url = hit.get("result", {}).get("url")
             if url:
-                # Genius exposes no reliable duration/album on a search hit.
-                hit_meta = {
-                    "artist": (result.get("primary_artist") or {}).get("name"),
-                    "title": result.get("title"),
-                    "album": None,
-                    "duration": None,
-                }
                 break
         if url:
             break
@@ -739,7 +718,7 @@ def _provider_genius(artist, title, album, _duration):
 
     text = _parse_genius_html(page.text)
     if text:
-        return {"lyrics": text, "synced": None, "meta": hit_meta}
+        return {"lyrics": text, "synced": None}
     log.info("genius: no lyrics container found on %s (page layout changed or bot-blocked)", url)
     return None
 

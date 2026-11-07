@@ -68,7 +68,7 @@ class OversizedFieldsTest(unittest.TestCase):
 
         def provider(artist, title, album, duration):
             self.provider_calls.append((artist, title, album, duration))
-            return {"lyrics": "la la la", "synced": None, "meta": None}
+            return {"lyrics": "la la la", "synced": None}
         L._enabled_providers = lambda: [("fake", provider)]
 
     def tearDown(self):

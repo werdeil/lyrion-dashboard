@@ -19,7 +19,7 @@ os.environ.setdefault("DB_PERSIST_DIR", tempfile.mkdtemp())
 
 import services.lyrics as L  # pylint: disable=wrong-import-position
 
-FOUND = {"lyrics": "la la la", "synced": None, "meta": None}
+FOUND = {"lyrics": "la la la", "synced": None}
 
 
 def _unreachable(name):
@@ -96,7 +96,7 @@ class UnavailableProvidersTest(unittest.TestCase):
 
     def test_synced_lyrics_are_cached_even_with_a_provider_down(self):
         def synced(*_args):
-            return {"lyrics": "la", "synced": "[00:01.00] la", "meta": None}
+            return {"lyrics": "la", "synced": "[00:01.00] la"}
         self._use(_unreachable("a"), synced)
         L.fetch_lyrics(None, "Muse", "Space Debris")
         self.assertEqual(len(L._cache), 1)
