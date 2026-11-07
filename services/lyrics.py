@@ -113,7 +113,7 @@ def _length_label(duration):
 
 
 # A provider takes (artist, title, album, duration) and returns None or {"lyrics", "synced", "meta"},
-# meta being the matched candidate's own artist/title/album/duration, for _matches_request.
+# meta describing the matched candidate: its own artist/title/album/duration.
 
 
 def _duration_delta(candidate, seconds):
@@ -715,8 +715,7 @@ def _provider_genius(artist, title, album, _duration):
             result = hit.get("result", {})
             url = result.get("url")
             if url:
-                # Genius exposes no reliable duration/album on a search hit, so
-                # verification can only lean on title + primary artist.
+                # Genius exposes no reliable duration/album on a search hit.
                 hit_meta = {
                     "artist": (result.get("primary_artist") or {}).get("name"),
                     "title": result.get("title"),
@@ -821,10 +820,10 @@ def _search_providers(artist, title, album, duration):
     """Try each enabled provider in order and return (result, complete).
 
     A plain-only result is held while the later providers able to sync are asked
-    for a synced one. `result` has fetch_lyrics' return shape, without any caching: "unavailable"
-    means not one provider answered, which the caller must not confuse with a
-    search that ran and came up empty. `complete` is False when a provider that
-    was asked could not be reached.
+    for a synced one. `result` has fetch_lyrics' return shape, without any
+    caching: "unavailable" means not one provider answered, which the caller must
+    not confuse with a search that ran and came up empty. `complete` is False
+    when a provider that was asked could not be reached.
     """
     unreachable = 0
     plain = None
