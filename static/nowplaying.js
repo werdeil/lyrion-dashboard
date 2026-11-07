@@ -1062,20 +1062,21 @@ function mosaicContentTop(H) {
 }
 
 // The slot the newest cover starts in: its seam with the slot behind it, where the
-// record rides, sits over the card's centre line, in the lowest row clear of the
-// idle content, or the first row when none is.
+// record rides, sits over the card's centre line, in the row the idle content
+// starts in (never the first, which the card's edge crops).
 function mosaicStartSlot(g, W, H, tile) {
     var limit = mosaicContentTop(H) - MOSAIC_GAP;
+    var clear = 0;
+    while (clear < g.rows && clear * g.rowH + MOSAIC_GAP / 2 + tile <= limit) { clear++; }
+    var row = Math.min(Math.max(clear, 1), g.rows - 1);
     var best = 0;
-    var bestScore = Infinity;
+    var nearest = Infinity;
     for (var s = 1; s < g.slots - 1; s++) {
         var at = mosaicSlot(g, s);
         var behind = mosaicSlot(g, s - 1);
-        if (behind.y !== at.y) { continue; }
-        var gap = limit - (at.y + tile);
-        var dx = (at.x + behind.x + tile) / 2 - W / 2;
-        var score = (gap >= 0 ? gap : 10 * W + at.y) * 4 + Math.abs(dx);
-        if (score < bestScore) { best = s; bestScore = score; }
+        if (behind.y !== at.y || Math.round((at.y - MOSAIC_GAP / 2) / g.rowH) !== row) { continue; }
+        var dx = Math.abs((at.x + behind.x + tile) / 2 - W / 2);
+        if (dx < nearest) { best = s; nearest = dx; }
     }
     return best;
 }
