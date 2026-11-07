@@ -1054,6 +1054,32 @@ function mosaicTileSettled() {
     if (mosaicRevealTimer === null) { advanceMosaicReveal(); }
 }
 
+// Where the idle content starts, in the mosaic's frame (its tilt ignored).
+function mosaicContentTop(H) {
+    var first = el.empty.querySelector('.np-empty-content > *');
+    if (!first || !first.offsetParent) { return H / 2; }
+    return first.getBoundingClientRect().top - el.empty.getBoundingClientRect().top - el.emptyMosaic.offsetTop;
+}
+
+// The slot the newest cover starts in: its seam with the slot behind it, where the
+// record rides, sits over the card's centre line, in the lowest row clear of the
+// idle content, or the first row when none is.
+function mosaicStartSlot(g, W, H, tile) {
+    var limit = mosaicContentTop(H) - MOSAIC_GAP;
+    var best = 0;
+    var bestScore = Infinity;
+    for (var s = 1; s < g.slots - 1; s++) {
+        var at = mosaicSlot(g, s);
+        var behind = mosaicSlot(g, s - 1);
+        if (behind.y !== at.y) { continue; }
+        var gap = limit - (at.y + tile);
+        var dx = (at.x + behind.x + tile) / 2 - W / 2;
+        var score = (gap >= 0 ? gap : 10 * W + at.y) * 4 + Math.abs(dx);
+        if (score < bestScore) { best = s; bestScore = score; }
+    }
+    return best;
+}
+
 function layoutMosaic(ids) {
     el.emptyMosaic.textContent = '';
     if (mosaicRevealTimer) { clearTimeout(mosaicRevealTimer); mosaicRevealTimer = null; }
@@ -1102,9 +1128,10 @@ function layoutMosaic(ids) {
         // Where each tile is drawn, and the row drop owed to it.
         drawnX: [], drawnY: [], dropY: [],
     };
+    mosaicGeom.phase = mosaicStartSlot(mosaicGeom, W, H, grid.tile) * grid.step;
     // Placed before entering the document: a tile first rendered already at its
     // position has no earlier transform, so the glide can't fire on layout.
-    positionMosaic(0);
+    positionMosaic(mosaicGeom.phase);
     el.emptyMosaic.appendChild(frag);
     if (reduce) {
         mosaicRevealCursor = tiles.length;

@@ -405,20 +405,6 @@ STILL_VINYL_JS = (
     ".forEach(a => { a.pause(); a.currentTime = 700; })"
 )
 
-# Steps the belt until the record, which starts off the card, rides its middle row.
-ADVANCE_BELT_JS = """
-() => new Promise(done => {
-    stopMosaic();
-    let left = 10;
-    const tick = () => {
-        if (left-- === 0) { setTimeout(done, 1600); return; }
-        stepMosaic();
-        setTimeout(tick, 1600);
-    };
-    tick();
-})
-"""
-
 PLAYING_JS = "() => !document.getElementById('now-playing').classList.contains('is-empty')"
 OPEN_ZOOM_JS = "() => document.getElementById('np-cover-button').click()"
 
@@ -571,7 +557,7 @@ SHOTS = {
     ),
     "demo-recent.png": Shot("rose", dpr=2, element=".np-side"),
     "demo-stats.png": Shot("ember", dpr=2, action=FOLD_ALBUM_ARTISTS_JS, settle=300, element=".stats-panel"),
-    "demo-empty.png": Shot("idle", ready=MOSAIC_READY_JS, action=ADVANCE_BELT_JS, settle=300),
+    "demo-empty.png": Shot("idle", ready=MOSAIC_READY_JS),
 }
 
 
