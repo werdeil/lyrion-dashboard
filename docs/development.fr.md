@@ -25,7 +25,7 @@ DEV=1 python app.py
 
 L'application est accessible sur `http://localhost:1111`. C'est aussi la façon de faire tourner le dashboard sur une machine où l'on ne veut pas de Docker — sans le `DEV=1` dans ce cas.
 
-C'est `.env` qui alimente l'application ici (`config.py` lit l'environnement une fois au démarrage), et `scripts/embed_lyrics.py` charge le même fichier via python-dotenv. Chaque variable est documentée sur la page [Configuration](configuration.fr.md).
+C'est `.env` qui alimente l'application ici (`config.py` lit l'environnement une fois au démarrage). Chaque variable est documentée sur la page [Configuration](configuration.fr.md).
 
 ## L'image `dev`
 

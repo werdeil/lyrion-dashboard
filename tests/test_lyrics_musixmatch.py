@@ -235,10 +235,9 @@ class SigningKeyTest(unittest.TestCase):
 
 
 class LengthLabelTest(unittest.TestCase):
-    def test_rejected_log_names_a_missing_length(self):
-        with self.assertLogs("services.lyrics", "INFO") as logs:
-            L._log_rejected("genius", {"title": "NOKIA", "artist": "Drake"}, "Henri Salvador", "Embrasse-la", "162")
-        self.assertIn("'NOKIA' by 'Drake' (length unknown), not 'Embrasse-la' by 'Henri Salvador' (162s)", logs.output[0])
+    def test_a_missing_length_is_named(self):
+        self.assertEqual(L._length_label(None), "length unknown")
+        self.assertEqual(L._length_label("162.4"), "162s")
 
 
 if __name__ == "__main__":

@@ -7,7 +7,5 @@ docker-compose.override.yml
 # are tracked, their .local variants stay personal.
 .claude/settings.local.json
 CLAUDE.local.md
-.venv-cli/
 .venv/
 venv/
-state/

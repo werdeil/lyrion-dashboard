@@ -1,8 +1,8 @@
 """Tests for the diagnostic logs of the lyrics chain.
 
 These logs are what `docker logs` shows when a track ends up without lyrics,
-so each outcome — found, nothing found, provider down, provider crashed,
-candidate rejected — must be traceable to a line.
+so each outcome — found, nothing found, provider down, provider crashed — must
+be traceable to a line.
 """
 # The env scaffolding is intentionally the same as in the other tests; that
 # repetition is what keeps each file standalone.
@@ -66,14 +66,6 @@ class LyricsLoggingTest(unittest.TestCase):
             result = L.fetch_lyrics("1", "A", "T")
         self.assertEqual(result["source"], "lrclib")
         self.assertTrue(any("genius failed" in line and "boom" in line for line in captured.output))
-
-    def test_rejected_candidate_logs_what_came_back(self):
-        other = {"lyrics": "nope", "synced": None,
-                 "meta": {"artist": "Other", "title": "Other song", "duration": 100}}
-        self._use("lrclib", lambda *_a: dict(other))
-        with self.assertLogs("services.lyrics", level="INFO") as captured:
-            L.fetch_lyrics("1", "A", "T", verify=True)
-        self.assertTrue(any("rejected" in line and "Other song" in line for line in captured.output))
 
     def test_missing_metadata_is_logged_rather_than_silent(self):
         with self.assertLogs("services.lyrics", level="INFO") as captured:

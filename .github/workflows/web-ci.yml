@@ -34,4 +34,4 @@ jobs:
 
       # shellcheck is preinstalled on ubuntu runners.
       - name: Run shellcheck
-        run: shellcheck scripts/*.sh
+        run: shellcheck .claude/hooks/*.sh

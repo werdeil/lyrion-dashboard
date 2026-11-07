@@ -62,7 +62,7 @@ class NowPlayingKnownTest(unittest.TestCase):
 ## What to cover, by layer
 
 - **Routes** (`test_*_route.py`) — the request/response contract: input validation and clamping (`test_files_route.py`, `test_cover_route.py`), the `?known=` / `?player=` behaviours (`test_now_playing_route.py`), security headers (`test_security_headers.py`). Patch the services the route imports.
-- **Services** — the logic itself: the lyrics cache and TTLs (`test_lyrics_cache.py`), verification (`test_lyrics_verify.py`), the rate limiter/cooldown (`test_ratelimit.py`), the now-playing snapshot cache.
+- **Services** — the logic itself: the lyrics cache and TTLs (`test_lyrics_cache.py`), the match rule (`test_lyrics_verify.py`), the rate limiter/cooldown (`test_ratelimit.py`), the now-playing snapshot cache.
 
 ## Asserting on logs
 

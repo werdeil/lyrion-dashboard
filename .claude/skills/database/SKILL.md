@@ -12,7 +12,7 @@ description: >-
 
 # Reading Lyrion's SQLite databases
 
-All DB access lives in `services/database.py`. These databases belong to **Lyrion**, not to this app — the app opens them **read-only** and never writes. (Web lyrics can't be persisted here for exactly this reason; they go to a cache or into file tags — see the `lyrics` skill.)
+All DB access lives in `services/database.py`. These databases belong to **Lyrion**, not to this app — the app opens them **read-only** and never writes. (Web lyrics can't be persisted here for exactly this reason; they live in a process-local cache — see the `lyrics` skill.)
 
 ## The connection model
 
