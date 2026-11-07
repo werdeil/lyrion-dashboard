@@ -21,7 +21,7 @@ os.environ.setdefault("DB_PERSIST_DIR", tempfile.mkdtemp())
 import logsetup  # pylint: disable=wrong-import-position
 import services.lyrics as L  # pylint: disable=wrong-import-position
 
-FOUND = {"lyrics": "la la la", "synced": None, "meta": {"artist": "A", "title": "T", "duration": 100}}
+FOUND = {"lyrics": "la la la", "synced": None}
 
 
 class LyricsLoggingTest(unittest.TestCase):

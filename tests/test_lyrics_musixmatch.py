@@ -125,8 +125,7 @@ class MusixmatchTest(unittest.TestCase):
         ]})
         self.routes["track.lyrics.get"] = LYRICS
         self.routes["track.subtitles.get"] = SUBTITLES
-        found = self._fetch()
-        self.assertEqual(found["meta"]["duration"], 247)
+        self.assertIsNotNone(self._fetch())
         self.assertIn("track_id=3", self.calls[1])
 
     def test_a_synced_candidate_beats_a_plain_one_of_closer_length(self):
@@ -138,7 +137,7 @@ class MusixmatchTest(unittest.TestCase):
         self.routes["track.subtitles.get"] = SUBTITLES
         found = self._fetch()
         self.assertEqual(found["synced"], "[00:01.00] la la la")
-        self.assertEqual(found["meta"]["duration"], 249)
+        self.assertIn("track_id=2", self.calls[1])
 
     def test_lrc_is_returned_alongside_the_plain_text(self):
         self.routes["track.search"] = _answer({"track_list": [_track(3, "Space Debris", "Muse", 247)]})
@@ -183,7 +182,7 @@ class MusixmatchTest(unittest.TestCase):
         self.routes["track.search"] = _answer({"track_list": [NOKIA]})
         self.routes["track.lyrics.get"] = LYRICS
         self.routes["track.subtitles.get"] = SUBTITLES
-        self.assertEqual(self._fetch("Drake", "NOKIA", "241")["meta"]["title"], "NOKIA")
+        self.assertEqual(self._fetch("Drake", "NOKIA", "241")["lyrics"], "la la la")
 
     def test_empty_search_has_no_match(self):
         self.routes["track.search"] = _answer([])

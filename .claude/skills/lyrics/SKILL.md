@@ -19,7 +19,6 @@ Each provider is a function `(artist, title, album, duration) -> result | None`.
 ```python
 {"lyrics": str | None,   # plain text
  "synced": str | None,   # LRC with timestamps, when the provider offers it
- "meta":   {"artist", "title", "album", "duration"} | None,  # the matched candidate
  "versions": [{"lyrics", "synced", "album", "duration"}]}    # optional, winner first
 ```
 
@@ -45,7 +44,7 @@ Providers live in `services/lyrics.py`: `_provider_lrclib`, `_provider_musixmatc
 
 The search's `INFO` line counts one set narrowing three times — candidates returned, those of this length, those of them synced — so the last number is what the page can actually offer. Counting synced records over the whole result set instead, as it once did, reports versions that the length filter has already discarded.
 
-**Adding a provider:** write `_provider_<name>(artist, title, album, duration)` returning the dict above (set the `meta` fields you can, leave the rest `None`), add it to `PROVIDERS`, and — since a provider must never break the chain — catch its own network/parse exceptions and return `None` on failure. `fetch_lyrics` already wraps each call in a `try/except`, but keep provider-internal failures from raising too. Use a browser-like UA where a service blocks default agents (see `BROWSER_UA`).
+**Adding a provider:** write `_provider_<name>(artist, title, album, duration)` returning the dict above, check its own hits with `_matches_request` when its search is free text, add it to `PROVIDERS`, and — since a provider must never break the chain — catch its own network/parse exceptions and return `None` on failure. `fetch_lyrics` already wraps each call in a `try/except`, but keep provider-internal failures from raising too. Use a browser-like UA where a service blocks default agents (see `BROWSER_UA`).
 
 ## fetch_lyrics: the orchestrator
 
