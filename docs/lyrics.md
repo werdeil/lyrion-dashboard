@@ -7,3 +7,5 @@ The lyrics in your tags are shown as soon as a track starts, and a web search ru
 ![How the page picks the lyrics it shows](diagrams/lyrics.en.png)
 
 Genius only has plain text, so it is skipped once one is kept. Every version found stays one tap away on the source line under the lyrics, which also hides them for the track. The retry button runs the search again, bypassing the server's cache, where a found result stays 24 hours and a miss 1 hour. To see why a track ended up without lyrics, read its search in the [logs](logs.md).
+
+Lyrics that only say `[Instrumental]` (any brackets or case, `(instrumental)` too) mark the track as having no words: the page shows a spinning record in place of the text and skips the web search for that track, since a provider could only offer a wrong text. The retry button still runs one if you want to check.

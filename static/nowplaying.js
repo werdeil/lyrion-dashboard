@@ -424,9 +424,8 @@ function swatchSource(img) {
     return swatchCanvas;
 }
 
-function sampleCoverTint() {
+function sampleCoverTint(img) {
     try {
-        var img = el.cover;
         if (!img.naturalWidth) { return; }
 
         var vRgb;
@@ -525,25 +524,26 @@ function parseLRC(text) {
     return parsed;
 }
 
-// keepScroll preserves the current scroll position (used when only the mode
-// changes); by default the view resets to the top (used on a new track).
-function setLyrics(text, isEmpty, keepScroll) {
-    var prevScroll = keepScroll ? el.lyrics.scrollTop : 0;
+function clearLyrics(keepScroll) {
     if (!keepScroll) { setAutoFollow(true); }
-    el.lyrics.classList.remove('empty', 'lrc-mode');
+    el.lyrics.classList.remove('empty', 'lrc-mode', 'is-roomy');
+    delete el.lyrics.dataset.empty;
     el.lyrics.textContent = '';
     lrcLines = null;
     lrcNodes = null;
     lrcActiveIdx = -1;
+}
 
-    if (!text || isEmpty) {
-        el.lyrics.textContent = text || I18N.no_lyrics_library;
-        el.lyrics.classList.toggle('empty', !!isEmpty || !text);
-        el.lyrics.scrollTop = prevScroll;
-        updateScrollReset();
-        updateRetry();
+// keepScroll preserves the current scroll position (used when only the mode
+// changes); by default the view resets to the top (used on a new track).
+function setLyrics(text, keepScroll) {
+    if (!text) { setEmptyLyrics('none', I18N.no_lyrics_library); return; }
+    if (isInstrumental(text)) {
+        setEmptyLyrics('instrumental', I18N.instrumental);
         return;
     }
+    var prevScroll = keepScroll ? el.lyrics.scrollTop : 0;
+    clearLyrics(keepScroll);
 
     var parsed = parseLRC(text);
     if (parsed) {
@@ -554,7 +554,7 @@ function setLyrics(text, isEmpty, keepScroll) {
             var div = document.createElement('div');
             div.className = 'lrc-line';
             div.dataset.time = parsed[i].time;
-            div.textContent = parsed[i].text || '\u00a0';
+            div.textContent = parsed[i].text || ' ';
             el.lyrics.appendChild(div);
             lrcNodes.push(div);
         }
@@ -568,6 +568,95 @@ function setLyrics(text, isEmpty, keepScroll) {
     }
     updateScrollReset();
     updateRetry();
+}
+
+// Taggers write the marker in many shapes: [Instrumental], (instrumental), an LRC line holding it.
+function isInstrumental(text) {
+    var words = text.replace(/\[\d+:\d+(?:[.:]\d+)?\]/g, '').replace(/[[\]()*.\s]/g, '').toLowerCase();
+    return words === 'instrumental' || words === 'instrumentale';
+}
+
+var emptyView = null;
+
+function makeDiv(className) {
+    var div = document.createElement('div');
+    div.className = className;
+    return div;
+}
+
+function buildEmptyView() {
+    var view = {
+        root: makeDiv('np-lyrics-empty'),
+        vinyl: makeDiv('np-vinyl'),
+        label: document.createElement('img'),
+        text: makeDiv('np-lyrics-empty-text'),
+    };
+    var disc = makeDiv('np-vinyl-disc');
+    view.vinyl.setAttribute('aria-hidden', 'true');
+    view.label.className = 'np-vinyl-label';
+    view.label.alt = '';
+    view.label.addEventListener('error', function() { view.label.hidden = true; });
+    disc.appendChild(view.label);
+    view.vinyl.appendChild(disc);
+    view.vinyl.appendChild(makeDiv('np-vinyl-sheen'));
+    view.root.appendChild(view.vinyl);
+    view.root.appendChild(view.text);
+    return view;
+}
+
+function syncVinylLabel() {
+    if (!emptyView) { return; }
+    var src = el.cover.currentSrc || el.cover.src;
+    emptyView.label.hidden = !src;
+    if (src && emptyView.label.src !== src) { emptyView.label.src = src; }
+}
+
+// kind is none | searching | hidden | instrumental. An empty box already on
+// screen keeps its nodes, so the record never restarts its fade between two kinds.
+function setEmptyLyrics(kind, message) {
+    emptyView = emptyView || buildEmptyView();
+    var fresh = emptyView.root.parentNode !== el.lyrics;
+    if (fresh) {
+        clearLyrics(false);
+        el.lyrics.appendChild(emptyView.root);
+        el.lyrics.classList.add('empty');
+    }
+    emptyView.root.classList.toggle('is-fresh', fresh);
+    el.lyrics.dataset.empty = kind;
+    emptyView.text.textContent = message;
+    syncVinylLabel();
+    el.lyrics.scrollTop = 0;
+    fitVinyl();
+    updateScrollReset();
+    updateRetry();
+}
+
+var VINYL_MIN = 64;
+var VINYL_MAX = 300;
+var VINYL_GAP = 18;
+
+// The large record needs a box whose height comes from the viewport: one sized
+// by its own content would grow with the record. Centred on the box, it leaves
+// the message's height plus a gap free on both sides.
+function fitVinyl() {
+    if (!emptyView || emptyView.root.parentNode !== el.lyrics) { return; }
+    var box = el.lyrics;
+    var vinyl = emptyView.vinyl;
+    box.classList.remove('is-roomy');
+    vinyl.style.width = '';
+    vinyl.style.height = '';
+    if (getComputedStyle(box).flexBasis !== '0px') { return; }
+    box.classList.add('is-roomy');
+    var css = getComputedStyle(box);
+    var height = box.clientHeight - parseFloat(css.paddingTop) - parseFloat(css.paddingBottom)
+        - 2 * (emptyView.text.offsetHeight + VINYL_GAP);
+    var size = Math.floor(Math.min(height, box.clientWidth * 0.6, VINYL_MAX));
+    if (size < VINYL_MIN) {
+        box.classList.remove('is-roomy');
+        return;
+    }
+    vinyl.style.width = size + 'px';
+    vinyl.style.height = size + 'px';
 }
 
 function currentTime() {
@@ -623,15 +712,18 @@ function versionLength(version) {
     return ' \u00b7 ' + Math.floor(secs / 60) + ':' + ('0' + (Math.round(secs) % 60)).slice(-2);
 }
 
-// Stacked, a landscape screen always fits the card to it; portrait only once there are lyrics.
+// Stacked, a landscape screen always fits the card to it; portrait only once there are
+// lyrics, which an instrumental marker alone is not.
 var FIT_LANDSCAPE_MQ = '(max-width: 860px) and (orientation: landscape)';
 var FIT_PORTRAIT_MQ = '(max-width: 860px) and (orientation: portrait)';
 
 function fitCard() {
+    var words = versions.some(function(version) { return !isInstrumental(version.text); });
     var fit = window.matchMedia && (window.matchMedia(FIT_LANDSCAPE_MQ).matches ||
         (window.matchMedia(FIT_PORTRAIT_MQ).matches &&
-         versions.length > 0 && !nowPlaying.classList.contains('is-empty')));
+         words && !nowPlaying.classList.contains('is-empty')));
     document.documentElement.classList.toggle('card-fit', !!fit);
+    fitVinyl();
 }
 
 if (window.matchMedia) {
@@ -669,7 +761,7 @@ function showVersion(idx, keepScroll) {
     if (!version) { return; }
     versionIdx = idx;
     lyricsHidden = false;
-    setLyrics(version.text, false, keepScroll);
+    setLyrics(version.text, keepScroll);
     updateSource();
 }
 
@@ -677,7 +769,7 @@ function showVersion(idx, keepScroll) {
 function showHidden() {
     versionIdx = Math.max(versionIdx, 0);
     lyricsHidden = true;
-    setLyrics(I18N.lyrics_hidden, true);
+    setEmptyLyrics('hidden', I18N.lyrics_hidden);
     updateSource();
 }
 
@@ -794,6 +886,10 @@ if (el.source) {
         }
     });
 }
+
+// The box also changes size without the window: a cover loading reshapes the card above it.
+if (window.ResizeObserver) { new ResizeObserver(fitVinyl).observe(el.lyrics); }
+else { window.addEventListener('resize', fitVinyl); }
 
 function setSearching(on) {
     searching = on;
@@ -958,6 +1054,33 @@ function mosaicTileSettled() {
     if (mosaicRevealTimer === null) { advanceMosaicReveal(); }
 }
 
+// Where the idle content starts, in the mosaic's frame (its tilt ignored).
+function mosaicContentTop(H) {
+    var first = el.empty.querySelector('.np-empty-content > *');
+    if (!first || !first.offsetParent) { return H / 2; }
+    return first.getBoundingClientRect().top - el.empty.getBoundingClientRect().top - el.emptyMosaic.offsetTop;
+}
+
+// The slot the newest cover starts in: its seam with the slot behind it, where the
+// record rides, sits over the card's centre line, in the row the idle content
+// starts in (never the first, which the card's edge crops).
+function mosaicStartSlot(g, W, H, tile) {
+    var limit = mosaicContentTop(H) - MOSAIC_GAP;
+    var clear = 0;
+    while (clear < g.rows && clear * g.rowH + MOSAIC_GAP / 2 + tile <= limit) { clear++; }
+    var row = Math.min(Math.max(clear, 1), g.rows - 1);
+    var best = 0;
+    var nearest = Infinity;
+    for (var s = 1; s < g.slots - 1; s++) {
+        var at = mosaicSlot(g, s);
+        var behind = mosaicSlot(g, s - 1);
+        if (behind.y !== at.y || Math.round((at.y - MOSAIC_GAP / 2) / g.rowH) !== row) { continue; }
+        var dx = Math.abs((at.x + behind.x + tile) / 2 - W / 2);
+        if (dx < nearest) { best = s; nearest = dx; }
+    }
+    return best;
+}
+
 function layoutMosaic(ids) {
     el.emptyMosaic.textContent = '';
     if (mosaicRevealTimer) { clearTimeout(mosaicRevealTimer); mosaicRevealTimer = null; }
@@ -981,10 +1104,18 @@ function layoutMosaic(ids) {
         img.className = 'np-mosaic-tile';
         img.onload = function() {
             this.style.setProperty('--mosaic-r', coverRatio(this));
+            if (this === mosaicGeom.tiles[0]) { tintFromNewest(); }
             mosaicTileSettled();
         };
         img.onerror = mosaicTileSettled;
-        img.src = '/cover/' + encodeURIComponent(ids[i % ids.length]) + '.jpg?size=' + size;
+        img.src = mosaicCoverUrl(ids[i % ids.length], size);
+        // The last tile rides just ahead of the newest along the belt: the record
+        // marking where the list loops, labelled with the newest cover.
+        if (i === count - 1 && count > 1) {
+            img.classList.add('is-record');
+            img.style.backgroundImage = 'url("' + mosaicCoverUrl(ids[0], size) + '")';
+            img.src = RECORD_SRC;
+        }
         img.alt = '';
         img.decoding = 'async';
         if (reduce) { img.classList.add('is-shown'); }
@@ -998,9 +1129,10 @@ function layoutMosaic(ids) {
         // Where each tile is drawn, and the row drop owed to it.
         drawnX: [], drawnY: [], dropY: [],
     };
+    mosaicGeom.phase = mosaicStartSlot(mosaicGeom, W, H, grid.tile) * grid.step;
     // Placed before entering the document: a tile first rendered already at its
     // position has no earlier transform, so the glide can't fire on layout.
-    positionMosaic(0);
+    positionMosaic(mosaicGeom.phase);
     el.emptyMosaic.appendChild(frag);
     if (reduce) {
         mosaicRevealCursor = tiles.length;
@@ -1018,6 +1150,20 @@ var mosaicDirty = false;
 // High-water mark of what has been asked for, so a resize only re-asks when
 // the card wants more than any request so far.
 var mosaicAsked = 0;
+var RECORD_SRC = '/static/vinyl.svg';
+
+function mosaicCoverUrl(id, size) {
+    return '/cover/' + encodeURIComponent(id) + '.jpg?size=' + size;
+}
+
+// Idle, the page takes its colours from the newest cover in the mosaic.
+function tintFromNewest() {
+    var newest = mosaicGeom && mosaicGeom.tiles[0];
+    if (nowPlaying.classList.contains('is-empty') && newest && newest.complete) {
+        sampleCoverTint(newest);
+    }
+}
+
 function loadMosaic() {
     if (mosaicLoaded || mosaicLoading || !el.emptyMosaic) { return; }
     mosaicLoading = true;
@@ -1036,6 +1182,7 @@ function loadMosaic() {
                 layoutMosaic(ids);
             }
             if (el.empty) { el.empty.classList.add('has-mosaic'); }
+            tintFromNewest();
             // Reduced-motion leaves the belt laid out but still (startMosaic).
             startMosaic();
         })
@@ -1277,7 +1424,6 @@ function render(data) {
         el.cover.removeAttribute('src');
         closeCoverZoom();
         setLyrionLink(null);
-        resetColors();
         lastTrackKey = null;
         currentTrack = null;
         lrcLines = null;
@@ -1329,9 +1475,9 @@ function render(data) {
         versions = data.lyrics ? [{ text: data.lyrics, source: 'library' }] : [];
         versionIdx = data.lyrics ? 0 : -1;
         lyricsHidden = false;
-        if (!data.lyrics) { setLyrics(I18N.no_lyrics_library, true); }
-        else if (allHidden()) { showHidden(); }
-        else { showVersion(0); }
+        // Without library lyrics, fetchLyrics() below paints the search state.
+        if (data.lyrics && allHidden()) { showHidden(); }
+        else if (data.lyrics) { showVersion(0); }
         updateSource();
         lyricsTried = false;
         searchFailure = null;
@@ -1339,10 +1485,11 @@ function render(data) {
         // The cooldown is per track, so a new one starts with a live button.
         holdRetry(0);
 
-        if (data.lyrics) {
-            trySyncedFromWeb();
-        } else {
+        // An instrumental marker is the library's answer; only a retry asks the web past it.
+        if (!data.lyrics) {
             fetchLyrics();
+        } else if (!isInstrumental(data.lyrics)) {
+            trySyncedFromWeb();
         }
     }
 }
@@ -1355,14 +1502,10 @@ function searchFailureMessage(res) {
     return null;
 }
 
-function emptyLyricsMessage(res) {
-    return searchFailureMessage(res) || I18N.no_lyrics_found;
-}
-
 function fetchLyrics() {
     if (!currentTrack) { return; }
     var track = currentTrack;
-    setLyrics(I18N.searching, true);
+    setEmptyLyrics('searching', I18N.searching);
     var params = new URLSearchParams({
         track_id: track.track_id || '',
         artist:   track.artist || '',
@@ -1385,13 +1528,13 @@ function fetchLyrics() {
             if (pushWebVersions(res)) {
                 landOnVersions(null);
             } else {
-                setLyrics(emptyLyricsMessage(res), true);
+                setEmptyLyrics('none', searchFailureMessage(res) || I18N.no_lyrics_found);
             }
         })
         .catch(function() {
             if (track !== currentTrack) { return; }
             setSearching(false);
-            setLyrics(I18N.lyrics_unavailable, true);
+            setEmptyLyrics('none', I18N.lyrics_unavailable);
         });
 }
 
@@ -1744,7 +1887,8 @@ function fitCardCover() {
 
 el.cover.addEventListener('load', function() {
     fitCardCover();
-    sampleCoverTint();
+    sampleCoverTint(el.cover);
+    syncVinylLabel();
 });
 
 // Broken-cover fallback (an inline onerror would violate the CSP); the guard
