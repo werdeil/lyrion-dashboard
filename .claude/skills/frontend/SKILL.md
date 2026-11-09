@@ -109,7 +109,7 @@ Both lyrics controls share `.np-lyrics-tools`, one pill floating over the box's 
 
 ## Enlarged cover
 
-The card's artwork is a button (`#np-cover-button`) opening `#cover-zoom`, an overlay holding the artwork with the track's title/artist/album over its lower edge. It covers `.left-panel` — the now-playing card only, leaving the stats panel readable — and is a sibling of the card rather than a child, because opening fades out the card's own children and the overlay must not fade with them.
+The card's artwork is a button (`#np-cover-button`) opening `#cover-zoom`, an overlay holding the artwork with the track's title/artist/album (and the disc title, a line of its own shown only when the disc has one) over its lower edge. It covers `.left-panel` — the now-playing card only, leaving the stats panel readable — and is a sibling of the card rather than a child, because opening fades out the card's own children and the overlay must not fade with them.
 
 There is no close button: a click anywhere on the overlay closes it, as does Escape, and `render()` closes it when playback stops. Focus never leaves the trigger, which carries `aria-expanded`.
 

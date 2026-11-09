@@ -42,6 +42,7 @@ var el = {
     title:  document.getElementById('np-title'),
     artist: document.getElementById('np-artist'),
     album:  document.getElementById('np-album'),
+    disc:   document.getElementById('np-disc'),
     lyrics: document.getElementById('np-lyrics'),
     source: document.getElementById('np-lyrics-source'),
     sourceLabel: document.getElementById('np-lyrics-source-label'),
@@ -1567,12 +1568,11 @@ function render(data) {
     renderVolume(data);
     el.title.textContent = data.title || '';
     el.artist.textContent = data.artist || '';
-    var album = data.album
+    el.album.textContent = data.album
         ? (data.year ? data.album + ' (' + data.year + ')' : data.album)
         : '';
-    el.album.textContent = data.disc_title
-        ? (album ? album + ' · ' + data.disc_title : data.disc_title)
-        : album;
+    el.disc.textContent = data.disc_title || '';
+    el.disc.hidden = !data.disc_title;
 
     // Streams like a Deezer flow keep one track_id across songs, so the key
     // includes the visible metadata.
@@ -1837,6 +1837,7 @@ var coverZoom = {
     title: document.getElementById('cover-zoom-title'),
     artist: document.getElementById('cover-zoom-artist'),
     album: document.getElementById('cover-zoom-album'),
+    disc: document.getElementById('cover-zoom-disc'),
     button: document.getElementById('np-cover-button'),
     panel: document.querySelector('.left-panel'),
 };
@@ -1884,6 +1885,8 @@ function syncCoverZoom() {
     coverZoom.title.textContent = el.title.textContent;
     coverZoom.artist.textContent = el.artist.textContent;
     coverZoom.album.textContent = el.album.textContent;
+    coverZoom.disc.textContent = el.disc.textContent;
+    coverZoom.disc.hidden = el.disc.hidden;
 }
 
 function stopZoomAnims() {
