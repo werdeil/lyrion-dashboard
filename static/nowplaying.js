@@ -1567,9 +1567,12 @@ function render(data) {
     renderVolume(data);
     el.title.textContent = data.title || '';
     el.artist.textContent = data.artist || '';
-    el.album.textContent = data.album
+    var album = data.album
         ? (data.year ? data.album + ' (' + data.year + ')' : data.album)
         : '';
+    el.album.textContent = data.disc_title
+        ? (album ? album + ' · ' + data.disc_title : data.disc_title)
+        : album;
 
     // Streams like a Deezer flow keep one track_id across songs, so the key
     // includes the visible metadata.
