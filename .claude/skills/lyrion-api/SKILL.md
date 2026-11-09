@@ -23,7 +23,7 @@ The payload is always a `slim.request` with a player id (or `""` for server-wide
 payload = {
     "id": 1,
     "method": "slim.request",
-    "params": [player_id, ["status", "-", 1, "tags:aAldcKy"]],
+    "params": [player_id, ["status", "-", 1, "tags:aAldicKy"]],
 }
 data = lyrion_request(payload)
 ```
@@ -33,7 +33,7 @@ data = lyrion_request(payload)
 
 **Examples already in the file** — read them before writing a new call:
 - `get_players()` — `["", ["players", "0", "100"]]`, returns `players_loop`.
-- `get_now_playing(player_id)` — `["status", "-", 1, "tags:aAldcKy"]`, returns the current track from `playlist_loop`.
+- `get_now_playing(player_id)` — `["status", "-", 1, "tags:aAldicKy"]`, returns the current track from `playlist_loop`.
 
 ## The tag system
 
@@ -46,6 +46,7 @@ data = lyrion_request(payload)
 | `l` | album | |
 | `y` | year | `0` when unknown, normalized to `None` |
 | `d` | duration | |
+| `i` | disc, discsubtitle | `discsubtitle` only when the disc has its own title, mapped to `disc_title` |
 | `c` | coverid | absent for remote/streamed tracks |
 | `K` | artwork_url | remote streams (Deezer/Spotify/radio); may be relative to the host |
 

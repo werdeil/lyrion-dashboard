@@ -93,6 +93,13 @@
 {%- endmacro %}
 
 {# Speaker with sound waves, or with a cross once its parent carries .is-muted. #}
+{% macro disc_icon(size=20) -%}
+{% call _frame(size) %}
+    <circle cx="12" cy="12" r="9.5"/>
+    <circle cx="12" cy="12" r="2.5"/>
+{% endcall %}
+{%- endmacro %}
+
 {% macro volume_icon(size=20) -%}
 {% call _frame(size) %}
     <path d="M11 5 6 9H2v6h4l5 4V5z"/>

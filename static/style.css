@@ -571,9 +571,60 @@ body.in-app .np-pull {
 }
 
 .np-album {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    column-gap: 0.45em;
     margin: 2px 0 0 0;
     font-size: var(--fs-sm);
     color: var(--text-muted);
+}
+
+/* The album never truncates; the disc title shrinks from 7ch up to its own width,
+   and only drops to the next line when even 7ch no longer fits. */
+.np-album-name {
+    flex: 0 0 auto;
+    max-width: 100%;
+}
+
+.np-disc {
+    flex: 1 1 7ch;
+    min-width: 0;
+    max-width: max-content;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-style: italic;
+    color: var(--accent-color);
+}
+
+.np-disc[hidden] {
+    display: none;
+}
+
+.np-disc svg {
+    width: 0.95em;
+    height: 0.95em;
+    margin-right: 0.3em;
+    vertical-align: -0.12em;
+}
+
+.cover-zoom-album.np-album {
+    justify-content: center;
+}
+
+@media (max-width: 540px) {
+    .np-album {
+        display: block;
+    }
+    .np-album-name {
+        margin-right: 0.45em;
+    }
+    .np-disc {
+        display: inline-block;
+        max-width: 100%;
+        vertical-align: bottom;
+    }
 }
 
 .np-player,

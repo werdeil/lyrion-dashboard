@@ -134,13 +134,14 @@ def get_now_playing(player_id):
     preferred so a "feat." line shows everyone, as Lyrion does. Streamed tracks
     have no local coverid but may carry an `artwork_url` (tag K), sometimes
     relative to the Lyrion host. `volume` is the player's mixer level (0-100,
-    None when unreported) and `muted` whether it is muted. `paused` is True only
+    None when unreported) and `muted` whether it is muted. `disc_title` is the
+    disc's own subtitle (tag i), None when the disc has none. `paused` is True only
     for a powered-on player holding its track in pause, never for a stopped one.
     """
     payload = {
         "id": 1,
         "method": "slim.request",
-        "params": [player_id, ["status", "-", 1, "tags:aAldcKy"]],
+        "params": [player_id, ["status", "-", 1, "tags:aAldicKy"]],
     }
     data = lyrion_request(payload)
     result = data.get("result", {})
@@ -168,6 +169,7 @@ def get_now_playing(player_id):
         "artist": track.get("trackartist") or track.get("artist") or track.get("albumartist"),
         "album": track.get("album"),
         "year": _year(track.get("year")),
+        "disc_title": track.get("discsubtitle") or None,
         "coverid": track.get("coverid"),
         "artwork_url": artwork_url,
         "volume": volume,
