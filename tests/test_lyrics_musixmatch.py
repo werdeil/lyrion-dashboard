@@ -226,6 +226,30 @@ class SigningKeyTest(unittest.TestCase):
             self.assertEqual(L._mxm_fetch_key(), ("s3cret", None))
         self.assertEqual(urls[1], "https://www.musixmatch.com/_next/static/chunks/pages/_app-abc.js")
 
+    def test_key_is_found_among_turbopack_chunks(self):
+        cdn = "https://s.mxmcdn.net/mxm-com/prod/1.43.0/_next/static"
+        page = type("R", (), {"text": "".join(
+            f'<script src="{cdn}/{path}"></script>'
+            for path in ("chunks/0cz1d0mv5g_q7.js", "chunks/2x0qajpyc1dzo.js", "chunks/0a3swv2oz8k_v.js", "x/_buildManifest.js")
+        ), "status_code": 200})
+        encoded = base64.b64encode(b"s3cret").decode()[::-1]
+        scripts = {
+            "0cz1d0mv5g_q7.js": "var a=1;",
+            "2x0qajpyc1dzo.js": 'Buffer.from("not base64!".split("")',
+            "0a3swv2oz8k_v.js": f'x=Buffer.from("{encoded}".split("")',
+        }
+        urls = []
+
+        def get(url, **_kwargs):
+            urls.append(url)
+            if url.endswith("/search"):
+                return page
+            return type("R", (), {"text": scripts[url.rsplit("/", 1)[-1]]})
+
+        with patch.object(L.requests, "get", side_effect=get):
+            self.assertEqual(L._mxm_fetch_key(), ("s3cret", "1.43.0"))
+        self.assertEqual(len(urls), 4)
+
     def test_site_without_the_script_is_an_outage(self):
         page = type("R", (), {"text": "<html></html>", "status_code": 200})
         with patch.object(L.requests, "get", return_value=page):

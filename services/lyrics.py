@@ -323,7 +323,7 @@ _MXM_KEY_TTL = 6 * 3600
 # Placeholder tracks Musixmatch serves instead of an answer: 226291677 is Drake's NOKIA,
 # 115264642 Coldplay's Paradise.
 _MXM_PLACEHOLDERS = {226291677, 115264642}
-_MXM_APP_SCRIPT_RE = re.compile(r'src="([^"]*/_next/static/chunks/pages/_app-[^"]+\.js)"')
+_MXM_CHUNK_RE = re.compile(r'src="([^"]*/_next/static/chunks/[^"]+\.js)"')
 _MXM_KEY_RE = re.compile(r'from\(\s*"(.*?)"\s*\.split')
 _MXM_VERSION_RE = re.compile(r"/prod/([\d.]+)/")
 _mxm_key = {"value": {}}
@@ -344,27 +344,35 @@ def _musixmatch_token():
     return token or None
 
 
+def _mxm_key_in(script):
+    encoded = _MXM_KEY_RE.search(script)
+    try:
+        return base64.b64decode(encoded.group(1)[::-1], validate=True).decode() if encoded else None
+    except (ValueError, UnicodeDecodeError):
+        return None
+
+
 def _mxm_fetch_key():
     try:
         page = requests.get(
             f"{MXM_SITE}/search", headers={"User-Agent": _MXM_UA, "Cookie": "mxm_bab=AB"}, timeout=10
         )
-        scripts = _MXM_APP_SCRIPT_RE.findall(page.text)
-        if not scripts:
-            raise ProviderUnavailable(f"musixmatch: no signing key script on its site (HTTP {page.status_code})")
-        script_url = urljoin(f"{MXM_SITE}/", scripts[-1])
-        script = requests.get(script_url, headers={"User-Agent": _MXM_UA}, timeout=10)
+        chunks = list(dict.fromkeys(_MXM_CHUNK_RE.findall(page.text)))
+        # The key sits in `_app` under the pages router, in an unnamed chunk under Turbopack.
+        chunks.sort(key=lambda url: "/pages/_app-" not in url)
+        for chunk in chunks:
+            script_url = urljoin(f"{MXM_SITE}/", chunk)
+            secret = _mxm_key_in(requests.get(script_url, headers={"User-Agent": _MXM_UA}, timeout=10).text)
+            if secret:
+                break
+        else:
+            raise ProviderUnavailable(
+                f"musixmatch: no signing key in the {len(chunks)} scripts of its site (HTTP {page.status_code})"
+            )
     except requests.RequestException as exc:
         raise ProviderUnavailable("musixmatch") from exc
-    encoded = _MXM_KEY_RE.search(script.text)
-    if not encoded:
-        raise ProviderUnavailable("musixmatch: no signing key found in its site's script")
-    try:
-        secret = base64.b64decode(encoded.group(1)[::-1]).decode()
-    except (ValueError, UnicodeDecodeError) as exc:
-        raise ProviderUnavailable("musixmatch: unreadable signing key") from exc
     version = _MXM_VERSION_RE.search(script_url)
-    log.debug("musixmatch: signing key loaded (site version %s)", version.group(1) if version else None)
+    log.debug("musixmatch: signing key loaded from %s (site version %s)", script_url, version.group(1) if version else None)
     return secret, version.group(1) if version else None
 
 
